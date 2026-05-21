@@ -12,6 +12,7 @@ export default function DashboardLayout({ children }) {
   const [profile, setProfile] = useState(null)
   const [navItems, setNavItems] = useState([])
   const [unread, setUnread] = useState(0)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -21,16 +22,13 @@ export default function DashboardLayout({ children }) {
       const { data: p } = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
       setProfile(p)
 
-      // Load nav from DB
       const { data: nav } = await supabase
         .from('nav_items')
         .select('*')
         .eq('enabled', true)
         .order('sort_order')
-      // Filter manager-only if not manager
       setNavItems((nav || []).filter(n => !n.manager_only || p?.is_manager))
 
-      // Unread messages
       const { count } = await supabase
         .from('messages')
         .select('id', { count: 'exact' })
@@ -49,16 +47,18 @@ export default function DashboardLayout({ children }) {
     ? profile.full_name.split(' ').map(w => w[0]).join('').slice(0, 2)
     : '?'
 
+  const bottomNavItems = navItems.slice(0, 4)
+
   return (
     <div className="flex flex-row-reverse h-screen bg-[#f8f5f5] overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-48 flex flex-col bg-white border-l border-gray-100 flex-shrink-0">
+
+      {/* SIDEBAR - desktop only */}
+      <aside className="hidden md:flex w-48 flex-col bg-white border-l border-gray-100 flex-shrink-0">
         <div className="p-3 border-b border-gray-100">
           <div className="flex items-center gap-2 mb-2">
             <HaziraLogo size={32} />
             <div>
               <div className="text-sm font-bold text-[#CC1010]">הזירה</div>
-              
             </div>
           </div>
           {profile && (
@@ -97,7 +97,6 @@ export default function DashboardLayout({ children }) {
             </Link>
           ))}
 
-          {/* Settings link for managers */}
           {profile?.is_manager && (
             <>
               <div className="mx-4 my-1 border-t border-gray-100" />
@@ -117,9 +116,18 @@ export default function DashboardLayout({ children }) {
         </nav>
       </aside>
 
-      {/* Main */}
+      {/* MAIN */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <div className="flex items-center gap-3 px-5 py-3 bg-white border-b border-gray-100">
+
+        {/* Top bar */}
+        <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100">
+          <button
+            onClick={() => setMenuOpen(true)}
+            className="md:hidden text-gray-500 p-1"
+          >
+            <i className="ti ti-menu-2" style={{ fontSize: 20 }} />
+          </button>
+
           <div className="flex-1">
             <div className="text-[13px] font-medium text-gray-800">
               שלום{profile ? ', ' + profile.full_name?.split(' ')[0] : ''}!
@@ -130,10 +138,123 @@ export default function DashboardLayout({ children }) {
           </div>
           <HaziraLogo size={26} />
         </div>
-        <div className="flex-1 overflow-y-auto p-5">
+
+        {/* Page content */}
+        <div className="flex-1 overflow-y-auto p-4 pb-24 md:pb-5">
           {children}
         </div>
       </main>
+
+      {/* BOTTOM NAV - mobile only */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-16 z-50">
+        {bottomNavItems.map(item => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full relative ${
+              pathname === item.href ? 'text-[#CC1010]' : 'text-gray-400'
+            }`}
+          >
+            <i className={`ti ${item.icon}`} style={{ fontSize: 20 }} />
+            <span className="text-[10px]">{item.label}</span>
+            {item.label === 'הודעות' && unread > 0 && (
+              <span className="absolute top-2 right-1/4 bg-[#CC1010] text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center">
+                {unread}
+              </span>
+            )}
+          </Link>
+        ))}
+        <button
+          onClick={() => setMenuOpen(true)}
+          className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-gray-400"
+        >
+          <i className="ti ti-dots" style={{ fontSize: 20 }} />
+          <span className="text-[10px]">עוד</span>
+        </button>
+      </nav>
+
+      {/* MOBILE DRAWER MENU */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden" dir="rtl">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} />
+
+          <div className="relative w-64 bg-white h-full flex flex-col shadow-xl mr-auto">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <HaziraLogo size={28} />
+                <span className="font-bold text-[#CC1010]">הזירה</span>
+              </div>
+              <button onClick={() => setMenuOpen(false)} className="text-gray-400 p-1">
+                <i className="ti ti-x" style={{ fontSize: 18 }} />
+              </button>
+            </div>
+
+            {profile && (
+              <div className="flex items-center gap-3 px-4 py-3 bg-[#FDEAEA] mx-3 mt-3 rounded-xl">
+                <div className="w-8 h-8 rounded-full bg-[#CC1010] text-white text-sm font-medium flex items-center justify-center">
+                  {initials}
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-[#8B0000]">{profile.full_name}</div>
+                  <div className="text-[11px] text-[#CC1010]">{profile.role}</div>
+                </div>
+              </div>
+            )}
+
+            <nav className="flex-1 overflow-y-auto py-2 mt-2">
+              {navItems.map(item => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 text-[14px] ${
+                    pathname === item.href
+                      ? 'text-[#CC1010] font-medium bg-[#FDEAEA]'
+                      : 'text-gray-600'
+                  }`}
+                >
+                  <i className={`ti ${item.icon}`} style={{ fontSize: 17 }} />
+                  {item.label}
+                  {item.label === 'הודעות' && unread > 0 && (
+                    <span className="mr-auto bg-[#CC1010] text-white text-[10px] rounded-full px-1.5 py-0.5">
+                      {unread}
+                    </span>
+                  )}
+                </Link>
+              ))}
+
+              {profile?.is_manager && (
+                <>
+                  <div className="mx-4 my-1 border-t border-gray-100" />
+                  <Link
+                    href="/dashboard/settings"
+                    onClick={() => setMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 text-[14px] ${
+                      pathname === '/dashboard/settings'
+                        ? 'text-[#CC1010] font-medium bg-[#FDEAEA]'
+                        : 'text-gray-600'
+                    }`}
+                  >
+                    <i className="ti ti-settings" style={{ fontSize: 17 }} />
+                    הגדרות
+                  </Link>
+                </>
+              )}
+            </nav>
+
+            <div className="p-4 border-t border-gray-100">
+              <button
+                onClick={logout}
+                className="flex items-center gap-2 text-gray-500 text-sm w-full"
+              >
+                <i className="ti ti-logout" style={{ fontSize: 16 }} />
+                התנתק
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
