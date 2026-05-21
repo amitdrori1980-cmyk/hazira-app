@@ -1,0 +1,329 @@
+'use client'
+import { useEffect, useState } from 'react'
+import * as XLSX from 'xlsx'
+import { supabase } from '@/lib/supabase'
+
+const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
+const HE_DAYS   = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']
+
+function parseDate(val) {
+  if (!val) return null
+  if (typeof val === 'number') {
+    const d = new Date(Math.round((val - 25569) * 86400 * 1000))
+    return d.toISOString().slice(0, 10)
+  }
+  const s = val.toString().trim()
+  const m = s.match(/^(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{2,4})$/)
+  if (m) {
+    const y = m[3].length === 2 ? '20' + m[3] : m[3]
+    return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`
+  }
+  return null
+}
+
+export default function ConstraintsPage() {
+  const [constraints, setConstraints] = useState([])
+  const [events, setEvents]           = useState([])
+  const [crew, setCrew]               = useState([])
+  const [loading, setLoading]         = useState(true)
+  const [showConstraints, setShowConstraints] = useState(true)
+  const [showEvents, setShowEvents]           = useState(true)
+
+  // Calendar state
+  const today = new Date()
+  const [calYear, setCalYear]   = useState(today.getFullYear())
+  const [calMonth, setCalMonth] = useState(today.getMonth())
+  const [selectedDay, setSelectedDay] = useState(null)
+
+  // Import state
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState(null)
+
+  // Manual add
+  const [showAdd, setShowAdd] = useState(false)
+  const [form, setForm]       = useState({ crew_name:'', date:'', hours:'', notes:'' })
+  const [adding, setAdding]   = useState(false)
+
+  useEffect(() => { load() }, [])
+
+  async function load() {
+    const [{ data: c }, { data: e }, { data: cr }] = await Promise.all([
+      supabase.from('crew_constraints').select('*').order('date'),
+      supabase.from('events').select('id,title,date,time,type').order('date'),
+      supabase.from('crew_members').select('id,full_name').eq('active',true).order('full_name'),
+    ])
+    setConstraints(c || [])
+    setEvents(e || [])
+    setCrew(cr || [])
+    setLoading(false)
+  }
+
+  function changeMonth(dir) {
+    let m = calMonth + dir, y = calYear
+    if (m > 11) { m = 0; y++ }
+    if (m < 0)  { m = 11; y-- }
+    setCalMonth(m); setCalYear(y); setSelectedDay(null)
+  }
+
+  function dateStr(y, m, d) {
+    return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+  }
+
+  const firstDay    = new Date(calYear, calMonth, 1).getDay()
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
+  const daysInPrev  = new Date(calYear, calMonth, 0).getDate()
+
+  function getDayData(ds) {
+    const dayEvents      = showEvents      ? events.filter(e => e.date === ds) : []
+    const dayConstraints = showConstraints ? constraints.filter(c => c.date === ds) : []
+    return { dayEvents, dayConstraints }
+  }
+
+  const selectedData = selectedDay ? getDayData(selectedDay) : null
+
+  // Import from Excel
+  function handleFile(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setImporting(true)
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      const wb   = XLSX.read(ev.target.result, { type: 'array', raw: true })
+      const ws   = wb.Sheets[wb.SheetNames[0]]
+      const data = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true })
+      if (data.length < 2) { setImporting(false); return }
+
+      const headers = data[0].map(h => h?.toString().toLowerCase().trim())
+      const dateIdx  = headers.findIndex(h => ['תאריך','date'].includes(h))
+      const nameIdx  = headers.findIndex(h => ['שם','name','full_name'].includes(h))
+      const hoursIdx = headers.findIndex(h => ['שעות','hours','זמינות'].includes(h))
+      const notesIdx = headers.findIndex(h => ['הערה','הערות','notes'].includes(h))
+
+      let success = 0, failed = 0
+      for (const row of data.slice(1)) {
+        const date = parseDate(row[dateIdx])
+        const name = row[nameIdx]?.toString().trim()
+        if (!date || !name) { failed++; continue }
+
+        const hours = row[hoursIdx]?.toString().trim() || ''
+        const notes = row[notesIdx]?.toString().trim() || ''
+
+        // Try to match crew member by name
+        const member = crew.find(c => c.full_name.trim() === name)
+
+        const { error } = await supabase.from('crew_constraints').insert({
+          crew_member_id: member?.id || null,
+          crew_name: name,
+          date,
+          hours,
+          notes,
+          available: false,
+        })
+        if (error) failed++; else success++
+      }
+
+      setImportResult({ success, failed })
+      await load()
+      setImporting(false)
+      e.target.value = ''
+    }
+    reader.readAsArrayBuffer(file)
+  }
+
+  async function addConstraint(ev) {
+    ev.preventDefault()
+    if (!form.crew_name || !form.date) return
+    setAdding(true)
+    const member = crew.find(c => c.full_name.trim() === form.crew_name.trim())
+    await supabase.from('crew_constraints').insert({
+      crew_member_id: member?.id || null,
+      crew_name: form.crew_name,
+      date: form.date,
+      hours: form.hours,
+      notes: form.notes,
+      available: false,
+    })
+    setForm({ crew_name:'', date:'', hours:'', notes:'' })
+    setShowAdd(false)
+    setAdding(false)
+    await load()
+  }
+
+  async function deleteConstraint(id) {
+    await supabase.from('crew_constraints').delete().eq('id', id)
+    setConstraints(prev => prev.filter(c => c.id !== id))
+  }
+
+  const TYPE_COLOR = { rehearsal:'bg-[#FDEAEA] text-[#8B0000]', show:'bg-[#E1F5EE] text-[#085041]', crew:'bg-[#FAEEDA] text-[#633806]', technical:'bg-[#FAECE7] text-[#4A1B0C]' }
+
+  return (
+    <div className="max-w-2xl">
+      {/* Controls */}
+      <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer text-[13px] text-gray-700">
+              <input type="checkbox" checked={showEvents} onChange={e=>setShowEvents(e.target.checked)}
+                style={{accentColor:'#CC1010'}} className="w-4 h-4"/>
+              <span className="w-3 h-3 rounded-sm bg-[#FDEAEA] inline-block"/>
+              הצג אירועים
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer text-[13px] text-gray-700">
+              <input type="checkbox" checked={showConstraints} onChange={e=>setShowConstraints(e.target.checked)}
+                style={{accentColor:'#6366f1'}} className="w-4 h-4"/>
+              <span className="w-3 h-3 rounded-sm bg-[#EEF2FF] inline-block"/>
+              הצג אילוצי צוות
+            </label>
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={() => setShowAdd(!showAdd)}
+              className="text-[12px] border border-[#CC1010] text-[#CC1010] px-3 py-1.5 rounded-lg hover:bg-[#FDEAEA]">
+              <i className="ti ti-plus"/> הוסף ידנית
+            </button>
+            <label className={`text-[12px] border px-3 py-1.5 rounded-lg cursor-pointer transition-colors ${importing ? 'border-gray-200 text-gray-400' : 'border-[#6366f1] text-[#6366f1] hover:bg-[#EEF2FF]'}`}>
+              {importing ? 'מייבא...' : <><i className="ti ti-file-spreadsheet"/> ייבא Excel</>}
+              <input type="file" accept=".xlsx,.xls" onChange={handleFile} className="hidden" disabled={importing}/>
+            </label>
+          </div>
+        </div>
+
+        {/* Import result */}
+        {importResult && (
+          <div className="mt-3 text-[12px] text-right">
+            {importResult.success > 0 && <span className="text-[#085041]">✅ {importResult.success} אילוצים יובאו  </span>}
+            {importResult.failed > 0  && <span className="text-[#CC1010]">❌ {importResult.failed} נכשלו</span>}
+          </div>
+        )}
+
+        {/* Manual add form */}
+        {showAdd && (
+          <form onSubmit={addConstraint} className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
+              <select value={form.crew_name} onChange={e=>setForm(f=>({...f,crew_name:e.target.value}))}
+                required className="col-span-2 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]">
+                <option value="">בחר איש צוות...</option>
+                {crew.map(c=><option key={c.id} value={c.full_name}>{c.full_name}</option>)}
+              </select>
+              <input value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}
+                type="date" required className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+              <input value={form.hours} onChange={e=>setForm(f=>({...f,hours:e.target.value}))}
+                placeholder="שעות (לדוגמה 09:00-13:00)" className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+              <input value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}
+                placeholder="הערה" className="col-span-2 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" disabled={adding}
+                className="flex-1 bg-[#CC1010] text-white text-sm py-2 rounded-lg">הוסף</button>
+              <button type="button" onClick={()=>setShowAdd(false)}
+                className="flex-1 border border-gray-200 text-gray-500 text-sm py-2 rounded-lg">ביטול</button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* Calendar */}
+      <div className="bg-white border border-gray-100 rounded-xl p-4 mb-3">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={()=>changeMonth(-1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">‹ הקודם</button>
+          <span className="text-sm font-semibold text-[#CC1010]">{HE_MONTHS[calMonth]} {calYear}</span>
+          <button onClick={()=>changeMonth(1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">הבא ›</button>
+        </div>
+
+        {/* Day names */}
+        <div className="grid grid-cols-7 gap-1 mb-1">
+          {HE_DAYS.map(d=><div key={d} className="text-center text-[11px] text-gray-400 font-medium py-1">{d}</div>)}
+        </div>
+
+        {/* Days */}
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({length:firstDay}).map((_,i)=>(
+            <div key={'p'+i} className="min-h-[58px] rounded-lg p-1 opacity-25">
+              <div className="text-center text-[11px] text-gray-400">{daysInPrev-firstDay+i+1}</div>
+            </div>
+          ))}
+          {Array.from({length:daysInMonth}).map((_,i)=>{
+            const d  = i+1
+            const ds = dateStr(calYear,calMonth,d)
+            const isToday    = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d
+            const isSelected = selectedDay===ds
+            const { dayEvents, dayConstraints } = getDayData(ds)
+            const hasData = dayEvents.length > 0 || dayConstraints.length > 0
+
+            return (
+              <div key={d} onClick={()=>setSelectedDay(ds)}
+                className={`min-h-[58px] rounded-lg p-1 cursor-pointer border transition-all ${
+                  isSelected ? 'border-[#CC1010] bg-[#FDEAEA]' :
+                  isToday    ? 'bg-[#FDEAEA] border-transparent' :
+                  hasData    ? 'border-gray-100 bg-gray-50' :
+                               'border-transparent hover:border-gray-200 hover:bg-gray-50'
+                }`}>
+                <div className={`text-center text-[11px] font-medium mb-0.5 ${isToday||isSelected?'text-[#CC1010]':'text-gray-700'}`}>{d}</div>
+                {dayEvents.slice(0,1).map(e=>(
+                  <div key={e.id} className="text-[8px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FDEAEA] text-[#8B0000]">
+                    {e.time?.slice(0,5)} {e.title}
+                  </div>
+                ))}
+                {dayConstraints.slice(0,2).map(c=>(
+                  <div key={c.id} className="text-[8px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#EEF2FF] text-[#4338ca]">
+                    {c.crew_name?.split(' ')[0]}
+                  </div>
+                ))}
+                {(dayEvents.length + dayConstraints.length) > 3 && (
+                  <div className="text-[8px] text-gray-400 text-center">+{dayEvents.length+dayConstraints.length-3}</div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Selected day panel */}
+      {selectedDay && selectedData && (
+        <div className="bg-white border border-gray-100 rounded-xl p-4">
+          <div className="text-[13px] font-medium text-gray-800 mb-3">
+            {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
+          </div>
+
+          {/* Events */}
+          {selectedData.dayEvents.length > 0 && (
+            <div className="mb-3">
+              <div className="text-[11px] font-semibold text-gray-500 mb-2">אירועים</div>
+              {selectedData.dayEvents.map(e=>(
+                <div key={e.id} className="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0 flex-row-reverse">
+                  <span className="flex-1 text-[13px] text-right">{e.title}</span>
+                  <span className="text-[11px] text-gray-400">{e.time?.slice(0,5)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Constraints */}
+          {selectedData.dayConstraints.length > 0 && (
+            <div>
+              <div className="text-[11px] font-semibold text-gray-500 mb-2">אילוצי צוות</div>
+              {selectedData.dayConstraints.map(c=>(
+                <div key={c.id} className="flex items-center gap-2 py-2 bg-[#EEF2FF] rounded-lg mb-1.5 px-3 flex-row-reverse group">
+                  <div className="flex-1 text-right">
+                    <div className="text-[13px] font-medium text-[#4338ca]">{c.crew_name}</div>
+                    {c.hours && <div className="text-[11px] text-[#6366f1]">🕐 {c.hours}</div>}
+                    {c.notes && <div className="text-[11px] text-gray-500">{c.notes}</div>}
+                  </div>
+                  <button onClick={()=>deleteConstraint(c.id)}
+                    className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                    <i className="ti ti-trash" style={{fontSize:12}}/>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {selectedData.dayEvents.length===0 && selectedData.dayConstraints.length===0 && (
+            <div className="text-[13px] text-gray-400 text-center py-4">אין נתונים ליום זה</div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --hazira-red: #CC1010;
+  --hazira-dark: #8B0000;
+  --hazira-light: #FDEAEA;
+}
+
+html, body {
+  direction: rtl;
+  background: #f8f5f5;
+}
+
+* { box-sizing: border-box; }
+
+input, select, textarea {
+  font-family: inherit;
+  direction: rtl;
+  text-align: right;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e0c8c8; border-radius: 99px; }

@@ -1,0 +1,173 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+
+const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
+const HE_DAYS = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']
+const TYPE_COLOR = { rehearsal:'bg-[#FDEAEA] text-[#8B0000]', show:'bg-[#E1F5EE] text-[#085041]', crew:'bg-[#FAEEDA] text-[#633806]', technical:'bg-[#FAECE7] text-[#4A1B0C]' }
+const TYPE_LABEL = { rehearsal:'חזרה', show:'הצגה', crew:'צוות', technical:'טכני' }
+
+export default function CalendarPage() {
+  const [events, setEvents] = useState([])
+  const [profile, setProfile] = useState(null)
+  const [calYear, setCalYear] = useState(new Date().getFullYear())
+  const [calMonth, setCalMonth] = useState(new Date().getMonth())
+  const [selectedDay, setSelectedDay] = useState(null)
+  const [venues, setVenues] = useState([])
+  const [selectedVenue, setSelectedVenue] = useState('all')
+
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      setProfile(p)
+      const q = supabase.from('events').select('*').order('date')
+      if (!p?.is_manager) q.contains('depts', [p?.dept])
+      const { data } = await q
+      setEvents(data || [])
+      const { data: vs } = await supabase.from('venues').select('name').order('sort_order')
+      setVenues((vs||[]).map(v => v.name))
+    }
+    load()
+  }, [])
+
+  const today = new Date()
+  const firstDay = new Date(calYear, calMonth, 1).getDay()
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
+  const daysInPrev = new Date(calYear, calMonth, 0).getDate()
+
+  function changeMonth(dir) {
+    let m = calMonth + dir, y = calYear
+    if (m > 11) { m = 0; y++ }
+    if (m < 0)  { m = 11; y-- }
+    setCalMonth(m); setCalYear(y); setSelectedDay(null)
+  }
+
+  function dateStr(y, m, d) {
+    return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+  }
+
+  const filteredEvents = selectedVenue === 'all'
+    ? events
+    : events.filter(e => e.venue === selectedVenue)
+
+  const selectedEvents = selectedDay
+    ? filteredEvents.filter(e => e.date === selectedDay)
+    : []
+
+  return (
+    <div className="max-w-2xl">
+      <div className="bg-white border border-gray-100 rounded-xl p-4 mb-3">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={() => changeMonth(-1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">
+            ‹ הקודם
+          </button>
+          <span className="text-sm font-semibold text-[#CC1010]">
+            {HE_MONTHS[calMonth]} {calYear}
+          </span>
+          <button onClick={() => changeMonth(1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">
+            הבא ›
+          </button>
+        </div>
+
+        {/* Venue filter */}
+        {venues.length > 0 && (
+          <div className="flex gap-1.5 flex-wrap justify-end mb-3">
+            <button onClick={()=>setSelectedVenue('all')}
+              className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${selectedVenue==='all'?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
+              כל האולמות
+            </button>
+            {venues.map(v => (
+              <button key={v} onClick={()=>setSelectedVenue(v)}
+                className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${selectedVenue===v?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
+                {v}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Day headers */}
+        <div className="grid grid-cols-7 gap-1 mb-1">
+          {HE_DAYS.map(d => (
+            <div key={d} className="text-center text-[11px] text-gray-400 font-medium py-1">{d}</div>
+          ))}
+        </div>
+
+        {/* Days grid */}
+        <div className="grid grid-cols-7 gap-1">
+          {/* Prev month padding */}
+          {Array.from({ length: firstDay }).map((_, i) => (
+            <div key={'p'+i} className="min-h-[52px] rounded-lg p-1 opacity-25">
+              <div className="text-center text-[11px] text-gray-400">{daysInPrev - firstDay + i + 1}</div>
+            </div>
+          ))}
+
+          {/* Current month */}
+          {Array.from({ length: daysInMonth }).map((_, i) => {
+            const d = i + 1
+            const ds = dateStr(calYear, calMonth, d)
+            const isToday = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d
+            const isSelected = selectedDay === ds
+            const dayEvs = events.filter(e => e.date === ds)
+
+            return (
+              <div
+                key={d}
+                onClick={() => setSelectedDay(ds)}
+                className={`min-h-[52px] rounded-lg p-1 cursor-pointer border transition-all ${
+                  isSelected ? 'border-[#CC1010] bg-[#FDEAEA]' :
+                  isToday    ? 'bg-[#FDEAEA] border-transparent' :
+                               'border-transparent hover:border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <div className={`text-center text-[11px] font-medium mb-1 ${isToday || isSelected ? 'text-[#CC1010]' : 'text-gray-700'}`}>{d}</div>
+                {dayEvs.slice(0,2).map(e => (
+                  <div key={e.id} className={`text-[9px] px-1 py-0.5 rounded mb-0.5 truncate ${TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'}`}>
+                    {e.time?.slice(0,5)} {e.title}
+                  </div>
+                ))}
+                {dayEvs.length > 2 && (
+                  <div className="text-[9px] text-gray-400 text-center">+{dayEvs.length-2}</div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Selected day panel */}
+      {selectedDay && (
+        <div className="bg-white border border-gray-100 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[13px] font-medium text-gray-800">
+              {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
+            </span>
+            <button
+              onClick={() => {/* open add event modal */}}
+              className="text-xs bg-[#CC1010] text-white px-3 py-1.5 rounded-lg flex items-center gap-1"
+            >
+              <i className="ti ti-plus" /> הוסף אירוע
+            </button>
+          </div>
+          {selectedEvents.length === 0 ? (
+            <p className="text-[13px] text-gray-400 text-center py-4">אין אירועים ביום זה</p>
+          ) : (
+            selectedEvents.map(e => (
+              <div key={e.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg mb-2 last:mb-0 border-r-2 border-[#CC1010] flex-row-reverse">
+                <div className="flex-1">
+                  <div className="text-[13px] font-medium text-right">{e.title}</div>
+                  {e.description && <div className="text-[12px] text-gray-500 text-right mt-0.5">{e.description}</div>}
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full mt-1 inline-block ${TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'}`}>
+                    {TYPE_LABEL[e.type] || e.type}
+                  </span>
+                </div>
+                <div className="text-[11px] text-gray-400 whitespace-nowrap mt-0.5">{e.time?.slice(0,5)}</div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
