@@ -271,13 +271,17 @@ export default function DashboardPage() {
 
           {constraints.length > 0 && (
             <Card title="אילוצים השבוע" icon="ti-ban" href="/dashboard/constraints">
-              {constraints.map(c => (
-                <div key={c.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
-                  <span className="flex-1 text-[13px] text-right font-medium">{c.crew_name}</span>
-                  <span className="text-[11px] text-gray-400">{c.date?.slice(5).replace('-','/')}</span>
-                  {c.notes && <span className="text-[11px] text-gray-500 truncate max-w-[120px]">{c.notes}</span>}
-                </div>
-              ))}
+              {constraints.map(c => {
+                const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
+                const dayName = c.date ? HE_DAYS_FULL[new Date(c.date).getDay()] : ''
+                return (
+                  <div key={c.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
+                    <span className="flex-1 text-[13px] text-right font-medium">{c.crew_name}</span>
+                    <span className="text-[11px] text-gray-400">{dayName} {c.date?.slice(5).replace('-','/')}</span>
+                    {c.notes && <span className="text-[11px] text-gray-500 truncate max-w-[120px]">{c.notes}</span>}
+                  </div>
+                )
+              })}
             </Card>
           )}
         </>
