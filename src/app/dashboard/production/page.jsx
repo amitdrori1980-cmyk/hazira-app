@@ -277,15 +277,11 @@ function ProductionInquiries() {
 }
 
 // ─── לוז הפקה ──────────────────────────────────────────────────
-const VISIBLE_OPTIONS = [
-  { value: 'managers', label: 'מנהלים בלבד' },
-  { value: 'all',      label: 'כולם' },
-  { value: 'dept_tech', label: 'מחלקה טכנית' },
-  { value: 'dept_prod', label: 'מחלקת הפקה' },
-]
+
 
 function ProductionSchedule({ profile }) {
   const [events, setEvents] = useState([])
+  const [crew, setCrew] = useState([])
   const [selectedEvent, setSelectedEvent] = useState('')
   const [schedule, setSchedule] = useState(null)
   const [rows, setRows] = useState([])
@@ -294,6 +290,7 @@ function ProductionSchedule({ profile }) {
 
   useEffect(() => {
     supabase.from('events').select('id,title,date,venue').order('date').then(({ data }) => setEvents(data || []))
+    supabase.from('crew_members').select('id,full_name,role').eq('active',true).order('full_name').then(({ data }) => setCrew(data || []))
   }, [])
 
   async function selectEvent(eventId) {
@@ -358,6 +355,9 @@ function ProductionSchedule({ profile }) {
     if (profile.is_manager) return true
     if (schedule.status === 'final') return true
     if (schedule.visible_to === 'all') return true
+    if (schedule.visible_to === 'specific') {
+      return (schedule.visible_to_users || []).includes(profile.uid)
+    }
     return false
   }
 
@@ -442,13 +442,45 @@ function ProductionSchedule({ profile }) {
                     {schedule.status==='final' ? '✅ סופי' : '✏️ בעבודה'}
                   </button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-gray-500">גלוי ל:</span>
-                  <select value={schedule.visible_to} onChange={e => updateSchedule('visible_to', e.target.value)}
-                    className="text-[12px] px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]">
-                    {VISIBLE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] text-gray-500 whitespace-nowrap">גלוי ל:</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button onClick={() => updateSchedule('visible_to', 'managers')}
+                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${schedule.visible_to==='managers'?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
+                      מנהלים בלבד
+                    </button>
+                    <button onClick={() => updateSchedule('visible_to', 'all')}
+                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${schedule.visible_to==='all'?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
+                      כולם
+                    </button>
+                    <button onClick={() => updateSchedule('visible_to', 'specific')}
+                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${schedule.visible_to==='specific'?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
+                      אנשים ספציפיים
+                    </button>
+                  </div>
                 </div>
+                {schedule.visible_to === 'specific' && (
+                  <div className="w-full mt-1">
+                    <div className="text-[11px] text-gray-400 mb-1.5">בחר אנשי צוות:</div>
+                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                      {crew.map(c => {
+                        const selected = (schedule.visible_to_users||[]).includes(c.id)
+                        return (
+                          <button key={c.id}
+                            onClick={async () => {
+                              const current = schedule.visible_to_users || []
+                              const updated = selected ? current.filter(id => id !== c.id) : [...current, c.id]
+                              await supabase.from('schedules').update({ visible_to_users: updated }).eq('id', schedule.id)
+                              setSchedule(prev => ({ ...prev, visible_to_users: updated }))
+                            }}
+                            className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${selected?'bg-[#E1F5EE] text-[#085041] border-[#085041]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
+                            {c.full_name}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
                 <div className="flex-1"/>
                 <button onClick={exportExcel} disabled={exporting}
                   className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#CC1010] text-gray-600 disabled:opacity-50">
