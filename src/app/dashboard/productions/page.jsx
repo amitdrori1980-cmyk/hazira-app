@@ -1,6 +1,7 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import * as XLSX from 'xlsx'
 
 export default function ProductionsPage() {
   const [profile, setProfile] = useState(null)
@@ -39,6 +40,77 @@ export default function ProductionsPage() {
     if (!selected.length) return
     const emails = selected.map(c => c.email).join(',')
     window.location.href = `mailto:${emails}`
+  }
+
+  // Import from Excel
+  const fileInputRef = useRef(null)
+  const [importing, setImporting] = useState(false)
+  const [importProdId, setImportProdId] = useState(null)
+
+  async function handleImportExcel(e, prodId) {
+    const file = e.target.files[0]
+    if (!file) return
+    setImporting(true)
+    setImportProdId(prodId)
+
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      try {
+        const wb = XLSX.read(ev.target.result, { type: 'array' })
+        const newContacts = []
+
+        wb.SheetNames.forEach(sheetName => {
+          const ws = wb.Sheets[sheetName]
+          const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+          let currentGroup = sheetName
+
+          rows.forEach(row => {
+            // Skip title rows and header rows
+            const isHeader = String(row[1]||'').includes('שם') && String(row[2]||'').includes('תפקיד')
+            const isTitle = row[0] && !row[1] && String(row[0]).includes('צוותי')
+            if (isHeader || isTitle) return
+
+            // Group name in col A
+            if (row[0] && row[0].toString().trim()) {
+              currentGroup = row[0].toString().trim()
+            }
+
+            const name = String(row[1]||'').trim()
+            const role = String(row[2]||'').trim()
+            const email = String(row[3]||'').trim()
+            const phone = String(row[4]||'').trim()
+
+            if (name) {
+              newContacts.push({ full_name: name, role, email, phone, group: currentGroup })
+            }
+          })
+        })
+
+        // Insert all contacts
+        const existing = contacts[prodId] || []
+        let order = existing.length
+        for (const c of newContacts) {
+          const { data } = await supabase.from('production_contacts').insert({
+            production_id: prodId,
+            full_name: c.full_name,
+            role: c.role,
+            email: c.email,
+            phone: c.phone,
+            sort_order: order++,
+          }).select().single()
+          if (data) {
+            setContacts(prev => ({ ...prev, [prodId]: [...(prev[prodId]||[]), data] }))
+          }
+        }
+        alert(`יובאו ${newContacts.length} אנשי קשר`)
+      } catch(err) {
+        alert('שגיאה בייבוא: ' + err.message)
+      }
+      setImporting(false)
+      setImportProdId(null)
+      e.target.value = ''
+    }
+    reader.readAsArrayBuffer(file)
   }
 
   function selectAll(prodContacts) {
@@ -336,16 +408,33 @@ export default function ProductionsPage() {
                     </div>
                   </div>
                 ) : isManager && (
-                  <button onClick={() => setAddingContact(prod.id)}
-                    className="w-full py-3 text-[13px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors flex items-center justify-center gap-1">
-                    <i className="ti ti-plus" style={{fontSize:13}}/> הוסף איש קשר
-                  </button>
+                  <div className="flex border-t border-gray-50">
+                    <button onClick={() => setAddingContact(prod.id)}
+                      className="flex-1 py-3 text-[13px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors flex items-center justify-center gap-1">
+                      <i className="ti ti-plus" style={{fontSize:13}}/> הוסף איש קשר
+                    </button>
+                    <div className="w-px bg-gray-100"/>
+                    <button onClick={() => { setImportProdId(prod.id); fileInputRef.current.click() }}
+                      disabled={importing && importProdId === prod.id}
+                      className="flex-1 py-3 text-[13px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors flex items-center justify-center gap-1 disabled:opacity-50">
+                      <i className="ti ti-file-import" style={{fontSize:13}}/>
+                      {importing && importProdId === prod.id ? 'מייבא...' : 'ייבא מאקסל'}
+                    </button>
+                  </div>
                 )}
               </div>
             )}
           </div>
         )
       })}
+      {/* Hidden file input for Excel import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls"
+        className="hidden"
+        onChange={e => handleImportExcel(e, importProdId)}
+      />
     </div>
   )
 }
