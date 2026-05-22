@@ -74,8 +74,8 @@ export default function DashboardPage() {
       const ws = weekStart.toISOString().slice(0,10)
       const we = weekEnd.toISOString().slice(0,10)
       const { data: con } = await supabase
-        .from('constraints')
-        .select('*, crew:crew_name')
+        .from('crew_constraints')
+        .select('*')
         .gte('date', ws)
         .lte('date', we)
         .order('date')
