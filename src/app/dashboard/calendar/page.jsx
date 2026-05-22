@@ -122,13 +122,25 @@ export default function CalendarPage() {
                 }`}
               >
                 <div className={`text-center text-[11px] md:text-[12px] font-medium mb-1 ${isToday || isSelected ? 'text-[#CC1010]' : 'text-gray-700'}`}>{d}</div>
+                {/* Mobile: dots only */}
+                <div className="flex flex-wrap gap-0.5 md:hidden">
+                  {dayEvs.slice(0,3).map(e => (
+                    <span key={e.id} className={`w-2 h-2 rounded-full inline-block ${
+                      e.type==='show' ? 'bg-[#085041]' :
+                      e.type==='rehearsal' ? 'bg-[#8B0000]' :
+                      e.type==='crew' ? 'bg-[#633806]' : 'bg-[#4A1B0C]'
+                    }`}/>
+                  ))}
+                  {dayEvs.length > 3 && <span className="text-[8px] text-gray-400">+{dayEvs.length-3}</span>}
+                </div>
+                {/* Desktop: text */}
                 {dayEvs.slice(0,2).map(e => (
-                  <div key={e.id} className={`text-[9px] md:text-[10px] px-1 md:px-1.5 py-0.5 rounded mb-0.5 truncate ${TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'}`}>
+                  <div key={e.id} className={`hidden md:block text-[10px] px-1.5 py-0.5 rounded mb-0.5 truncate ${TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'}`}>
                     {e.time?.slice(0,5)} {e.title}
                   </div>
                 ))}
                 {dayEvs.length > 2 && (
-                  <div className="text-[9px] text-gray-400 text-center">+{dayEvs.length-2}</div>
+                  <div className="hidden md:block text-[9px] text-gray-400 text-center">+{dayEvs.length-2}</div>
                 )}
               </div>
             )
