@@ -11,14 +11,18 @@
 html, body {
   direction: rtl;
   background: #f8f5f5;
+  font-family: 'Calibri', 'Arial', sans-serif;
+  font-size: 15px;
+  color: #1a1a1a;
 }
 
 * { box-sizing: border-box; }
 
 input, select, textarea {
-  font-family: inherit;
+  font-family: 'Calibri', 'Arial', sans-serif;
   direction: rtl;
   text-align: right;
+  color: #1a1a1a;
 }
 
 ::-webkit-scrollbar { width: 4px; }
