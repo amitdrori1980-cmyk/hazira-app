@@ -16,9 +16,9 @@ export default function MessagesPage() {
   const [loading, setLoading]   = useState(true)
   const [sending, setSending]   = useState(false)
   const [form, setForm] = useState({ body:'', target_type:'all', to_dept:'', to_crew_id:'', priority:'רגיל' })
-  const [openReplies, setOpenReplies] = useState({}) // msgId -> bool
-  const [replies, setReplies]         = useState({}) // msgId -> []
-  const [replyText, setReplyText]     = useState({}) // msgId -> string
+  const [openReplies, setOpenReplies] = useState({})
+  const [replies, setReplies]         = useState({})
+  const [replyText, setReplyText]     = useState({})
   const [sendingReply, setSendingReply] = useState(null)
 
   useEffect(() => { load() }, [])
@@ -30,7 +30,7 @@ export default function MessagesPage() {
 
     const [{ data: ds }, { data: cr }] = await Promise.all([
       supabase.from('departments').select('name').order('name'),
-      supabase.from('crew_members').select('id,full_name,role,dept').eq('active',true).order('full_name'),
+      supabase.from('crew_members').select('id,full_name,role,dept,user_id').eq('active',true).order('full_name'),
     ])
     setDepts((ds||[]).map(d=>d.name))
     setCrew(cr||[])
@@ -57,9 +57,16 @@ export default function MessagesPage() {
       priority: form.priority,
       read: false,
     }
-    if (form.target_type === 'all')         payload.to_dept = 'all'
-    else if (form.target_type === 'dept')   payload.to_dept = form.to_dept || depts[0]
-    else if (form.target_type === 'person') payload.to_crew_id = form.to_crew_id
+    if (form.target_type === 'all') {
+      payload.to_dept = 'all'
+    } else if (form.target_type === 'dept') {
+      payload.to_dept = form.to_dept || depts[0]
+    } else if (form.target_type === 'person') {
+      payload.to_crew_id = form.to_crew_id
+      // קשר ל-user_id של איש הצוות
+      const member = crew.find(c => c.id === form.to_crew_id)
+      if (member?.user_id) payload.to_user = member.user_id
+    }
     await supabase.from('messages').insert(payload)
     setForm({ body:'', target_type:'all', to_dept:'', to_crew_id:'', priority:'רגיל' })
     await load()
@@ -162,7 +169,6 @@ export default function MessagesPage() {
           <div className="text-center text-sm text-gray-400 py-6">אין הודעות</div>
         ) : messages.map(m => (
           <div key={m.id} className="mb-3 last:mb-0">
-            {/* Message */}
             <div className="p-3 bg-gray-50 rounded-lg border-r-2 border-[#CC1010]">
               <div className="flex items-center justify-between mb-1 flex-row-reverse">
                 <span className="text-[11px] text-gray-400">{m.sender?.full_name || 'מנהל'}</span>
@@ -186,10 +192,8 @@ export default function MessagesPage() {
               </div>
             </div>
 
-            {/* Replies */}
             {openReplies[m.id] && (
               <div className="mr-4 mt-1 border-r border-gray-200 pr-3">
-                {/* Reply list */}
                 {(replies[m.id] || []).map(r => (
                   <div key={r.id} className="py-2 border-b border-gray-50 last:border-0">
                     <div className="flex items-center justify-between flex-row-reverse mb-0.5">
@@ -201,8 +205,6 @@ export default function MessagesPage() {
                     <div className="text-[12px] text-gray-700 text-right">{r.body}</div>
                   </div>
                 ))}
-
-                {/* Reply input */}
                 <div className="flex gap-2 mt-2 flex-row-reverse">
                   <input
                     value={replyText[m.id]||''}
