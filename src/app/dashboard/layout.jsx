@@ -136,7 +136,6 @@ export default function DashboardLayout({ children }) {
               <div className="text-[11px] text-gray-400">{profile.role} · {profile.dept}</div>
             )}
           </div>
-          <HaziraLogo size={26} />
         </div>
 
         {/* Page content */}
