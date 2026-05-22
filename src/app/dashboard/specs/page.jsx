@@ -10,19 +10,16 @@ function fmtDate(ds) {
 }
 
 function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }) {
-  const [sameDay, setSameDay] = useState([])         // events on same day
-  const [allSpecs, setAllSpecs] = useState({})        // eventId -> spec items
+  const [sameDay, setSameDay] = useState([])
+  const [allSpecs, setAllSpecs] = useState({})
   const [loading, setLoading] = useState(false)
-
   const selEv = events.find(e => e.id === selectedEvent)
 
   useEffect(() => {
     if (!selectedEvent || !selEv?.date) { setSameDay([]); setAllSpecs({}); return }
-    // Find all events on same date (excluding selected)
     const same = events.filter(e => e.date === selEv.date && e.id !== selectedEvent)
     setSameDay(same)
     if (!same.length) { setAllSpecs({}); return }
-    // Load specs for all same-day events
     setLoading(true)
     Promise.all(same.map(e =>
       supabase.from('spec_items').select('*').eq('event_id', e.id)
@@ -35,15 +32,12 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
     })
   }, [selectedEvent, selEv?.date])
 
-  // Build conflict map: itemId -> { totalQty, events[] }
   const conflictMap = {}
-  // Add selected event items
   specItems.forEach(s => {
     if (!conflictMap[s.equipment_item_id]) conflictMap[s.equipment_item_id] = { qty: 0, evs: [] }
     conflictMap[s.equipment_item_id].qty += parseInt(s.quantity || 0)
     conflictMap[s.equipment_item_id].evs.push({ eventId: selectedEvent, qty: parseInt(s.quantity || 0) })
   })
-  // Add same-day events
   Object.entries(allSpecs).forEach(([evId, items]) => {
     items.forEach(s => {
       if (!conflictMap[s.equipment_item_id]) conflictMap[s.equipment_item_id] = { qty: 0, evs: [] }
@@ -52,7 +46,6 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
     })
   })
 
-  // Items with actual conflicts (qty > stock or appearing in multiple events)
   const conflicts = Object.entries(conflictMap)
     .filter(([itemId, data]) => {
       const item = allItems.find(i => i.id === itemId)
@@ -68,7 +61,6 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
 
   return (
     <div>
-      {/* Event selector */}
       <div className="bg-white border border-gray-100 rounded-xl p-3 mb-4">
         <div className="text-[11px] font-semibold text-gray-500 mb-2">בחר אירוע לבדיקה</div>
         <select value={selectedEvent} onChange={e=>selectEvent(e.target.value)}
@@ -77,20 +69,13 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
           {events.map(e=><option key={e.id} value={e.id}>{e.title} — {fmtDate(e.date)}</option>)}
         </select>
       </div>
-
       {!selectedEvent && (
-        <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">
-          בחר אירוע לבדיקת התנגשויות
-        </div>
+        <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">בחר אירוע לבדיקת התנגשויות</div>
       )}
-
       {selectedEvent && selEv && (
         <>
-          {/* Same day events */}
           <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
-            <div className="text-[13px] font-semibold text-gray-800 text-right mb-2">
-              אירועים ביום {fmtDate(selEv.date)}
-            </div>
+            <div className="text-[13px] font-semibold text-gray-800 text-right mb-2">אירועים ביום {fmtDate(selEv.date)}</div>
             {sameDay.length === 0 ? (
               <div className="text-[12px] text-gray-400 text-right">אין אירועים נוספים ביום זה</div>
             ) : (
@@ -103,8 +88,6 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
               </div>
             )}
           </div>
-
-          {/* Conflicts */}
           {loading ? (
             <div className="text-center text-sm text-gray-400 py-4">טוען...</div>
           ) : (
@@ -115,7 +98,6 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
                 </div>
                 <div className="text-[11px] text-gray-500">{specItems.length} פריטים במפרט</div>
               </div>
-
               {conflicts.map(({ item, data, stock, overStock }) => (
                 <div key={item.id} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 flex-row-reverse">
                   <div className="flex-1 text-right">
@@ -123,18 +105,12 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
                     <div className="flex gap-2 justify-end mt-1 flex-wrap">
                       {data.evs.map((ev, i) => {
                         const evObj = events.find(e => e.id === ev.eventId)
-                        return (
-                          <span key={i} className="text-[11px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                            {evObj?.title}: ×{ev.qty}
-                          </span>
-                        )
+                        return <span key={i} className="text-[11px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{evObj?.title}: ×{ev.qty}</span>
                       })}
                     </div>
                   </div>
                   <div className="text-center flex-shrink-0">
-                    <div className={`text-[13px] font-bold ${overStock?'text-red-600':'text-[#CC1010]'}`}>
-                      {data.qty}/{stock || '∞'}
-                    </div>
+                    <div className={`text-[13px] font-bold ${overStock?'text-red-600':'text-[#CC1010]'}`}>{data.qty}/{stock || '∞'}</div>
                     <div className="text-[10px] text-gray-400">סה״כ / מלאי</div>
                     {overStock && <div className="text-[10px] text-red-500 font-bold">חסר {data.qty - stock}</div>}
                   </div>
@@ -148,32 +124,244 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
   )
 }
 
+function TemplatesMode({ allItems, categories, subcats, onLoadTemplate }) {
+  const [templates, setTemplates] = useState([])
+  const [selected, setSelected] = useState(null)
+  const [templateItems, setTemplateItems] = useState([])
+  const [newName, setNewName] = useState('')
+  const [newDesc, setNewDesc] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [openCat, setOpenCat] = useState(null)
+  const [openSub, setOpenSub] = useState(null)
+
+  useEffect(() => { loadTemplates() }, [])
+
+  async function loadTemplates() {
+    const { data } = await supabase.from('spec_templates').select('*').order('created_at', { ascending: false })
+    setTemplates(data || [])
+  }
+
+  async function selectTemplate(id) {
+    setSelected(id)
+    setOpenCat(null); setOpenSub(null)
+    if (!id) { setTemplateItems([]); return }
+    const { data } = await supabase.from('spec_items').select('*').eq('template_id', id).is('event_id', null)
+    setTemplateItems(data || [])
+  }
+
+  async function createTemplate() {
+    if (!newName.trim()) return
+    setCreating(true)
+    const { data } = await supabase.from('spec_templates').insert({ name: newName.trim(), description: newDesc.trim() }).select().single()
+    if (data) {
+      setTemplates(prev => [data, ...prev])
+      setSelected(data.id)
+      setTemplateItems([])
+      setNewName(''); setNewDesc('')
+    }
+    setCreating(false)
+  }
+
+  async function deleteTemplate(id) {
+    await supabase.from('spec_items').delete().eq('template_id', id)
+    await supabase.from('spec_templates').delete().eq('id', id)
+    setTemplates(prev => prev.filter(t => t.id !== id))
+    if (selected === id) { setSelected(null); setTemplateItems([]) }
+  }
+
+  function isInTemplate(itemId) {
+    return templateItems.some(s => s.equipment_item_id === itemId)
+  }
+
+  async function toggleItem(item) {
+    if (!selected) return
+    const existing = templateItems.find(s => s.equipment_item_id === item.id)
+    if (existing) {
+      await supabase.from('spec_items').delete().eq('id', existing.id)
+      setTemplateItems(prev => prev.filter(s => s.id !== existing.id))
+    } else {
+      const { data, error } = await supabase.from('spec_items').insert({
+        template_id: selected,
+        equipment_item_id: item.id,
+        quantity: '1',
+      }).select().single()
+      if (!error && data) setTemplateItems(prev => [...prev, data])
+    }
+  }
+
+  async function updateQty(specId, qty) {
+    await supabase.from('spec_items').update({ quantity: qty }).eq('id', specId)
+    setTemplateItems(prev => prev.map(s => s.id === specId ? { ...s, quantity: qty } : s))
+  }
+
+  const selTemplate = templates.find(t => t.id === selected)
+  const specDisplay = templateItems.map(s => {
+    const item = allItems.find(i => i.id === s.equipment_item_id)
+    const sub  = subcats.find(sub => sub.id === item?.subcategory_id)
+    const cat  = categories.find(c => c.id === sub?.category_id)
+    return item ? { ...s, item, sub, cat } : null
+  }).filter(Boolean)
+
+  const specByCategory = categories.map(cat => ({
+    cat,
+    items: specDisplay.filter(s => s.cat?.id === cat.id)
+  })).filter(g => g.items.length > 0)
+
+  return (
+    <div className="flex gap-4">
+      {/* Right: template list */}
+      <div className="w-72 flex-shrink-0 flex flex-col gap-3">
+        {/* Create new */}
+        <div className="bg-white border border-gray-100 rounded-xl p-3">
+          <div className="text-[11px] font-semibold text-gray-500 mb-2">תבנית חדשה</div>
+          <input value={newName} onChange={e=>setNewName(e.target.value)} placeholder="שם התבנית..."
+            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] mb-2 text-right"/>
+          <input value={newDesc} onChange={e=>setNewDesc(e.target.value)} placeholder="תיאור (אופציונלי)..."
+            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] mb-2 text-right"/>
+          <button onClick={createTemplate} disabled={creating || !newName.trim()}
+            className="w-full bg-[#CC1010] text-white text-sm py-2 rounded-lg hover:bg-[#a00c0c] disabled:opacity-50">
+            + צור תבנית
+          </button>
+        </div>
+
+        {/* Template list */}
+        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+          <div className="text-[11px] font-semibold text-gray-500 px-3 py-2.5 bg-gray-50 border-b border-gray-100">תבניות קיימות</div>
+          {templates.length === 0 ? (
+            <div className="text-center text-[12px] text-gray-400 py-4">אין תבניות עדיין</div>
+          ) : templates.map(t => (
+            <div key={t.id}
+              onClick={() => selectTemplate(t.id)}
+              className={`flex items-center gap-2 px-3 py-2.5 border-b border-gray-50 last:border-0 cursor-pointer flex-row-reverse group ${selected===t.id?'bg-[#FDEAEA] text-[#CC1010]':'hover:bg-gray-50 text-gray-700'}`}>
+              <div className="flex-1 text-right">
+                <div className="text-[13px] font-medium">{t.name}</div>
+                {t.description && <div className="text-[11px] text-gray-400">{t.description}</div>}
+              </div>
+              <button onClick={e=>{e.stopPropagation();deleteTemplate(t.id)}}
+                className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100">
+                <i className="ti ti-trash" style={{fontSize:12}}/>
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Equipment browser */}
+        {selected && (
+          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+            <div className="text-[11px] font-semibold text-gray-500 px-3 py-2.5 bg-gray-50 border-b border-gray-100">הוסף ציוד לתבנית</div>
+            {categories.map(cat => {
+              const catSubs = subcats.filter(s => s.category_id === cat.id)
+              const isOpen = openCat === cat.id
+              return (
+                <div key={cat.id}>
+                  <button onClick={()=>setOpenCat(isOpen?null:cat.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 text-[12px] font-medium border-b border-gray-50 flex-row-reverse ${isOpen?'text-[#CC1010] bg-[#FDEAEA]':'text-gray-700 hover:bg-gray-50'}`}>
+                    <span>{cat.name}</span>
+                    <i className={`ti ${isOpen?'ti-chevron-up':'ti-chevron-down'} text-gray-400`} style={{fontSize:11}}/>
+                  </button>
+                  {isOpen && catSubs.map(sub => {
+                    const items = allItems.filter(i => i.subcategory_id === sub.id)
+                    const isSubOpen = openSub === sub.id
+                    return (
+                      <div key={sub.id}>
+                        <button onClick={()=>setOpenSub(isSubOpen?null:sub.id)}
+                          className={`w-full flex items-center justify-between px-5 py-2 text-[11px] border-b border-gray-50 flex-row-reverse ${isSubOpen?'text-[#CC1010]':'text-gray-500 hover:bg-gray-50'}`}>
+                          <span>{sub.name}</span>
+                          <i className={`ti ${isSubOpen?'ti-chevron-up':'ti-chevron-down'} text-gray-300`} style={{fontSize:10}}/>
+                        </button>
+                        {isSubOpen && items.map(item => {
+                          const inTemplate = isInTemplate(item.id)
+                          return (
+                            <button key={item.id} onClick={()=>toggleItem(item)}
+                              className={`w-full flex items-center gap-2 px-6 py-1.5 text-[11px] border-b border-gray-50 flex-row-reverse text-right transition-colors ${inTemplate?'bg-[#E1F5EE] text-[#085041]':'text-gray-600 hover:bg-gray-50'}`}>
+                              <i className={`ti ${inTemplate?'ti-circle-check':'ti-circle-plus'} flex-shrink-0`} style={{fontSize:13,color:inTemplate?'#22c55e':'#CC1010'}}/>
+                              <span className="flex-1 truncate">{item.name}</span>
+                              {item.units && <span className="text-gray-400">×{item.units}</span>}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Left: template items */}
+      <div className="flex-1 min-w-0">
+        {!selected ? (
+          <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">
+            בחר תבנית או צור חדשה
+          </div>
+        ) : (
+          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+              <div className="text-[11px] text-gray-400">{templateItems.length} פריטים</div>
+              <div className="text-right">
+                <div className="text-[13px] font-semibold text-gray-800">{selTemplate?.name}</div>
+                {selTemplate?.description && <div className="text-[11px] text-gray-400">{selTemplate.description}</div>}
+              </div>
+            </div>
+            {specDisplay.length === 0 ? (
+              <div className="text-center text-[13px] text-gray-400 py-8">הוסף פריטים מהרשימה</div>
+            ) : specByCategory.map(({cat, items}) => (
+              <div key={cat.id}>
+                <div className="px-4 py-2 bg-[#FDEAEA] text-[11px] font-semibold text-[#CC1010] text-right">{cat.name}</div>
+                {items.map(s => (
+                  <div key={s.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 flex-row-reverse group hover:bg-gray-50">
+                    <span className="flex-1 text-[13px] text-right text-gray-800">{s.item.name}</span>
+                    {s.sub && <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{s.sub.name}</span>}
+                    <input type="number" min="1" value={s.quantity||''}
+                      onChange={e=>setTemplateItems(prev=>prev.map(x=>x.id===s.id?{...x,quantity:e.target.value}:x))}
+                      onBlur={e=>updateQty(s.id, e.target.value)}
+                      placeholder="כמות"
+                      className="w-16 text-[11px] px-2 py-1 border border-gray-200 rounded-lg bg-white outline-none text-center focus:border-[#CC1010]"/>
+                    <button onClick={()=>toggleItem(s.item)} className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100">
+                      <i className="ti ti-x" style={{fontSize:12}}/>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function SpecsPage() {
   const [events, setEvents]         = useState([])
   const [categories, setCategories] = useState([])
   const [subcats, setSubcats]       = useState([])
   const [allItems, setAllItems]     = useState([])
-  const [specItems, setSpecItems]   = useState([]) // spec_items rows for selected event
+  const [specItems, setSpecItems]   = useState([])
   const [selectedEvent, setSelectedEvent] = useState('')
   const [openCat, setOpenCat]   = useState(null)
   const [openSub, setOpenSub]   = useState(null)
-  const [compareEvent, setCompareEvent] = useState('')
-  const [compareItems, setCompareItems] = useState([])
   const [loading, setLoading]   = useState(true)
   const [mode, setMode]         = useState('spec')
+  const [templates, setTemplates] = useState([])
+  const [showLoadModal, setShowLoadModal] = useState(false)
+  const [loadingTemplate, setLoadingTemplate] = useState(false)
 
   useEffect(() => {
     async function load() {
-      const [{ data: evs }, { data: cats }, { data: subs }, { data: items }] = await Promise.all([
+      const [{ data: evs }, { data: cats }, { data: subs }, { data: items }, { data: tmps }] = await Promise.all([
         supabase.from('events').select('id,title,date,venue').order('date'),
         supabase.from('equipment_categories').select('*').order('sort_order'),
         supabase.from('equipment_subcategories').select('*').order('sort_order'),
         supabase.from('equipment_items').select('*').order('name'),
+        supabase.from('spec_templates').select('*').order('created_at', { ascending: false }),
       ])
       setEvents(evs || [])
       setCategories(cats || [])
       setSubcats(subs || [])
       setAllItems(items || [])
+      setTemplates(tmps || [])
       setLoading(false)
     }
     load()
@@ -183,11 +371,46 @@ export default function SpecsPage() {
     setSelectedEvent(eventId)
     setOpenCat(null); setOpenSub(null)
     if (!eventId) { setSpecItems([]); return }
-    const { data } = await supabase
-      .from('spec_items')
-      .select('*')
-      .eq('event_id', eventId)
+    const { data } = await supabase.from('spec_items').select('*').eq('event_id', eventId)
     setSpecItems(data || [])
+  }
+
+  async function loadTemplate(templateId) {
+    if (!selectedEvent || !templateId) return
+    setLoadingTemplate(true)
+    // מחק פריטים קיימים
+    await supabase.from('spec_items').delete().eq('event_id', selectedEvent)
+    // טען פריטים מהתבנית
+    const { data: tItems } = await supabase.from('spec_items').select('*').eq('template_id', templateId).is('event_id', null)
+    if (tItems && tItems.length > 0) {
+      const newItems = tItems.map(t => ({
+        event_id: selectedEvent,
+        equipment_item_id: t.equipment_item_id,
+        quantity: t.quantity,
+      }))
+      const { data } = await supabase.from('spec_items').insert(newItems).select()
+      setSpecItems(data || [])
+    } else {
+      setSpecItems([])
+    }
+    setShowLoadModal(false)
+    setLoadingTemplate(false)
+  }
+
+  async function saveAsTemplate() {
+    if (!selectedEvent || specItems.length === 0) return
+    const selEv = events.find(e => e.id === selectedEvent)
+    const name = `${selEv?.title || 'מפרט'} — תבנית`
+    const { data: tmpl } = await supabase.from('spec_templates').insert({ name }).select().single()
+    if (!tmpl) return
+    const newItems = specItems.map(s => ({
+      template_id: tmpl.id,
+      equipment_item_id: s.equipment_item_id,
+      quantity: s.quantity,
+    }))
+    await supabase.from('spec_items').insert(newItems)
+    setTemplates(prev => [tmpl, ...prev])
+    alert(`התבנית "${name}" נשמרה בהצלחה!`)
   }
 
   function isInSpec(itemId) {
@@ -201,12 +424,10 @@ export default function SpecsPage() {
       await supabase.from('spec_items').delete().eq('id', existing.id)
       setSpecItems(prev => prev.filter(s => s.id !== existing.id))
     } else {
-      // Default quantity = 1 (or max stock if stock is 1)
-      const defaultQty = item.units ? '1' : ''
       const { data, error } = await supabase.from('spec_items').insert({
         event_id: selectedEvent,
         equipment_item_id: item.id,
-        quantity: defaultQty,
+        quantity: '1',
       }).select().single()
       if (!error && data) setSpecItems(prev => [...prev, data])
     }
@@ -217,7 +438,6 @@ export default function SpecsPage() {
     setSpecItems(prev => prev.map(s => s.id === specId ? { ...s, quantity: qty } : s))
   }
 
-  // Build spec display
   const specDisplay = specItems.map(s => {
     const item = allItems.find(i => i.id === s.equipment_item_id)
     const sub  = subcats.find(sub => sub.id === item?.subcategory_id)
@@ -230,19 +450,41 @@ export default function SpecsPage() {
     items: specDisplay.filter(s => s.cat?.id === cat.id)
   })).filter(g => g.items.length > 0)
 
-  // Conflicts
-  const conflicts = specItems.filter(s =>
-    compareItems.some(c => c.equipment_item_id === s.equipment_item_id)
-  ).map(s => allItems.find(i => i.id === s.equipment_item_id)).filter(Boolean)
-
   const selEv = events.find(e => e.id === selectedEvent)
-  const cmpEv = events.find(e => e.id === compareEvent)
 
   return (
     <div className="max-w-4xl">
+      {/* Load template modal */}
+      {showLoadModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-5 w-full max-w-sm shadow-xl">
+            <div className="text-[14px] font-medium text-gray-800 mb-1 text-right">טען תבנית מאסטר</div>
+            <div className="text-[12px] text-gray-400 mb-4 text-right">הפריטים הקיימים יימחקו ויוחלפו בתבנית</div>
+            <div className="flex flex-col gap-2 mb-4 max-h-60 overflow-y-auto">
+              {templates.length === 0 ? (
+                <div className="text-center text-[13px] text-gray-400 py-4">אין תבניות — צור תבנית בטאב "תבניות מאסטר"</div>
+              ) : templates.map(t => (
+                <button key={t.id} onClick={() => loadTemplate(t.id)} disabled={loadingTemplate}
+                  className="text-right px-4 py-3 border border-gray-200 rounded-lg hover:border-[#CC1010] hover:bg-[#FDEAEA] transition-colors disabled:opacity-50">
+                  <div className="text-[13px] font-medium text-gray-800">{t.name}</div>
+                  {t.description && <div className="text-[11px] text-gray-400">{t.description}</div>}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setShowLoadModal(false)} className="w-full border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50">
+              ביטול
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Mode tabs */}
       <div className="flex gap-2 mb-4">
-        {[{id:'spec',label:'📋 מפרט ציוד'},{id:'compare',label:'⚡ השוואת התנגשויות'}].map(tab=>(
+        {[
+          {id:'spec', label:'📋 מפרט ציוד'},
+          {id:'templates', label:'⭐ תבניות מאסטר'},
+          {id:'compare', label:'⚡ השוואת התנגשויות'},
+        ].map(tab=>(
           <button key={tab.id} onClick={()=>setMode(tab.id)}
             className={`text-[13px] px-4 py-2 rounded-lg border transition-colors ${mode===tab.id?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-600 hover:border-[#CC1010]'}`}>
             {tab.label}
@@ -253,7 +495,6 @@ export default function SpecsPage() {
       {/* SPEC MODE */}
       {mode === 'spec' && (
         <div className="flex gap-4">
-          {/* Left: browser */}
           <div className="w-72 flex-shrink-0 flex flex-col gap-3">
             <div className="bg-white border border-gray-100 rounded-xl p-3">
               <div className="text-[11px] font-semibold text-gray-500 mb-2">בחר אירוע</div>
@@ -262,16 +503,26 @@ export default function SpecsPage() {
                 <option value="">בחר אירוע...</option>
                 {events.map(e=><option key={e.id} value={e.id}>{e.title} — {fmtDate(e.date)}</option>)}
               </select>
+              {selectedEvent && (
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => setShowLoadModal(true)}
+                    className="flex-1 text-[12px] px-3 py-1.5 border border-[#CC1010] text-[#CC1010] rounded-lg hover:bg-[#FDEAEA] flex items-center justify-center gap-1">
+                    <i className="ti ti-download" style={{fontSize:12}}/> טען תבנית
+                  </button>
+                  <button onClick={saveAsTemplate} disabled={specItems.length === 0}
+                    className="flex-1 text-[12px] px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 disabled:opacity-40 flex items-center justify-center gap-1">
+                    <i className="ti ti-star" style={{fontSize:12}}/> שמור תבנית
+                  </button>
+                </div>
+              )}
             </div>
 
             {selectedEvent && (
               <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-                <div className="text-[11px] font-semibold text-gray-500 px-3 py-2.5 bg-gray-50 border-b border-gray-100">
-                  לקט ציוד
-                </div>
+                <div className="text-[11px] font-semibold text-gray-500 px-3 py-2.5 bg-gray-50 border-b border-gray-100">לקט ציוד</div>
                 {categories.map(cat => {
                   const catSubs = subcats.filter(s => s.category_id === cat.id)
-                  const isOpen  = openCat === cat.id
+                  const isOpen = openCat === cat.id
                   return (
                     <div key={cat.id}>
                       <button onClick={()=>setOpenCat(isOpen?null:cat.id)}
@@ -294,8 +545,7 @@ export default function SpecsPage() {
                               return (
                                 <button key={item.id} onClick={()=>toggleItem(item)}
                                   className={`w-full flex items-center gap-2 px-6 py-1.5 text-[11px] border-b border-gray-50 flex-row-reverse text-right transition-colors ${inSpec?'bg-[#E1F5EE] text-[#085041]':'text-gray-600 hover:bg-gray-50'}`}>
-                                  <i className={`ti ${inSpec?'ti-circle-check':'ti-circle-plus'} flex-shrink-0`}
-                                    style={{fontSize:13,color:inSpec?'#22c55e':'#CC1010'}}/>
+                                  <i className={`ti ${inSpec?'ti-circle-check':'ti-circle-plus'} flex-shrink-0`} style={{fontSize:13,color:inSpec?'#22c55e':'#CC1010'}}/>
                                   <span className="flex-1 truncate">{item.name}</span>
                                   {item.units && <span className="text-gray-400">×{item.units}</span>}
                                 </button>
@@ -311,12 +561,9 @@ export default function SpecsPage() {
             )}
           </div>
 
-          {/* Right: spec table */}
           <div className="flex-1 min-w-0">
             {!selectedEvent ? (
-              <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">
-                בחר אירוע להתחלה
-              </div>
+              <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">בחר אירוע להתחלה</div>
             ) : (
               <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
@@ -327,7 +574,10 @@ export default function SpecsPage() {
                   </div>
                 </div>
                 {specDisplay.length === 0 ? (
-                  <div className="text-center text-[13px] text-gray-400 py-8">לחץ על פריטים בצד שמאל להוספה</div>
+                  <div className="text-center text-[13px] text-gray-400 py-8">
+                    <div className="mb-2">אין פריטים במפרט</div>
+                    <div className="text-[12px] text-gray-300">טען תבנית או הוסף פריטים ידנית</div>
+                  </div>
                 ) : specByCategory.map(({cat, items}) => (
                   <div key={cat.id}>
                     <div className="px-4 py-2 bg-[#FDEAEA] text-[11px] font-semibold text-[#CC1010] text-right">{cat.name}</div>
@@ -336,28 +586,19 @@ export default function SpecsPage() {
                         <span className="flex-1 text-[13px] text-right text-gray-800">{s.item.name}</span>
                         {s.sub && <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{s.sub.name}</span>}
                         <div className="flex flex-col items-center gap-0.5">
-                          <input
-                            type="number"
-                            min="1"
-                            max={s.item.units ? parseInt(s.item.units) : undefined}
-                            value={s.quantity||''} 
+                          <input type="number" min="1" max={s.item.units ? parseInt(s.item.units) : undefined}
+                            value={s.quantity||''}
                             onChange={e=>setSpecItems(prev=>prev.map(x=>x.id===s.id?{...x,quantity:e.target.value}:x))}
                             onBlur={e=>updateQty(s.id, e.target.value)}
                             placeholder="כמות"
-                            className={`w-16 text-[11px] px-2 py-1 border rounded-lg bg-white outline-none text-center ${
-                              s.item.units && parseInt(s.quantity) > parseInt(s.item.units)
-                                ? 'border-red-400 bg-red-50 text-red-600'
-                                : 'border-gray-200 focus:border-[#CC1010]'
-                            }`}
-                          />
+                            className={`w-16 text-[11px] px-2 py-1 border rounded-lg bg-white outline-none text-center ${s.item.units && parseInt(s.quantity) > parseInt(s.item.units)?'border-red-400 bg-red-50 text-red-600':'border-gray-200 focus:border-[#CC1010]'}`}/>
                           {s.item.units && (
-                            <span className={`text-[9px] ${parseInt(s.quantity) > parseInt(s.item.units) ? 'text-red-500 font-bold' : 'text-gray-400'}`}>
+                            <span className={`text-[9px] ${parseInt(s.quantity) > parseInt(s.item.units)?'text-red-500 font-bold':'text-gray-400'}`}>
                               מלאי: {s.item.units}
                             </span>
                           )}
                         </div>
-                        <button onClick={()=>toggleItem(s.item)}
-                          className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                        <button onClick={()=>toggleItem(s.item)} className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
                           <i className="ti ti-x" style={{fontSize:12}}/>
                         </button>
                       </div>
@@ -370,15 +611,14 @@ export default function SpecsPage() {
         </div>
       )}
 
+      {/* TEMPLATES MODE */}
+      {mode === 'templates' && (
+        <TemplatesMode allItems={allItems} categories={categories} subcats={subcats} />
+      )}
+
       {/* COMPARE MODE */}
       {mode === 'compare' && (
-        <CompareMode
-          events={events}
-          allItems={allItems}
-          selectedEvent={selectedEvent}
-          selectEvent={selectEvent}
-          specItems={specItems}
-        />
+        <CompareMode events={events} allItems={allItems} selectedEvent={selectedEvent} selectEvent={selectEvent} specItems={specItems} />
       )}
     </div>
   )
