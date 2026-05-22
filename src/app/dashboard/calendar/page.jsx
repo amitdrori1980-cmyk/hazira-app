@@ -125,10 +125,10 @@ export default function CalendarPage() {
                 {/* Mobile: dots only */}
                 <div className="flex flex-wrap gap-0.5 md:hidden">
                   {dayEvs.slice(0,3).map(e => (
-                    <span key={e.id} className={`w-2 h-2 rounded-full inline-block ${
-                      e.type==='show' ? 'bg-[#085041]' :
-                      e.type==='rehearsal' ? 'bg-[#8B0000]' :
-                      e.type==='crew' ? 'bg-[#633806]' : 'bg-[#4A1B0C]'
+                    <span key={e.id} className={`w-2.5 h-2.5 rounded-full inline-block ${
+                      e.type==='show' ? 'bg-[#22c55e]' :
+                      e.type==='rehearsal' ? 'bg-[#CC1010]' :
+                      e.type==='crew' ? 'bg-[#f59e0b]' : 'bg-[#f97316]'
                     }`}/>
                   ))}
                   {dayEvs.length > 3 && <span className="text-[8px] text-gray-400">+{dayEvs.length-3}</span>}
