@@ -35,7 +35,9 @@ export default function DashboardPage() {
   const [tasks, setTasks]       = useState([])
   const [events, setEvents]     = useState([])
   const [messages, setMessages] = useState([])
+  const [constraints, setConstraints] = useState([])
   const [loading, setLoading]   = useState(true)
+
   const [query, setQuery]           = useState('')
   const [searchResults, setSearchResults] = useState(null)
   const [searching, setSearching]   = useState(false)
@@ -47,19 +49,37 @@ export default function DashboardPage() {
       const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfile(p)
 
+      // Tasks — מנהל רואה הכל, משתמש רגיל רואה משימות שלו או של המחלקה
       const tq = supabase.from('tasks').select('*').eq('done', false).order('created_at')
       if (!p?.is_manager) tq.or(`assignee_id.eq.${user.id},dept.eq.${p?.dept}`)
       const { data: t } = await tq
       setTasks(t || [])
 
+      // Events — כולם רואים את כל האירועים
       const today = new Date().toISOString().slice(0, 10)
       const { data: e } = await supabase.from('events').select('*').gte('date', today).order('date').limit(5)
       setEvents(e || [])
 
+      // Messages — לפי הרשאות
       const mq = supabase.from('messages').select('*, sender:sender_id(full_name)').order('created_at', { ascending: false }).limit(3)
       if (!p?.is_manager) mq.or(`to_user.eq.${user.id},to_dept.eq.${p?.dept},to_dept.eq.all`)
       const { data: m } = await mq
       setMessages(m || [])
+
+      // Constraints this week
+      const weekStart = new Date()
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekEnd.getDate() + 6)
+      const ws = weekStart.toISOString().slice(0,10)
+      const we = weekEnd.toISOString().slice(0,10)
+      const { data: con } = await supabase
+        .from('constraints')
+        .select('*, crew:crew_name')
+        .gte('date', ws)
+        .lte('date', we)
+        .order('date')
+      setConstraints(con || [])
 
       setLoading(false)
     }
@@ -70,18 +90,27 @@ export default function DashboardPage() {
     if (!q.trim()) { setSearchResults(null); return }
     setSearching(true)
     const words = q.trim().split(/\s+/).filter(Boolean)
+
     function matchesAllWords(str) {
       if (!str) return false
       const s = str.toLowerCase()
       return words.every(w => s.includes(w.toLowerCase()))
     }
-    const [{ data: evs },{ data: crew },{ data: equip },{ data: tsks },{ data: stor }] = await Promise.all([
+
+    const [
+      { data: evs },
+      { data: crew },
+      { data: equip },
+      { data: tsks },
+      { data: stor },
+    ] = await Promise.all([
       supabase.from('events').select('id,title,date,time,venue').order('date').limit(200),
       supabase.from('crew_members').select('id,full_name,role,dept').eq('active',true).limit(200),
       supabase.from('equipment_items').select('id,name,units').limit(300),
       supabase.from('tasks').select('id,title,priority,done').limit(100),
       supabase.from('storage_items').select('id,name,location,notes').limit(100),
     ])
+
     setSearchResults({
       events:    (evs||[]).filter(e => matchesAllWords(e.title)),
       crew:      (crew||[]).filter(c => matchesAllWords(c.full_name) || matchesAllWords(c.role) || matchesAllWords(c.dept)),
@@ -110,110 +139,149 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-2xl">
+      {/* Search bar */}
       <div className="flex items-center gap-3 bg-white border-2 border-gray-200 rounded-xl px-4 py-2.5 mb-4 focus-within:border-[#CC1010] transition-colors">
         <i className="ti ti-search text-gray-400" style={{fontSize:16}}/>
-        <input value={query} onChange={handleSearch} placeholder="חפש אירועים, צוות, ציוד, משימות..." className="flex-1 text-[13px] bg-transparent outline-none text-right" dir="rtl"/>
-        {query && <button onClick={()=>{setQuery('');setSearchResults(null)}} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{fontSize:13}}/></button>}
+        <input
+          value={query}
+          onChange={handleSearch}
+          placeholder="חפש אירועים, צוות, ציוד, משימות..."
+          className="flex-1 text-[13px] bg-transparent outline-none text-right"
+          dir="rtl"
+        />
+        {query && (
+          <button onClick={()=>{setQuery('');setSearchResults(null)}} className="text-gray-400 hover:text-gray-600">
+            <i className="ti ti-x" style={{fontSize:13}}/>
+          </button>
+        )}
       </div>
 
+      {/* Search results */}
       {query && (
         <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
-          {searching ? <div className="text-center text-sm text-gray-400 py-2">מחפש...</div>
-          : totalResults === 0 ? <div className="text-center text-[13px] text-gray-400 py-2">לא נמצאו תוצאות</div>
-          : <>
-            {searchResults.events?.map(ev => (
-              <div key={ev.id} onClick={()=>router.push('/dashboard/calendar')} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse cursor-pointer hover:bg-gray-50 rounded-lg px-2">
-                <i className="ti ti-calendar-month text-[#CC1010]" style={{fontSize:13}}/>
-                <span className="flex-1 text-[13px] text-right text-gray-800">{ev.title}</span>
-                <span className="text-[11px] text-gray-400">{fmtDate(ev.date)}</span>
-              </div>
-            ))}
-            {searchResults.crew?.map(c => (
-              <div key={c.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse px-2">
-                <i className="ti ti-user text-[#CC1010]" style={{fontSize:13}}/>
-                <span className="flex-1 text-[13px] text-right">{c.full_name}</span>
-                <span className="text-[11px] text-gray-400">{c.role}</span>
-              </div>
-            ))}
-            {searchResults.equipment?.map(item => (
-              <div key={item.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse px-2">
-                <i className="ti ti-tool text-[#CC1010]" style={{fontSize:13}}/>
-                <span className="flex-1 text-[13px] text-right">{item.name}</span>
-                {item.units && <span className="text-[11px] text-gray-400">×{item.units}</span>}
-              </div>
-            ))}
-            {searchResults.tasks?.map(t => (
-              <div key={t.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse px-2">
-                <i className="ti ti-checkbox text-[#CC1010]" style={{fontSize:13}}/>
-                <span className={`flex-1 text-[13px] text-right ${t.done?'line-through text-gray-400':''}`}>{t.title}</span>
-                <Badge text={t.priority} color={PRI_COLOR[t.priority]||'bg-gray-100 text-gray-500'}/>
-              </div>
-            ))}
-            {searchResults.storage?.map(s => (
-              <div key={s.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse px-2">
-                <i className="ti ti-map-pin text-[#CC1010]" style={{fontSize:13}}/>
-                <span className="flex-1 text-[13px] text-right">{s.name}</span>
-                {s.location && <span className="text-[11px] text-gray-400">{s.location}</span>}
-              </div>
-            ))}
-            <button onClick={()=>router.push('/dashboard/assistant')} className="w-full text-center text-[11px] text-[#CC1010] mt-2 hover:underline">חיפוש מורחב →</button>
-          </>}
+          {searching ? (
+            <div className="text-center text-sm text-gray-400 py-2">מחפש...</div>
+          ) : totalResults === 0 ? (
+            <div className="text-center text-[13px] text-gray-400 py-2">לא נמצאו תוצאות</div>
+          ) : (
+            <>
+              {searchResults.events?.map(ev => (
+                <div key={ev.id} onClick={()=>router.push('/dashboard/calendar')}
+                  className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse cursor-pointer hover:bg-gray-50 rounded-lg px-2">
+                  <i className="ti ti-calendar-month text-[#CC1010]" style={{fontSize:13}}/>
+                  <span className="flex-1 text-[13px] text-right text-gray-800">{ev.title}</span>
+                  <span className="text-[11px] text-gray-400">{fmtDate(ev.date)}</span>
+                </div>
+              ))}
+              {searchResults.crew?.map(c => (
+                <div key={c.id}
+                  className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse px-2">
+                  <i className="ti ti-user text-[#CC1010]" style={{fontSize:13}}/>
+                  <span className="flex-1 text-[13px] text-right">{c.full_name}</span>
+                  <span className="text-[11px] text-gray-400">{c.role}</span>
+                </div>
+              ))}
+              {searchResults.equipment?.map(item => (
+                <div key={item.id}
+                  className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse px-2">
+                  <i className="ti ti-tool text-[#CC1010]" style={{fontSize:13}}/>
+                  <span className="flex-1 text-[13px] text-right" dir="ltr">{item.name}</span>
+                  {item.units && <span className="text-[11px] text-gray-400">×{item.units}</span>}
+                </div>
+              ))}
+              {searchResults.tasks?.map(t => (
+                <div key={t.id}
+                  className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse px-2">
+                  <i className="ti ti-checkbox text-[#CC1010]" style={{fontSize:13}}/>
+                  <span className={`flex-1 text-[13px] text-right ${t.done?'line-through text-gray-400':''}`}>{t.title}</span>
+                  <Badge text={t.priority} color={PRI_COLOR[t.priority]||'bg-gray-100 text-gray-500'}/>
+                </div>
+              ))}
+              {searchResults.storage?.map(s => (
+                <div key={s.id}
+                  className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse px-2">
+                  <i className="ti ti-map-pin text-[#CC1010]" style={{fontSize:13}}/>
+                  <span className="flex-1 text-[13px] text-right">{s.name}</span>
+                  {s.location && <span className="text-[11px] text-gray-400">{s.location}</span>}
+                </div>
+              ))}
+              <button onClick={()=>router.push('/dashboard/assistant')}
+                className="w-full text-center text-[11px] text-[#CC1010] mt-2 hover:underline">
+                חיפוש מורחב →
+              </button>
+            </>
+          )}
         </div>
       )}
 
-      {!query && <>
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          {[
-            { label: 'משימות פתוחות', value: tasks.length, href: '/dashboard/tasks' },
-            { label: 'אירועים קרובים', value: events.length, href: '/dashboard/calendar' },
-            { label: 'הודעות', value: messages.length, href: '/dashboard/messages' },
-          ].map(s => (
-            <div key={s.label} onClick={() => router.push(s.href)}
-              className="bg-white border border-gray-100 rounded-xl p-3 cursor-pointer hover:border-[#CC1010] hover:shadow-sm transition-all"
-              style={{ borderTop: '2px solid #CC1010' }}>
-              <div className="text-[11px] text-gray-400 mb-1">{s.label}</div>
-              <div className="text-xl font-medium text-[#CC1010]">{s.value}</div>
-            </div>
-          ))}
-        </div>
-
-        {urgent.length > 0 && (
-          <Card title="דורש טיפול עכשיו" icon="ti-alert-triangle" href="/dashboard/tasks">
-            {urgent.map(t => (
-              <div key={t.id} className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
-                <span className="flex-1 text-[13px] text-right">{t.title}</span>
-                <Badge text={t.priority} color={PRI_COLOR[t.priority] || 'bg-gray-100 text-gray-600'} />
+      {/* Stats */}
+      {!query && (
+        <>
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            {[
+              { label: 'משימות פתוחות', value: tasks.length,    href: '/dashboard/tasks' },
+              { label: 'אירועים קרובים', value: events.length,  href: '/dashboard/calendar' },
+              { label: 'הודעות',         value: messages.length, href: '/dashboard/messages' },
+            ].map(s => (
+              <div key={s.label} onClick={() => router.push(s.href)}
+                className="bg-white border border-gray-100 rounded-xl p-3 cursor-pointer hover:border-[#CC1010] hover:shadow-sm transition-all"
+                style={{ borderTop: '2px solid #CC1010' }}>
+                <div className="text-[11px] text-gray-400 mb-1">{s.label}</div>
+                <div className="text-xl font-medium text-[#CC1010]">{s.value}</div>
               </div>
             ))}
-          </Card>
-        )}
+          </div>
 
-        {events.length > 0 && (
-          <Card title="האירועים הקרובים" icon="ti-calendar-event" href="/dashboard/calendar">
-            {events.map(e => {
-              const [y,m,d] = e.date.split('-').map(Number)
-              return (
-                <div key={e.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
-                  <span className="text-[12px] text-gray-400 w-24 text-right">{d} {HE_MONTHS[m-1]}, {e.time?.slice(0,5)}</span>
-                  <span className="flex-1 text-[13px] text-right">{e.title}</span>
-                  <Badge text={TYPE_LABEL[e.type] || e.type} color={TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'} />
+          {urgent.length > 0 && (
+            <Card title="דורש טיפול עכשיו" icon="ti-alert-triangle" href="/dashboard/tasks">
+              {urgent.map(t => (
+                <div key={t.id} className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
+                  <span className="flex-1 text-[13px] text-right">{t.title}</span>
+                  <Badge text={t.priority} color={PRI_COLOR[t.priority] || 'bg-gray-100 text-gray-600'} />
                 </div>
-              )
-            })}
-          </Card>
-        )}
+              ))}
+            </Card>
+          )}
 
-        {messages.length > 0 && (
-          <Card title="הודעות אחרונות" icon="ti-message" href="/dashboard/messages">
-            {messages.map(m => (
-              <div key={m.id} className="p-2.5 bg-gray-50 rounded-lg mb-2 last:mb-0 border-r-2 border-[#CC1010]">
-                <div className="text-[11px] text-gray-400 mb-1">{m.sender?.full_name || 'מנהל הפקה'}</div>
-                <div className="text-[13px] text-gray-800 text-right">{m.body}</div>
-              </div>
-            ))}
-          </Card>
-        )}
-      </>}
+          {events.length > 0 && (
+            <Card title="האירועים הקרובים" icon="ti-calendar-event" href="/dashboard/calendar">
+              {events.map(e => {
+                const [y,m,d] = e.date.split('-').map(Number)
+                return (
+                  <div key={e.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
+                    <span className="text-[12px] text-gray-400 w-24 text-right">{d} {HE_MONTHS[m-1]}, {e.time?.slice(0,5)}</span>
+                    <span className="flex-1 text-[13px] text-right">{e.title}</span>
+                    <Badge text={TYPE_LABEL[e.type] || e.type} color={TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'} />
+                  </div>
+                )
+              })}
+            </Card>
+          )}
+
+          {messages.length > 0 && (
+            <Card title="הודעות אחרונות" icon="ti-message" href="/dashboard/messages">
+              {messages.map(m => (
+                <div key={m.id} className="p-2.5 bg-gray-50 rounded-lg mb-2 last:mb-0 border-r-2 border-[#CC1010]">
+                  <div className="text-[11px] text-gray-400 mb-1">{m.sender?.full_name || 'מנהל הפקה'}</div>
+                  <div className="text-[13px] text-gray-800 text-right">{m.body}</div>
+                </div>
+              ))}
+            </Card>
+          )}
+
+          {constraints.length > 0 && (
+            <Card title="אילוצים השבוע" icon="ti-ban" href="/dashboard/constraints">
+              {constraints.map(c => (
+                <div key={c.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
+                  <span className="flex-1 text-[13px] text-right font-medium">{c.crew_name}</span>
+                  <span className="text-[11px] text-gray-400">{c.date?.slice(5).replace('-','/')}</span>
+                  {c.notes && <span className="text-[11px] text-gray-500 truncate max-w-[120px]">{c.notes}</span>}
+                </div>
+              ))}
+            </Card>
+          )}
+        </>
+      )}
     </div>
   )
 }
