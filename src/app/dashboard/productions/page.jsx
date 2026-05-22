@@ -47,67 +47,95 @@ export default function ProductionsPage() {
   const [importing, setImporting] = useState(false)
   const [importProdId, setImportProdId] = useState(null)
 
-  async function handleImportExcel(e, prodId) {
+  async function handleImportExcel(e) {
     const file = e.target.files[0]
     if (!file) return
     setImporting(true)
-    setImportProdId(prodId)
 
     const reader = new FileReader()
     reader.onload = async (ev) => {
       try {
         const wb = XLSX.read(ev.target.result, { type: 'array' })
-        const newContacts = []
+
+        // Parse all sheets into groups: { groupName -> [contacts] }
+        const groups = {} // groupName -> [{full_name, role, email, phone}]
 
         wb.SheetNames.forEach(sheetName => {
           const ws = wb.Sheets[sheetName]
           const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
-          let currentGroup = sheetName
+          let currentGroup = null
 
           rows.forEach(row => {
-            // Skip title rows and header rows
-            const isHeader = String(row[1]||'').includes('שם') && String(row[2]||'').includes('תפקיד')
-            const isTitle = row[0] && !row[1] && String(row[0]).includes('צוותי')
-            if (isHeader || isTitle) return
+            const col0 = String(row[0]||'').trim()
+            const col1 = String(row[1]||'').trim()
+            const col2 = String(row[2]||'').trim()
 
-            // Group name in col A
-            if (row[0] && row[0].toString().trim()) {
-              currentGroup = row[0].toString().trim()
-            }
+            // Skip title rows (no col1) and header rows
+            const isTitle = col0 && !col1
+            const isHeader = col1 === 'שם' && col2 === 'תפקיד'
+            if (isTitle || isHeader) return
 
-            const name = String(row[1]||'').trim()
-            const role = String(row[2]||'').trim()
+            // New group name in col A
+            if (col0) currentGroup = col0
+
+            const name = col1
+            const role = col2
             const email = String(row[3]||'').trim()
             const phone = String(row[4]||'').trim()
 
-            if (name) {
-              newContacts.push({ full_name: name, role, email, phone, group: currentGroup })
+            if (name && currentGroup) {
+              if (!groups[currentGroup]) groups[currentGroup] = []
+              groups[currentGroup].push({ full_name: name, role, email, phone })
             }
           })
         })
 
-        // Insert all contacts
-        const existing = contacts[prodId] || []
-        let order = existing.length
-        for (const c of newContacts) {
-          const { data } = await supabase.from('production_contacts').insert({
-            production_id: prodId,
-            full_name: c.full_name,
-            role: c.role,
-            email: c.email,
-            phone: c.phone,
-            sort_order: order++,
-          }).select().single()
-          if (data) {
-            setContacts(prev => ({ ...prev, [prodId]: [...(prev[prodId]||[]), data] }))
+        const groupNames = Object.keys(groups)
+        let totalContacts = 0
+
+        for (const groupName of groupNames) {
+          const groupContacts = groups[groupName]
+
+          // Find or create production
+          let prod = productions.find(p => p.name === groupName)
+          if (prod) {
+            // Delete existing contacts
+            await supabase.from('production_contacts').delete().eq('production_id', prod.id)
+          } else {
+            // Create new production
+            const { data: newProd } = await supabase.from('productions').insert({
+              name: groupName,
+              sort_order: productions.length,
+            }).select().single()
+            prod = newProd
+            setProductions(prev => [...prev, prod])
           }
+
+          // Insert contacts
+          const inserted = []
+          for (let i = 0; i < groupContacts.length; i++) {
+            const c = groupContacts[i]
+            const { data } = await supabase.from('production_contacts').insert({
+              production_id: prod.id,
+              full_name: c.full_name,
+              role: c.role,
+              email: c.email,
+              phone: c.phone,
+              sort_order: i,
+            }).select().single()
+            if (data) inserted.push(data)
+          }
+
+          setContacts(prev => ({ ...prev, [prod.id]: inserted }))
+          totalContacts += inserted.length
         }
-        alert(`יובאו ${newContacts.length} אנשי קשר`)
+
+        alert(`יובאו ${groupNames.length} הפקות עם ${totalContacts} אנשי קשר`)
       } catch(err) {
         alert('שגיאה בייבוא: ' + err.message)
+        console.error(err)
       }
       setImporting(false)
-      setImportProdId(null)
       e.target.value = ''
     }
     reader.readAsArrayBuffer(file)
@@ -214,7 +242,12 @@ export default function ProductionsPage() {
     <div className="max-w-2xl">
       {/* Header */}
       {isManager && (
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end gap-2 mb-4">
+          <button onClick={() => fileInputRef.current.click()} disabled={importing}
+            className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:border-[#CC1010] bg-white disabled:opacity-50">
+            <i className="ti ti-file-import"/>
+            {importing ? 'מייבא...' : 'ייבא מאקסל'}
+          </button>
           <button onClick={() => setShowNewProd(v => !v)}
             className="bg-[#CC1010] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#a00c0c] flex items-center gap-1">
             <i className="ti ti-plus"/> הפקה חדשה
@@ -414,12 +447,7 @@ export default function ProductionsPage() {
                       <i className="ti ti-plus" style={{fontSize:13}}/> הוסף איש קשר
                     </button>
                     <div className="w-px bg-gray-100"/>
-                    <button onClick={() => { setImportProdId(prod.id); fileInputRef.current.click() }}
-                      disabled={importing && importProdId === prod.id}
-                      className="flex-1 py-3 text-[13px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors flex items-center justify-center gap-1 disabled:opacity-50">
-                      <i className="ti ti-file-import" style={{fontSize:13}}/>
-                      {importing && importProdId === prod.id ? 'מייבא...' : 'ייבא מאקסל'}
-                    </button>
+
                   </div>
                 )}
               </div>
@@ -433,7 +461,7 @@ export default function ProductionsPage() {
         type="file"
         accept=".xlsx,.xls"
         className="hidden"
-        onChange={e => handleImportExcel(e, importProdId)}
+        onChange={e => handleImportExcel(e)}
       />
     </div>
   )
