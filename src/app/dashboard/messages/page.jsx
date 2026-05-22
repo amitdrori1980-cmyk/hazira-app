@@ -20,6 +20,7 @@ export default function MessagesPage() {
   const [replies, setReplies]         = useState({})
   const [replyText, setReplyText]     = useState({})
   const [sendingReply, setSendingReply] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
   useEffect(() => { load() }, [])
 
@@ -40,7 +41,7 @@ export default function MessagesPage() {
       .select('*, sender:sender_id(full_name)')
       .order('created_at', { ascending: false })
     if (!p?.is_manager) {
-      q.or(`to_user.eq.${user.id},to_dept.eq.${p?.dept},to_dept.eq.all`)
+      q.or(`to_user.eq.${user.id},to_dept.eq.${p?.dept},to_dept.eq.all,sender_id.eq.${user.id}`)
     }
     const { data: msgs } = await q
     setMessages(msgs || [])
@@ -63,7 +64,6 @@ export default function MessagesPage() {
       payload.to_dept = form.to_dept || depts[0]
     } else if (form.target_type === 'person') {
       payload.to_crew_id = form.to_crew_id
-      // קשר ל-user_id של איש הצוות
       const member = crew.find(c => c.id === form.to_crew_id)
       if (member?.user_id) payload.to_user = member.user_id
     }
@@ -71,6 +71,12 @@ export default function MessagesPage() {
     setForm({ body:'', target_type:'all', to_dept:'', to_crew_id:'', priority:'רגיל' })
     await load()
     setSending(false)
+  }
+
+  async function deleteMessage(msgId) {
+    await supabase.from('messages').delete().eq('id', msgId)
+    setMessages(prev => prev.filter(m => m.id !== msgId))
+    setConfirmDelete(null)
   }
 
   async function toggleReplies(msgId) {
@@ -102,6 +108,11 @@ export default function MessagesPage() {
     setSendingReply(null)
   }
 
+  function canDelete(msg) {
+    if (!profile) return false
+    return msg.sender_id === profile.uid || msg.to_user === profile.uid || profile.is_manager
+  }
+
   function getTargetLabel(msg) {
     if (msg.to_dept === 'all') return '🌐 כולם'
     if (msg.to_dept) return `📂 ${msg.to_dept}`
@@ -114,7 +125,27 @@ export default function MessagesPage() {
 
   return (
     <div className="max-w-xl">
-      {/* Send — manager only */}
+      {/* אישור מחיקה */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-5 w-full max-w-sm shadow-xl">
+            <div className="text-[14px] font-medium text-gray-800 mb-2 text-right">מחיקת הודעה</div>
+            <div className="text-[13px] text-gray-500 mb-4 text-right">האם למחוק את ההודעה? פעולה זו אינה ניתנת לביטול.</div>
+            <div className="flex gap-2">
+              <button onClick={() => deleteMessage(confirmDelete)}
+                className="flex-1 bg-[#CC1010] text-white text-sm py-2 rounded-lg hover:bg-[#a00c0c]">
+                מחק
+              </button>
+              <button onClick={() => setConfirmDelete(null)}
+                className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50">
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* שליחת הודעה — מנהלים בלבד */}
       {profile?.is_manager && (
         <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
           <div className="text-[13px] font-medium text-gray-800 mb-3">שלח הודעה</div>
@@ -158,7 +189,7 @@ export default function MessagesPage() {
         </div>
       )}
 
-      {/* Messages */}
+      {/* רשימת הודעות */}
       <div className="bg-white border border-gray-100 rounded-xl p-4">
         <div className="text-[13px] font-medium text-gray-800 mb-3">
           הודעות {messages.length > 0 && <span className="text-gray-400">({messages.length})</span>}
@@ -171,7 +202,15 @@ export default function MessagesPage() {
           <div key={m.id} className="mb-3 last:mb-0">
             <div className="p-3 bg-gray-50 rounded-lg border-r-2 border-[#CC1010]">
               <div className="flex items-center justify-between mb-1 flex-row-reverse">
-                <span className="text-[11px] text-gray-400">{m.sender?.full_name || 'מנהל'}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-gray-400">{m.sender?.full_name || 'מנהל'}</span>
+                  {canDelete(m) && (
+                    <button onClick={() => setConfirmDelete(m.id)}
+                      className="text-gray-300 hover:text-[#CC1010] transition-colors">
+                      <i className="ti ti-trash" style={{fontSize:13}}/>
+                    </button>
+                  )}
+                </div>
                 <div className="flex items-center gap-1.5">
                   <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${PRI_COLOR[m.priority]||'bg-gray-100 text-gray-500'}`}>
                     {m.priority}
