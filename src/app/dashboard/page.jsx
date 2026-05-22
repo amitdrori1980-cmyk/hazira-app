@@ -37,7 +37,6 @@ export default function DashboardPage() {
   const [messages, setMessages] = useState([])
   const [loading, setLoading]   = useState(true)
 
-  // Search
   const [query, setQuery]           = useState('')
   const [searchResults, setSearchResults] = useState(null)
   const [searching, setSearching]   = useState(false)
@@ -49,17 +48,18 @@ export default function DashboardPage() {
       const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfile(p)
 
+      // Tasks — מנהל רואה הכל, משתמש רגיל רואה משימות שלו או של המחלקה
       const tq = supabase.from('tasks').select('*').eq('done', false).order('created_at')
       if (!p?.is_manager) tq.or(`assignee_id.eq.${user.id},dept.eq.${p?.dept}`)
       const { data: t } = await tq
       setTasks(t || [])
 
+      // Events — כולם רואים את כל האירועים
       const today = new Date().toISOString().slice(0, 10)
-      const eq = supabase.from('events').select('*').gte('date', today).order('date').limit(5)
-      if (!p?.is_manager) eq.contains('depts', [p?.dept])
-      const { data: e } = await eq
+      const { data: e } = await supabase.from('events').select('*').gte('date', today).order('date').limit(5)
       setEvents(e || [])
 
+      // Messages — לפי הרשאות
       const mq = supabase.from('messages').select('*, sender:sender_id(full_name)').order('created_at', { ascending: false }).limit(3)
       if (!p?.is_manager) mq.or(`to_user.eq.${user.id},to_dept.eq.${p?.dept},to_dept.eq.all`)
       const { data: m } = await mq
@@ -81,7 +81,6 @@ export default function DashboardPage() {
       return words.every(w => s.includes(w.toLowerCase()))
     }
 
-    // Search all tables with each word
     const [
       { data: evs },
       { data: crew },
@@ -229,7 +228,7 @@ export default function DashboardPage() {
           )}
 
           {events.length > 0 && (
-            <Card title="האירועים הקרובים שלי" icon="ti-calendar-event" href="/dashboard/calendar">
+            <Card title="האירועים הקרובים" icon="ti-calendar-event" href="/dashboard/calendar">
               {events.map(e => {
                 const [y,m,d] = e.date.split('-').map(Number)
                 return (
