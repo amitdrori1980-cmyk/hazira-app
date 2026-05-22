@@ -27,6 +27,28 @@ export default function ProductionsPage() {
   const [editingContact, setEditingContact] = useState(null) // contactId
   const [editContact, setEditContact] = useState({})
 
+  // Selected contacts for email
+  const [selectedContacts, setSelectedContacts] = useState({}) // contactId -> bool
+
+  function toggleSelect(contactId) {
+    setSelectedContacts(prev => ({ ...prev, [contactId]: !prev[contactId] }))
+  }
+
+  function sendEmailToSelected(prodContacts) {
+    const selected = prodContacts.filter(c => selectedContacts[c.id] && c.email)
+    if (!selected.length) return
+    const emails = selected.map(c => c.email).join(',')
+    window.location.href = `mailto:${emails}`
+  }
+
+  function selectAll(prodContacts) {
+    const withEmail = prodContacts.filter(c => c.email)
+    const allSelected = withEmail.every(c => selectedContacts[c.id])
+    const newSel = {}
+    withEmail.forEach(c => { newSel[c.id] = !allSelected })
+    setSelectedContacts(prev => ({ ...prev, ...newSel }))
+  }
+
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -202,6 +224,24 @@ export default function ProductionsPage() {
             {/* Contacts */}
             {isOpen && (
               <div className="border-t border-gray-50">
+                {/* Email toolbar */}
+                {prodContacts.filter(c => c.email).length > 0 && (
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex-row-reverse">
+                    <button onClick={() => selectAll(prodContacts)}
+                      className="text-[11px] text-gray-500 hover:text-[#CC1010] transition-colors">
+                      {prodContacts.filter(c => c.email).every(c => selectedContacts[c.id]) ? 'בטל הכל' : 'בחר הכל'}
+                    </button>
+                    <div className="flex-1"/>
+                    {Object.values(selectedContacts).some(Boolean) && (
+                      <button onClick={() => sendEmailToSelected(prodContacts)}
+                        className="flex items-center gap-1.5 text-[12px] bg-[#CC1010] text-white px-3 py-1.5 rounded-lg hover:bg-[#a00c0c]">
+                        <i className="ti ti-mail" style={{fontSize:13}}/>
+                        שלח מייל לנבחרים ({prodContacts.filter(c => selectedContacts[c.id] && c.email).length})
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {prodContacts.length === 0 && !addingContact && (
                   <div className="text-center text-[13px] text-gray-400 py-6">
                     {isManager ? 'לחץ על "הוסף איש קשר" להתחלה' : 'אין אנשי קשר'}
@@ -231,6 +271,13 @@ export default function ProductionsPage() {
                       </div>
                     ) : (
                       <>
+                        {c.email && (
+                          <input type="checkbox"
+                            checked={!!selectedContacts[c.id]}
+                            onChange={() => toggleSelect(c.id)}
+                            className="w-4 h-4 accent-[#CC1010] flex-shrink-0 cursor-pointer"
+                          />
+                        )}
                         <div className="flex-1 text-right">
                           <div className="flex items-center gap-2 justify-end">
                             <div className="text-[14px] font-medium text-gray-800">{c.full_name}</div>
