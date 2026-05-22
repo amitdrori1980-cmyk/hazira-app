@@ -21,9 +21,8 @@ export default function CalendarPage() {
       const { data: { user } } = await supabase.auth.getUser()
       const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfile(p)
-      const q = supabase.from('events').select('*').order('date')
-      if (!p?.is_manager) q.contains('depts', [p?.dept])
-      const { data } = await q
+      // כולם רואים את כל האירועים
+      const { data } = await supabase.from('events').select('*').order('date')
       setEvents(data || [])
       const { data: vs } = await supabase.from('venues').select('name').order('sort_order')
       setVenues((vs||[]).map(v => v.name))
@@ -96,20 +95,18 @@ export default function CalendarPage() {
 
         {/* Days grid */}
         <div className="grid grid-cols-7 gap-1">
-          {/* Prev month padding */}
           {Array.from({ length: firstDay }).map((_, i) => (
             <div key={'p'+i} className="min-h-[52px] rounded-lg p-1 opacity-25">
               <div className="text-center text-[11px] text-gray-400">{daysInPrev - firstDay + i + 1}</div>
             </div>
           ))}
 
-          {/* Current month */}
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const d = i + 1
             const ds = dateStr(calYear, calMonth, d)
             const isToday = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d
             const isSelected = selectedDay === ds
-            const dayEvs = events.filter(e => e.date === ds)
+            const dayEvs = filteredEvents.filter(e => e.date === ds)
 
             return (
               <div
@@ -143,12 +140,11 @@ export default function CalendarPage() {
             <span className="text-[13px] font-medium text-gray-800">
               {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
             </span>
-            <button
-              onClick={() => {/* open add event modal */}}
-              className="text-xs bg-[#CC1010] text-white px-3 py-1.5 rounded-lg flex items-center gap-1"
-            >
-              <i className="ti ti-plus" /> הוסף אירוע
-            </button>
+            {profile?.is_manager && (
+              <button className="text-xs bg-[#CC1010] text-white px-3 py-1.5 rounded-lg flex items-center gap-1">
+                <i className="ti ti-plus" /> הוסף אירוע
+              </button>
+            )}
           </div>
           {selectedEvents.length === 0 ? (
             <p className="text-[13px] text-gray-400 text-center py-4">אין אירועים ביום זה</p>
