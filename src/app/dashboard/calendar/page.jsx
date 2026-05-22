@@ -98,7 +98,7 @@ export default function CalendarPage() {
         <div className="grid grid-cols-7 gap-1.5">
           {/* Prev month padding */}
           {Array.from({ length: firstDay }).map((_, i) => (
-            <div key={'p'+i} className="min-h-[80px] rounded-lg p-1.5 opacity-25">
+            <div key={'p'+i} className="min-h-[52px] md:min-h-[80px] rounded-lg p-1 md:p-1.5 opacity-25">
               <div className="text-center text-[12px] text-gray-400">{daysInPrev - firstDay + i + 1}</div>
             </div>
           ))}
@@ -115,20 +115,20 @@ export default function CalendarPage() {
               <div
                 key={d}
                 onClick={() => setSelectedDay(ds)}
-                className={`min-h-[80px] rounded-lg p-1.5 cursor-pointer border transition-all ${
+                className={`min-h-[52px] md:min-h-[80px] rounded-lg p-1 md:p-1.5 cursor-pointer border transition-all ${
                   isSelected ? 'border-[#CC1010] bg-[#FDEAEA]' :
                   isToday    ? 'bg-[#FDEAEA] border-transparent' :
                                'border-transparent hover:border-gray-200 hover:bg-gray-50'
                 }`}
               >
-                <div className={`text-center text-[12px] font-medium mb-1 ${isToday || isSelected ? 'text-[#CC1010]' : 'text-gray-700'}`}>{d}</div>
-                {dayEvs.slice(0,3).map(e => (
-                  <div key={e.id} className={`text-[10px] px-1.5 py-0.5 rounded mb-0.5 truncate ${TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'}`}>
+                <div className={`text-center text-[11px] md:text-[12px] font-medium mb-1 ${isToday || isSelected ? 'text-[#CC1010]' : 'text-gray-700'}`}>{d}</div>
+                {dayEvs.slice(0,2).map(e => (
+                  <div key={e.id} className={`text-[9px] md:text-[10px] px-1 md:px-1.5 py-0.5 rounded mb-0.5 truncate ${TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'}`}>
                     {e.time?.slice(0,5)} {e.title}
                   </div>
                 ))}
-                {dayEvs.length > 3 && (
-                  <div className="text-[10px] text-gray-400 text-center">+{dayEvs.length-3}</div>
+                {dayEvs.length > 2 && (
+                  <div className="text-[9px] text-gray-400 text-center">+{dayEvs.length-2}</div>
                 )}
               </div>
             )
