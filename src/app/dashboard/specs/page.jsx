@@ -353,12 +353,14 @@ function GeneralFilesMode() {
   }
 
   async function handleUpload(e) {
-    const file = e.target.files[0]
-    if (!file) return
+    const fileList = Array.from(e.target.files)
+    if (!fileList.length) return
     setUploading(true)
-    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_\u0590-\u05FF ]/g, '_')
-    const { error } = await supabase.storage.from('venues').upload(`${FOLDER}/${safeName}`, file, { upsert: true })
-    if (!error) await loadFiles()
+    await Promise.all(fileList.map(file => {
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_\u0590-\u05FF ]/g, '_')
+      return supabase.storage.from('venues').upload(`${FOLDER}/${safeName}`, file, { upsert: true })
+    }))
+    await loadFiles()
     setUploading(false)
     e.target.value = ''
   }
@@ -425,7 +427,7 @@ function GeneralFilesMode() {
         </div>
       )}
 
-      <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handleUpload}/>
+      <input ref={fileInputRef} type="file" accept=".pdf" multiple className="hidden" onChange={handleUpload}/>
 
       <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
         {/* Toolbar */}
