@@ -356,10 +356,10 @@ function GeneralFilesMode() {
     const fileList = Array.from(e.target.files)
     if (!fileList.length) return
     setUploading(true)
-    await Promise.all(fileList.map(file => {
+    for (const file of fileList) {
       const safeName = file.name.replace(/[^a-zA-Z0-9.\-_\u0590-\u05FF ]/g, '_')
-      return supabase.storage.from('venues').upload(`${FOLDER}/${safeName}`, file, { upsert: true })
-    }))
+      await supabase.storage.from('venues').upload(`${FOLDER}/${safeName}`, file, { upsert: true })
+    }
     await loadFiles()
     setUploading(false)
     e.target.value = ''
