@@ -207,34 +207,36 @@ export default function VenuesPage() {
                 )}
 
                 {venueFiles.map(f => (
-                  <div key={f.name} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 flex-row-reverse group hover:bg-gray-50">
-                    {/* Right: checkbox + icon + name */}
-                    <input type="checkbox"
-                      checked={!!selectedFiles[`${venue}/${f.name}`]}
-                      onChange={() => toggleFileSelect(venue, f.name)}
-                      className="w-4 h-4 accent-[#CC1010] flex-shrink-0 cursor-pointer"
-                    />
-                    <div className="w-9 h-9 bg-[#FDEAEA] rounded-lg flex items-center justify-center flex-shrink-0">
-                      <i className="ti ti-file-type-pdf text-[#CC1010]" style={{fontSize:18}}/>
-                    </div>
-                    <div className="flex-1 text-right">
-                      <div className="text-[13px] font-medium text-gray-800 truncate">{f.name}</div>
-                      <div className="text-[11px] text-gray-400">
-                        {f.metadata?.size ? `${Math.round(f.metadata.size / 1024)} KB` : ''}
-                      </div>
-                    </div>
-                    {/* Left: delete button (far left, separated) */}
+                  <div key={f.name} className="flex items-center px-4 py-3 border-b border-gray-50 last:border-0 group hover:bg-gray-50">
+                    {/* Far left: delete button */}
                     {profile?.is_manager && (
                       <button onClick={() => deleteFile(venue, f.name)}
-                        className="text-gray-300 hover:text-red-500 p-1 flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+                        className="text-gray-300 hover:text-red-500 p-1 flex-shrink-0 ml-1 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
                         <i className="ti ti-trash" style={{fontSize:16}}/>
                       </button>
                     )}
-                    {/* View button */}
+                    {/* Middle: view button */}
                     <button onClick={() => openFile(venue, f.name)}
-                      className="text-[#CC1010] hover:text-[#a00c0c] text-[12px] flex items-center gap-1 px-2 py-1 border border-[#CC1010] rounded-lg flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+                      className="text-[#CC1010] hover:text-[#a00c0c] text-[12px] flex items-center gap-1 px-2 py-1 border border-[#CC1010] rounded-lg flex-shrink-0 mr-3 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
                       <i className="ti ti-eye" style={{fontSize:13}}/> צפה
                     </button>
+                    {/* Right side: name + icon + checkbox */}
+                    <div className="flex-1 flex items-center gap-3 flex-row-reverse min-w-0">
+                      <input type="checkbox"
+                        checked={!!selectedFiles[`${venue}/${f.name}`]}
+                        onChange={() => toggleFileSelect(venue, f.name)}
+                        className="w-4 h-4 accent-[#CC1010] flex-shrink-0 cursor-pointer"
+                      />
+                      <div className="w-9 h-9 bg-[#FDEAEA] rounded-lg flex items-center justify-center flex-shrink-0">
+                        <i className="ti ti-file-type-pdf text-[#CC1010]" style={{fontSize:18}}/>
+                      </div>
+                      <div className="flex-1 text-right min-w-0">
+                        <div className="text-[13px] font-medium text-gray-800 truncate">{f.name}</div>
+                        <div className="text-[11px] text-gray-400">
+                          {f.metadata?.size ? `${Math.round(f.metadata.size / 1024)} KB` : ''}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ))}
 
