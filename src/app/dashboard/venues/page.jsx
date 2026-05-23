@@ -2,6 +2,14 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
+const VENUE_FOLDER_MAP = {
+  'אולם 1': 'hall-1',
+  'אולם 2': 'hall-2',
+  'אולם 5': 'hall-5',
+  'תיאטרון הבית': 'habit',
+  'דירה': 'apartment',
+}
+
 export default function VenuesPage() {
   const [profile, setProfile] = useState(null)
   const [venues, setVenues] = useState([])
@@ -26,7 +34,9 @@ export default function VenuesPage() {
       // Load files for each venue
       const fileMap = {}
       for (const v of venueNames) {
-        const { data } = await supabase.storage.from('venues').list(v, { sortBy: { column: 'name', order: 'asc' } })
+        const folder = VENUE_FOLDER_MAP[v]
+        if (!folder) continue
+        const { data } = await supabase.storage.from('venues').list(folder, { sortBy: { column: 'name', order: 'asc' } })
         fileMap[v] = (data || []).filter(f => f.name !== '.emptydir')
       }
       setFiles(fileMap)
@@ -41,11 +51,13 @@ export default function VenuesPage() {
     setUploading(uploadTarget)
 
     const safeName = file.name.replace(/[^a-zA-Z0-9.\-_\u0590-\u05FF ]/g, '_')
-    const path = `${uploadTarget}/${safeName}`
+    const folder = VENUE_FOLDER_MAP[uploadTarget] || uploadTarget
+    const path = `${folder}/${safeName}`
 
     const { error } = await supabase.storage.from('venues').upload(path, file, { upsert: true })
     if (!error) {
-      const { data: updated } = await supabase.storage.from('venues').list(uploadTarget, { sortBy: { column: 'name', order: 'asc' } })
+      const folder2 = VENUE_FOLDER_MAP[uploadTarget] || uploadTarget
+      const { data: updated } = await supabase.storage.from('venues').list(folder2, { sortBy: { column: 'name', order: 'asc' } })
       setFiles(prev => ({ ...prev, [uploadTarget]: (updated || []).filter(f => f.name !== '.emptydir') }))
     }
     setUploading(null)
@@ -55,12 +67,14 @@ export default function VenuesPage() {
 
   async function deleteFile(venueName, fileName) {
     if (!window.confirm(`למחוק את "${fileName}"?`)) return
-    await supabase.storage.from('venues').remove([`${venueName}/${fileName}`])
+    const delFolder = VENUE_FOLDER_MAP[venueName] || venueName
+    await supabase.storage.from('venues').remove([`${delFolder}/${fileName}`])
     setFiles(prev => ({ ...prev, [venueName]: prev[venueName].filter(f => f.name !== fileName) }))
   }
 
   async function openFile(venueName, fileName) {
-    const { data } = supabase.storage.from('venues').getPublicUrl(`${venueName}/${fileName}`)
+    const viewFolder = VENUE_FOLDER_MAP[venueName] || venueName
+    const { data } = supabase.storage.from('venues').getPublicUrl(`${viewFolder}/${fileName}`)
     setViewing({ url: data.publicUrl, name: fileName })
   }
 
