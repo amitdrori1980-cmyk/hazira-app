@@ -101,7 +101,12 @@ export default function VenuesPage() {
   async function openFile(venueName, fileName) {
     const viewFolder = VENUE_FOLDER_MAP[venueName] || venueName
     const { data } = supabase.storage.from('venues').getPublicUrl(`${viewFolder}/${fileName}`)
-    setViewing({ url: data.publicUrl, name: fileName })
+    const isMobile = window.innerWidth < 768
+    if (isMobile) {
+      window.open(data.publicUrl, '_blank')
+    } else {
+      setViewing({ url: data.publicUrl, name: fileName })
+    }
   }
 
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
@@ -111,19 +116,44 @@ export default function VenuesPage() {
       {/* PDF Viewer Modal */}
       {viewing && (
         <div className="fixed inset-0 z-50 bg-black/70 flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3 bg-white">
-            <button onClick={() => setViewing(null)} className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
-              <i className="ti ti-x" style={{fontSize:18}}/>
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 flex-row-reverse">
+            <button onClick={() => setViewing(null)} className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-[13px]">
+              <i className="ti ti-x" style={{fontSize:16}}/>
               סגור
             </button>
-            <span className="text-[14px] font-medium text-gray-800">{viewing.name}</span>
+            <span className="text-[13px] font-medium text-gray-800 truncate max-w-[45%] text-center">{viewing.name}</span>
             <a href={viewing.url} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[13px] text-[#CC1010] hover:underline">
               <i className="ti ti-external-link" style={{fontSize:14}}/>
               פתח בדפדפן
             </a>
           </div>
-          <iframe src={viewing.url} className="flex-1 w-full" title={viewing.name}/>
+
+          {/* Desktop: iframe */}
+          <iframe
+            src={viewing.url}
+            className="flex-1 w-full hidden md:block"
+            title={viewing.name}
+            allow="fullscreen"
+            style={{border:'none'}}
+          />
+
+          {/* Mobile: open in browser */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-5 bg-gray-50 md:hidden px-6 text-center">
+            <div className="w-16 h-16 bg-[#FDEAEA] rounded-2xl flex items-center justify-center">
+              <i className="ti ti-file-type-pdf text-[#CC1010]" style={{fontSize:32}}/>
+            </div>
+            <div>
+              <div className="text-[15px] font-semibold text-gray-800 mb-1">{viewing.name}</div>
+              <div className="text-[13px] text-gray-400">לצפייה בקובץ PDF פתח אותו בדפדפן</div>
+            </div>
+            <a href={viewing.url} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 text-[14px] bg-[#CC1010] text-white px-6 py-3 rounded-xl font-medium active:bg-[#a00c0c]">
+              <i className="ti ti-external-link" style={{fontSize:15}}/>
+              פתח PDF
+            </a>
+          </div>
         </div>
       )}
 
@@ -178,6 +208,7 @@ export default function VenuesPage() {
 
                 {venueFiles.map(f => (
                   <div key={f.name} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 flex-row-reverse group hover:bg-gray-50">
+                    {/* Right: checkbox + icon + name */}
                     <input type="checkbox"
                       checked={!!selectedFiles[`${venue}/${f.name}`]}
                       onChange={() => toggleFileSelect(venue, f.name)}
@@ -192,18 +223,18 @@ export default function VenuesPage() {
                         {f.metadata?.size ? `${Math.round(f.metadata.size / 1024)} KB` : ''}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openFile(venue, f.name)}
-                        className="text-[#CC1010] hover:text-[#a00c0c] text-[12px] flex items-center gap-1 px-2 py-1 border border-[#CC1010] rounded-lg">
-                        <i className="ti ti-eye" style={{fontSize:13}}/> צפה
+                    {/* Left: delete button (far left, separated) */}
+                    {profile?.is_manager && (
+                      <button onClick={() => deleteFile(venue, f.name)}
+                        className="text-gray-300 hover:text-red-500 p-1 flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+                        <i className="ti ti-trash" style={{fontSize:16}}/>
                       </button>
-                      {profile?.is_manager && (
-                        <button onClick={() => deleteFile(venue, f.name)}
-                          className="text-gray-300 hover:text-red-500">
-                          <i className="ti ti-trash" style={{fontSize:14}}/>
-                        </button>
-                      )}
-                    </div>
+                    )}
+                    {/* View button */}
+                    <button onClick={() => openFile(venue, f.name)}
+                      className="text-[#CC1010] hover:text-[#a00c0c] text-[12px] flex items-center gap-1 px-2 py-1 border border-[#CC1010] rounded-lg flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+                      <i className="ti ti-eye" style={{fontSize:13}}/> צפה
+                    </button>
                   </div>
                 ))}
 
