@@ -219,23 +219,27 @@ export default function VenuesPage() {
                 )}
 
                 {venueFiles.map(f => (
-                  <div key={f.name} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 group hover:bg-gray-50 flex-row-reverse">
+                  <div key={f.name} className="flex items-center gap-2 px-4 py-3 border-b border-gray-50 last:border-0 group hover:bg-gray-50 flex-row-reverse">
+                    {/* Checkbox - fixed */}
                     <input type="checkbox"
                       checked={!!selectedFiles[`${venue}/${f.name}`]}
                       onChange={() => toggleFileSelect(venue, f.name)}
                       className="w-4 h-4 accent-[#CC1010] flex-shrink-0 cursor-pointer"
                     />
+                    {/* PDF icon - fixed */}
                     <div className="w-9 h-9 bg-[#FDEAEA] rounded-lg flex items-center justify-center flex-shrink-0">
                       <i className="ti ti-file-type-pdf text-[#CC1010]" style={{fontSize:18}}/>
                     </div>
-                    <div className="flex-1 text-right min-w-0">
+                    {/* Name - shrinks to fit */}
+                    <div className="flex-1 text-right min-w-0 overflow-hidden">
                       <div className="text-[13px] font-medium text-gray-800 truncate">{f.name}</div>
                       <div className="text-[11px] text-gray-400">
                         {f.metadata?.size ? `${Math.round(f.metadata.size / 1024)} KB` : ''}
                       </div>
                     </div>
+                    {/* View button - always fixed width, never pushed out */}
                     <button onClick={() => openFile(venue, f.name)}
-                      className="text-[#CC1010] hover:text-[#a00c0c] text-[12px] flex items-center gap-1 px-2 py-1 border border-[#CC1010] rounded-lg flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+                      className="text-[#CC1010] hover:text-[#a00c0c] text-[12px] flex items-center gap-1 px-2 py-1.5 border border-[#CC1010] rounded-lg flex-shrink-0 whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
                       <i className="ti ti-eye" style={{fontSize:13}}/> צפה
                     </button>
                   </div>
