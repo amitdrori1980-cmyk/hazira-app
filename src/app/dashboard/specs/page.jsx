@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -333,6 +333,171 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate }) {
   )
 }
 
+
+function GeneralFilesMode() {
+  const [files, setFiles] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [selectedFiles, setSelectedFiles] = useState({})
+  const [viewing, setViewing] = useState(null)
+  const fileInputRef = useRef(null)
+  const FOLDER = 'general'
+
+  useEffect(() => { loadFiles() }, [])
+
+  async function loadFiles() {
+    setLoading(true)
+    const { data } = await supabase.storage.from('venues').list(FOLDER, { sortBy: { column: 'name', order: 'asc' } })
+    setFiles((data || []).filter(f => f.name !== '.emptydir'))
+    setLoading(false)
+  }
+
+  async function handleUpload(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true)
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_\u0590-\u05FF ]/g, '_')
+    const { error } = await supabase.storage.from('venues').upload(`${FOLDER}/${safeName}`, file, { upsert: true })
+    if (!error) await loadFiles()
+    setUploading(false)
+    e.target.value = ''
+  }
+
+  async function deleteFile(fileName) {
+    if (!window.confirm(`למחוק את "${fileName}"?`)) return
+    await supabase.storage.from('venues').remove([`${FOLDER}/${fileName}`])
+    setFiles(prev => prev.filter(f => f.name !== fileName))
+    setSelectedFiles(prev => { const n = {...prev}; delete n[fileName]; return n })
+  }
+
+  function openFile(fileName) {
+    const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${fileName}`)
+    const isMobile = window.innerWidth < 768
+    if (isMobile) {
+      window.open(data.publicUrl, '_blank')
+    } else {
+      setViewing({ url: data.publicUrl, name: fileName })
+    }
+  }
+
+  function toggleSelect(fileName) {
+    setSelectedFiles(prev => ({ ...prev, [fileName]: !prev[fileName] }))
+  }
+
+  function selectAll() {
+    const allSelected = files.every(f => selectedFiles[f.name])
+    const newSel = {}
+    files.forEach(f => { newSel[f.name] = !allSelected })
+    setSelectedFiles(newSel)
+  }
+
+  function sendByEmail() {
+    const selected = files.filter(f => selectedFiles[f.name])
+    if (!selected.length) return
+    const links = selected.map(f => {
+      const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${f.name}`)
+      return `${f.name}: ${data.publicUrl}`
+    }).join('%0D%0A')
+    window.location.href = `mailto:?subject=${encodeURIComponent('מפרטים כללי')}&body=${links}`
+  }
+
+  const anySelected = files.some(f => selectedFiles[f.name])
+  const selectedCount = files.filter(f => selectedFiles[f.name]).length
+
+  if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
+
+  return (
+    <div className="max-w-2xl">
+      {/* PDF Viewer Modal - Desktop */}
+      {viewing && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 flex-row-reverse">
+            <button onClick={() => setViewing(null)} className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-[13px]">
+              <i className="ti ti-x" style={{fontSize:16}}/> סגור
+            </button>
+            <span className="text-[13px] font-medium text-gray-800 truncate max-w-[45%] text-center">{viewing.name}</span>
+            <a href={viewing.url} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[13px] text-[#CC1010] hover:underline">
+              <i className="ti ti-external-link" style={{fontSize:14}}/> פתח בדפדפן
+            </a>
+          </div>
+          <iframe src={viewing.url} className="flex-1 w-full hidden md:block" title={viewing.name} allow="fullscreen" style={{border:'none'}}/>
+        </div>
+      )}
+
+      <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handleUpload}/>
+
+      <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+        {/* Toolbar */}
+        {files.length > 0 && (
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex-row-reverse">
+            <button onClick={selectAll} className="text-[11px] text-gray-500 hover:text-[#CC1010]">
+              {files.every(f => selectedFiles[f.name]) ? 'בטל הכל' : 'בחר הכל'}
+            </button>
+            <div className="flex-1"/>
+            {anySelected && (
+              <button onClick={() => {
+                const selected = files.filter(f => selectedFiles[f.name])
+                if (window.confirm(`למחוק ${selected.length} קבצים?`)) {
+                  selected.forEach(f => deleteFile(f.name))
+                }
+              }}
+                className="flex items-center gap-1.5 text-[12px] bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors">
+                <i className="ti ti-trash" style={{fontSize:13}}/> מחק ({selectedCount})
+              </button>
+            )}
+            {anySelected && (
+              <button onClick={sendByEmail}
+                className="flex items-center gap-1.5 text-[12px] bg-[#CC1010] text-white px-3 py-1.5 rounded-lg hover:bg-[#a00c0c]">
+                <i className="ti ti-mail" style={{fontSize:13}}/> שלח במייל ({selectedCount})
+              </button>
+            )}
+          </div>
+        )}
+
+        {files.length === 0 && (
+          <div className="text-center text-[13px] text-gray-400 py-8">אין קבצים עדיין</div>
+        )}
+
+        {files.map(f => (
+          <div key={f.name} className="flex items-center gap-2 px-4 py-3 border-b border-gray-50 last:border-0 group hover:bg-gray-50 flex-row-reverse">
+            <input type="checkbox"
+              checked={!!selectedFiles[f.name]}
+              onChange={() => toggleSelect(f.name)}
+              className="w-4 h-4 accent-[#CC1010] flex-shrink-0 cursor-pointer"
+            />
+            <div className="w-9 h-9 bg-[#FDEAEA] rounded-lg flex items-center justify-center flex-shrink-0">
+              <i className="ti ti-file-type-pdf text-[#CC1010]" style={{fontSize:18}}/>
+            </div>
+            <div className="flex-1 text-right min-w-0 overflow-hidden">
+              <div className="text-[13px] font-medium text-gray-800 truncate">{f.name}</div>
+              <div className="text-[11px] text-gray-400">
+                {f.metadata?.size ? `${Math.round(f.metadata.size / 1024)} KB` : ''}
+              </div>
+            </div>
+            <button onClick={() => openFile(f.name)}
+              className="text-[#CC1010] hover:text-[#a00c0c] text-[12px] flex items-center gap-1 px-2 py-1.5 border border-[#CC1010] rounded-lg flex-shrink-0 whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+              <i className="ti ti-eye" style={{fontSize:13}}/> צפה
+            </button>
+          </div>
+        ))}
+
+        {/* Upload button */}
+        <button
+          onClick={() => fileInputRef.current.click()}
+          disabled={uploading}
+          className="w-full py-3 text-[13px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors flex items-center justify-center gap-1">
+          {uploading ? (
+            <><i className="ti ti-loader-2 animate-spin" style={{fontSize:13}}/> מעלה...</>
+          ) : (
+            <><i className="ti ti-upload" style={{fontSize:13}}/> העלה PDF</>
+          )}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function SpecsPage() {
   const [events, setEvents]         = useState([])
   const [categories, setCategories] = useState([])
@@ -484,6 +649,7 @@ export default function SpecsPage() {
           {id:'spec', label:'📋 מפרט ציוד'},
           {id:'templates', label:'⭐ תבניות מאסטר'},
           {id:'compare', label:'⚡ השוואת התנגשויות'},
+          {id:'files', label:'📁 מפרטים כללי'},
         ].map(tab=>(
           <button key={tab.id} onClick={()=>setMode(tab.id)}
             className={`text-[13px] px-4 py-2 rounded-lg border transition-colors ${mode===tab.id?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-600 hover:border-[#CC1010]'}`}>
@@ -619,6 +785,11 @@ export default function SpecsPage() {
       {/* COMPARE MODE */}
       {mode === 'compare' && (
         <CompareMode events={events} allItems={allItems} selectedEvent={selectedEvent} selectEvent={selectEvent} specItems={specItems} />
+      )}
+
+      {/* FILES MODE */}
+      {mode === 'files' && (
+        <GeneralFilesMode />
       )}
     </div>
   )
