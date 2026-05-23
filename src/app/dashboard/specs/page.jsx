@@ -629,7 +629,7 @@ export default function SpecsPage() {
             <div className="text-[12px] text-gray-400 mb-4 text-right">הפריטים הקיימים יימחקו ויוחלפו בתבנית</div>
             <div className="flex flex-col gap-2 mb-4 max-h-60 overflow-y-auto">
               {templates.length === 0 ? (
-                <div className="text-center text-[13px] text-gray-400 py-4">אין תבניות — צור תבנית בטאב "תבניות מאסטר"</div>
+                <div className="text-center text-[13px] text-gray-400 py-4">אין תבניות — צור תבנית בטאב "מפרטים כלליים הפקות"</div>
               ) : templates.map(t => (
                 <button key={t.id} onClick={() => loadTemplate(t.id)} disabled={loadingTemplate}
                   className="text-right px-4 py-3 border border-gray-200 rounded-lg hover:border-[#CC1010] hover:bg-[#FDEAEA] transition-colors disabled:opacity-50">
@@ -649,7 +649,7 @@ export default function SpecsPage() {
       <div className="flex gap-2 mb-4">
         {[
           {id:'spec', label:'📋 מפרט ציוד'},
-          {id:'templates', label:'⭐ תבניות מאסטר'},
+          {id:'templates', label:'⭐ מפרטים כלליים הפקות'},
           {id:'compare', label:'⚡ השוואת התנגשויות'},
           {id:'files', label:'📁 מפרטים כללי'},
         ].map(tab=>(
