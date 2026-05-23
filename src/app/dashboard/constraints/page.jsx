@@ -29,17 +29,14 @@ export default function ConstraintsPage() {
   const [showConstraints, setShowConstraints] = useState(true)
   const [showEvents, setShowEvents]           = useState(true)
 
-  // Calendar state
   const today = new Date()
   const [calYear, setCalYear]   = useState(today.getFullYear())
   const [calMonth, setCalMonth] = useState(today.getMonth())
   const [selectedDay, setSelectedDay] = useState(null)
 
-  // Import state
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
 
-  // Manual add
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm]       = useState({ crew_name:'', date:'', hours:'', notes:'' })
   const [adding, setAdding]   = useState(false)
@@ -81,7 +78,6 @@ export default function ConstraintsPage() {
 
   const selectedData = selectedDay ? getDayData(selectedDay) : null
 
-  // Import from Excel
   function handleFile(e) {
     const file = e.target.files[0]
     if (!file) return
@@ -104,24 +100,16 @@ export default function ConstraintsPage() {
         const date = parseDate(row[dateIdx])
         const name = row[nameIdx]?.toString().trim()
         if (!date || !name) { failed++; continue }
-
         const hours = row[hoursIdx]?.toString().trim() || ''
         const notes = row[notesIdx]?.toString().trim() || ''
-
-        // Try to match crew member by name
         const member = crew.find(c => c.full_name.trim() === name)
-
         const { error } = await supabase.from('crew_constraints').insert({
           crew_member_id: member?.id || null,
           crew_name: name,
-          date,
-          hours,
-          notes,
-          available: false,
+          date, hours, notes, available: false,
         })
         if (error) failed++; else success++
       }
-
       setImportResult({ success, failed })
       await load()
       setImporting(false)
@@ -154,10 +142,8 @@ export default function ConstraintsPage() {
     setConstraints(prev => prev.filter(c => c.id !== id))
   }
 
-  const TYPE_COLOR = { rehearsal:'bg-[#FDEAEA] text-[#8B0000]', show:'bg-[#E1F5EE] text-[#085041]', crew:'bg-[#FAEEDA] text-[#633806]', technical:'bg-[#FAECE7] text-[#4A1B0C]' }
-
   return (
-    <div className="max-w-2xl">
+    <div className="w-full">
       {/* Controls */}
       <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
@@ -175,7 +161,6 @@ export default function ConstraintsPage() {
               הצג אילוצי צוות
             </label>
           </div>
-
           <div className="flex gap-2">
             <button onClick={() => setShowAdd(!showAdd)}
               className="text-[12px] border border-[#CC1010] text-[#CC1010] px-3 py-1.5 rounded-lg hover:bg-[#FDEAEA]">
@@ -188,7 +173,6 @@ export default function ConstraintsPage() {
           </div>
         </div>
 
-        {/* Import result */}
         {importResult && (
           <div className="mt-3 text-[12px] text-right">
             {importResult.success > 0 && <span className="text-[#085041]">✅ {importResult.success} אילוצים יובאו  </span>}
@@ -196,7 +180,6 @@ export default function ConstraintsPage() {
           </div>
         )}
 
-        {/* Manual add form */}
         {showAdd && (
           <form onSubmit={addConstraint} className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-2">
             <div className="grid grid-cols-2 gap-2">
@@ -208,7 +191,7 @@ export default function ConstraintsPage() {
               <input value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}
                 type="date" required className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
               <input value={form.hours} onChange={e=>setForm(f=>({...f,hours:e.target.value}))}
-                placeholder="שעות (לדוגמה 09:00-13:00)" className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+                placeholder="שעות (09:00-13:00)" className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
               <input value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}
                 placeholder="הערה" className="col-span-2 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
             </div>
@@ -223,23 +206,20 @@ export default function ConstraintsPage() {
       </div>
 
       {/* Calendar */}
-      <div className="bg-white border border-gray-100 rounded-xl p-4 mb-3">
-        {/* Header */}
+      <div className="bg-white border border-gray-100 rounded-xl p-5 mb-3">
         <div className="flex items-center justify-between mb-4">
           <button onClick={()=>changeMonth(-1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">‹ הקודם</button>
-          <span className="text-sm font-semibold text-[#CC1010]">{HE_MONTHS[calMonth]} {calYear}</span>
+          <span className="text-base font-semibold text-[#CC1010]">{HE_MONTHS[calMonth]} {calYear}</span>
           <button onClick={()=>changeMonth(1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">הבא ›</button>
         </div>
 
-        {/* Day names */}
-        <div className="grid grid-cols-7 gap-1 mb-1">
-          {HE_DAYS.map(d=><div key={d} className="text-center text-[11px] text-gray-400 font-medium py-1">{d}</div>)}
+        <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+          {HE_DAYS.map(d=><div key={d} className="text-center text-[12px] text-gray-400 font-medium py-1">{d}</div>)}
         </div>
 
-        {/* Days */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-1.5">
           {Array.from({length:firstDay}).map((_,i)=>(
-            <div key={'p'+i} className="min-h-[58px] rounded-lg p-1 opacity-25">
+            <div key={'p'+i} className="min-h-[70px] md:min-h-[90px] rounded-lg p-1 opacity-25">
               <div className="text-center text-[11px] text-gray-400">{daysInPrev-firstDay+i+1}</div>
             </div>
           ))}
@@ -253,25 +233,35 @@ export default function ConstraintsPage() {
 
             return (
               <div key={d} onClick={()=>setSelectedDay(ds)}
-                className={`min-h-[58px] rounded-lg p-1 cursor-pointer border transition-all ${
+                className={`min-h-[70px] md:min-h-[90px] rounded-lg p-1.5 cursor-pointer border transition-all ${
                   isSelected ? 'border-[#CC1010] bg-[#FDEAEA]' :
                   isToday    ? 'bg-[#FDEAEA] border-transparent' :
                   hasData    ? 'border-gray-100 bg-gray-50' :
                                'border-transparent hover:border-gray-200 hover:bg-gray-50'
                 }`}>
-                <div className={`text-center text-[11px] font-medium mb-0.5 ${isToday||isSelected?'text-[#CC1010]':'text-gray-700'}`}>{d}</div>
+                <div className={`text-center text-[12px] font-medium mb-1 ${isToday||isSelected?'text-[#CC1010]':'text-gray-700'}`}>{d}</div>
+                {/* Mobile: dots */}
+                <div className="flex flex-wrap gap-0.5 md:hidden">
+                  {dayEvents.slice(0,2).map(e=>(
+                    <span key={e.id} className="w-2.5 h-2.5 rounded-full bg-[#CC1010] inline-block"/>
+                  ))}
+                  {dayConstraints.slice(0,3).map(c=>(
+                    <span key={c.id} className="w-2.5 h-2.5 rounded-full bg-[#6366f1] inline-block"/>
+                  ))}
+                </div>
+                {/* Desktop: text */}
                 {dayEvents.slice(0,1).map(e=>(
-                  <div key={e.id} className="text-[8px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FDEAEA] text-[#8B0000]">
+                  <div key={e.id} className="hidden md:block text-[9px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FDEAEA] text-[#8B0000]">
                     {e.time?.slice(0,5)} {e.title}
                   </div>
                 ))}
                 {dayConstraints.slice(0,2).map(c=>(
-                  <div key={c.id} className="text-[8px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#EEF2FF] text-[#4338ca]">
+                  <div key={c.id} className="hidden md:block text-[9px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#EEF2FF] text-[#4338ca]">
                     {c.crew_name?.split(' ')[0]}
                   </div>
                 ))}
                 {(dayEvents.length + dayConstraints.length) > 3 && (
-                  <div className="text-[8px] text-gray-400 text-center">+{dayEvents.length+dayConstraints.length-3}</div>
+                  <div className="hidden md:block text-[9px] text-gray-400 text-center">+{dayEvents.length+dayConstraints.length-3}</div>
                 )}
               </div>
             )
@@ -282,11 +272,10 @@ export default function ConstraintsPage() {
       {/* Selected day panel */}
       {selectedDay && selectedData && (
         <div className="bg-white border border-gray-100 rounded-xl p-4">
-          <div className="text-[13px] font-medium text-gray-800 mb-3">
+          <div className="text-[14px] font-medium text-gray-800 mb-3">
             {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
           </div>
 
-          {/* Events */}
           {selectedData.dayEvents.length > 0 && (
             <div className="mb-3">
               <div className="text-[11px] font-semibold text-gray-500 mb-2">אירועים</div>
@@ -299,23 +288,24 @@ export default function ConstraintsPage() {
             </div>
           )}
 
-          {/* Constraints */}
           {selectedData.dayConstraints.length > 0 && (
             <div>
               <div className="text-[11px] font-semibold text-gray-500 mb-2">אילוצי צוות</div>
-              {selectedData.dayConstraints.map(c=>(
-                <div key={c.id} className="flex items-center gap-2 py-2 bg-[#EEF2FF] rounded-lg mb-1.5 px-3 flex-row-reverse group">
-                  <div className="flex-1 text-right">
-                    <div className="text-[13px] font-medium text-[#4338ca]">{c.crew_name}</div>
-                    {c.hours && <div className="text-[11px] text-[#6366f1]">🕐 {c.hours}</div>}
-                    {c.notes && <div className="text-[11px] text-gray-500">{c.notes}</div>}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {selectedData.dayConstraints.map(c=>(
+                  <div key={c.id} className="flex items-center gap-2 py-2 bg-[#EEF2FF] rounded-lg px-3 flex-row-reverse group">
+                    <div className="flex-1 text-right">
+                      <div className="text-[13px] font-medium text-[#4338ca]">{c.crew_name}</div>
+                      {c.hours && <div className="text-[11px] text-[#6366f1]">🕐 {c.hours}</div>}
+                      {c.notes && <div className="text-[11px] text-gray-500">{c.notes}</div>}
+                    </div>
+                    <button onClick={()=>deleteConstraint(c.id)}
+                      className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                      <i className="ti ti-trash" style={{fontSize:12}}/>
+                    </button>
                   </div>
-                  <button onClick={()=>deleteConstraint(c.id)}
-                    className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                    <i className="ti ti-trash" style={{fontSize:12}}/>
-                  </button>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
 
