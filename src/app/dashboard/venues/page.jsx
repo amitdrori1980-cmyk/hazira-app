@@ -28,7 +28,7 @@ export default function VenuesPage() {
       setProfile(p)
 
       const { data: vs } = await supabase.from('venues').select('name').order('sort_order')
-      const venueNames = (vs || []).map(v => v.name)
+      const venueNames = (vs || []).map(v => v.name).filter(v => VENUE_FOLDER_MAP[v])
       setVenues(venueNames)
 
       // Load files for each venue
