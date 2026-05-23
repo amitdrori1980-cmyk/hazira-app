@@ -20,6 +20,32 @@ export default function VenuesPage() {
   const [viewing, setViewing] = useState(null) // { url, name }
   const fileInputRef = useRef(null)
   const [uploadTarget, setUploadTarget] = useState(null)
+  const [selectedFiles, setSelectedFiles] = useState({}) // "venue/file" -> bool
+
+  function toggleFileSelect(venue, fileName) {
+    const key = `${venue}/${fileName}`
+    setSelectedFiles(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  function sendSelectedByEmail(venueName) {
+    const venueFiles = files[venueName] || []
+    const folder = VENUE_FOLDER_MAP[venueName] || venueName
+    const selected = venueFiles.filter(f => selectedFiles[`${venueName}/${f.name}`])
+    if (!selected.length) return
+    const links = selected.map(f => {
+      const { data } = supabase.storage.from('venues').getPublicUrl(`${folder}/${f.name}`)
+      return `${f.name}: ${data.publicUrl}`
+    }).join('%0D%0A')
+    window.location.href = `mailto:?subject=${encodeURIComponent(venueName)}&body=${links}`
+  }
+
+  function selectAllVenue(venueName) {
+    const venueFiles = files[venueName] || []
+    const allSelected = venueFiles.every(f => selectedFiles[`${venueName}/${f.name}`])
+    const newSel = {}
+    venueFiles.forEach(f => { newSel[`${venueName}/${f.name}`] = !allSelected })
+    setSelectedFiles(prev => ({ ...prev, ...newSel }))
+  }
 
   useEffect(() => {
     async function load() {
@@ -128,12 +154,35 @@ export default function VenuesPage() {
 
             {isOpen && (
               <div className="border-t border-gray-50">
+                {/* Email toolbar */}
+                {venueFiles.length > 0 && (
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex-row-reverse">
+                    <button onClick={() => selectAllVenue(venue)}
+                      className="text-[11px] text-gray-500 hover:text-[#CC1010]">
+                      {venueFiles.every(f => selectedFiles[`${venue}/${f.name}`]) ? 'בטל הכל' : 'בחר הכל'}
+                    </button>
+                    <div className="flex-1"/>
+                    {venueFiles.some(f => selectedFiles[`${venue}/${f.name}`]) && (
+                      <button onClick={() => sendSelectedByEmail(venue)}
+                        className="flex items-center gap-1.5 text-[12px] bg-[#CC1010] text-white px-3 py-1.5 rounded-lg hover:bg-[#a00c0c]">
+                        <i className="ti ti-mail" style={{fontSize:13}}/>
+                        שלח במייל ({venueFiles.filter(f => selectedFiles[`${venue}/${f.name}`]).length})
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {venueFiles.length === 0 && (
                   <div className="text-center text-[13px] text-gray-400 py-6">אין קבצים עדיין</div>
                 )}
 
                 {venueFiles.map(f => (
                   <div key={f.name} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 flex-row-reverse group hover:bg-gray-50">
+                    <input type="checkbox"
+                      checked={!!selectedFiles[`${venue}/${f.name}`]}
+                      onChange={() => toggleFileSelect(venue, f.name)}
+                      className="w-4 h-4 accent-[#CC1010] flex-shrink-0 cursor-pointer"
+                    />
                     <div className="w-9 h-9 bg-[#FDEAEA] rounded-lg flex items-center justify-center flex-shrink-0">
                       <i className="ti ti-file-type-pdf text-[#CC1010]" style={{fontSize:18}}/>
                     </div>
