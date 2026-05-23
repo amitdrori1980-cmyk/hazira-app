@@ -427,7 +427,7 @@ function GeneralFilesMode() {
         </div>
       )}
 
-      <input ref={fileInputRef} type="file" accept=".pdf" multiple className="hidden" onChange={handleUpload}/>
+      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload}/>
 
       <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
         {/* Toolbar */}
