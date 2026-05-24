@@ -213,11 +213,14 @@ export default function ConstraintsPage() {
         {showAdd && (
           <form onSubmit={addConstraint} className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-2">
             <div className="grid grid-cols-2 gap-2">
-              <select value={form.crew_name} onChange={e=>setForm(f=>({...f,crew_name:e.target.value}))}
-                required className="col-span-2 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]">
-                <option value="">בחר איש צוות...</option>
-                {crew.map(c=><option key={c.id} value={c.full_name}>{c.full_name}</option>)}
-              </select>
+              <div className="col-span-2 relative">
+                <input value={form.crew_name} onChange={e=>setForm(f=>({...f,crew_name:e.target.value}))}
+                  list="crew-list-add" placeholder="בחר איש צוות..." required
+                  className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] text-right"/>
+                <datalist id="crew-list-add">
+                  {crew.map(c=><option key={c.id} value={c.full_name}/>)}
+                </datalist>
+              </div>
               <input value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}
                 type="date" required className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
               <input value={form.hours} onChange={e=>setForm(f=>({...f,hours:e.target.value}))}
@@ -363,7 +366,7 @@ export default function ConstraintsPage() {
               <div style={{width:26}}/>
             </div>
             <div className="flex flex-col gap-3">
-              <select value={editForm.crew_name} onChange={e=>setEditForm(f=>({...f,crew_name:e.target.value}))}
+              <select value={editForm.crew_name} onChange={e=>setEditForm(f=>({...f,crew_name:e.target.value}))} size="1"
                 className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1] text-right">
                 <option value="">בחר איש צוות...</option>
                 {crew.map(m=><option key={m.id} value={m.full_name}>{m.full_name}</option>)}
