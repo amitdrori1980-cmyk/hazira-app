@@ -75,6 +75,19 @@ function ProductionInquiries() {
     setSavingEvent(false)
   }
 
+  async function pushToCalendar(ev) {
+    const { error } = await supabase.from('events').insert({
+      title: ev.event_name,
+      date: ev.date || null,
+      time: null,
+      type: 'show',
+      venue: ev.venue || null,
+      description: `יום ${ev.day || ''}`.trim(),
+    })
+    if (!error) alert('האירוע נוסף ליומן!')
+    else alert('שגיאה: ' + error.message)
+  }
+
   async function saveEventEdit() {
     if (!editingEvent) return
     await supabase.from('production_events').update(editEventVal).eq('id', editingEvent)
@@ -213,6 +226,9 @@ function ProductionInquiries() {
                 <button onClick={e=>{e.stopPropagation();setCollapsedEvents(p=>({...p,[ev.id]:!p[ev.id]}))}}
                   className="text-gray-300 hover:text-[#CC1010] p-1" title={collapsedEvents[ev.id]?'הרחב':'כווץ'}>
                   <i className={`ti ${collapsedEvents[ev.id]?'ti-layout-list':'ti-layout-navbar-collapse'}`} style={{fontSize:13}}/></button>
+                <button onClick={e=>{e.stopPropagation();pushToCalendar(ev)}}
+                  className="text-gray-300 hover:text-[#CC1010] p-1" title="עדכן ביומן">
+                  <i className="ti ti-calendar-plus" style={{fontSize:13}}/></button>
                 <button onClick={e=>{e.stopPropagation();setEditingEvent(ev.id);setEditEventVal({event_name:ev.event_name,date:ev.date||'',day:ev.day||'',venue:ev.venue||''})}}
                   className="text-gray-300 hover:text-gray-600 p-1"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
                 <button onClick={e=>{e.stopPropagation();if(window.confirm('למחוק את האירוע?'))deleteEvent(ev.id)}}
