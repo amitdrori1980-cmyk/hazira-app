@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -8,6 +9,7 @@ const TYPE_COLOR = { rehearsal:'bg-[#FDEAEA] text-[#8B0000]', show:'bg-[#E1F5EE]
 const TYPE_LABEL = { rehearsal:'חזרה', show:'הצגה', crew:'צוות', technical:'טכני' }
 
 export default function CalendarPage() {
+  const router = useRouter()
   const [events, setEvents] = useState([])
   const [profile, setProfile] = useState(null)
   const [calYear, setCalYear] = useState(new Date().getFullYear())
@@ -156,7 +158,7 @@ export default function CalendarPage() {
               {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
             </span>
             <button
-              onClick={() => {}}
+              onClick={() => router.push(`/dashboard/events?date=${selectedDay}`)}
               className="text-xs bg-[#CC1010] text-white px-3 py-1.5 rounded-lg flex items-center gap-1"
             >
               <i className="ti ti-plus" /> הוסף אירוע

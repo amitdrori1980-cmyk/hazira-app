@@ -1,31 +1,40 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 
-// Panel types for the expandable section
 const PANEL_CREW = 'crew'
 const PANEL_EQUIP = 'equip'
 
 export default function EventsPage() {
+  const searchParams = useSearchParams()
   const [events, setEvents]         = useState([])
   const [depts, setDepts]           = useState([])
   const [eventTypes, setEventTypes] = useState([])
   const [allCrew, setAllCrew]       = useState([])
   const [allEquip, setAllEquip]     = useState([])
   const [venues, setVenues]         = useState([])
-  const [eventCrew, setEventCrew]   = useState({})   // eventId -> [crew_member_id]
-  const [eventEquip, setEventEquip] = useState({})   // eventId -> [{equipment_id, quantity_needed, note}]
+  const [eventCrew, setEventCrew]   = useState({})
+  const [eventEquip, setEventEquip] = useState({})
   const [loading, setLoading]       = useState(true)
-  const [form, setForm] = useState({ title:'', date:'', time:'', type:'', description:'', crew_notes:'', venue:'', depts:[] })
+  const [form, setForm] = useState({ title:'', date: (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('date') : '') || '', time:'', type:'', description:'', crew_notes:'', venue:'', depts:[] })
   const [adding, setAdding]         = useState(false)
   const [editing, setEditing]       = useState(null)
   const [editVal, setEditVal]       = useState({})
-  const [openPanel, setOpenPanel]   = useState(null)  // { id: eventId, type: PANEL_CREW|PANEL_EQUIP }
-  const [equipQty, setEquipQty]     = useState({})    // { equipmentId: qty string }
+  const [openPanel, setOpenPanel]   = useState(null)
+  const [equipQty, setEquipQty]     = useState({})
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    const date = searchParams.get('date')
+    if (date) {
+      setTimeout(() => {
+        document.getElementById('add-event-form')?.scrollIntoView({ behavior: 'smooth' })
+      }, 300)
+    }
+  }, [])
 
   async function load() {
     const [
@@ -56,12 +65,10 @@ export default function EventsPage() {
     setAllEquip(equip||[])
     setVenues((ven||[]).map(v=>v.name))
 
-    // crew map
     const cm = {}
     ;(ec||[]).forEach(r=>{ if(!cm[r.event_id])cm[r.event_id]=[]; cm[r.event_id].push(r.crew_member_id) })
     setEventCrew(cm)
 
-    // equip map
     const em = {}
     ;(ee||[]).forEach(r=>{ if(!em[r.event_id])em[r.event_id]=[]; em[r.event_id].push(r) })
     setEventEquip(em)
@@ -143,7 +150,7 @@ export default function EventsPage() {
   return (
     <div className="max-w-xl">
       {/* Add form */}
-      <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
+      <div id="add-event-form" className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
         <div className="text-[13px] font-medium text-gray-800 mb-3">הוסף אירוע חדש</div>
         <form onSubmit={addEvent} className="flex flex-col gap-2">
           <input value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} placeholder="שם האירוע *"
@@ -231,7 +238,6 @@ export default function EventsPage() {
                 </div>
               ) : (
                 <div className="py-2.5">
-                  {/* Main row */}
                   <div className="flex items-center gap-2 flex-row-reverse group">
                     <div className="text-[11px] text-gray-400 w-20 text-right flex-shrink-0">
                       {d} {HE_MONTHS[m-1]}{ev.time?', '+ev.time.slice(0,5):''}
@@ -239,7 +245,7 @@ export default function EventsPage() {
                     <div className="flex-1 text-right min-w-0">
                       <div className="text-[13px] text-gray-800">{ev.title}</div>
                       {ev.description&&<div className="text-[11px] text-gray-400">{ev.description}</div>}
-                    {ev.venue&&<div className="text-[11px] text-gray-500 flex items-center gap-1 flex-row-reverse justify-end"><i className="ti ti-map-pin" style={{fontSize:10,color:'#CC1010'}}/>{ev.venue}</div>}
+                      {ev.venue&&<div className="text-[11px] text-gray-500 flex items-center gap-1 flex-row-reverse justify-end"><i className="ti ti-map-pin" style={{fontSize:10,color:'#CC1010'}}/>{ev.venue}</div>}
                       {ev.crew_notes&&(
                         <div className="text-[11px] text-[#8B0000] bg-[#FDEAEA] rounded px-1.5 py-0.5 mt-0.5 inline-block">
                           📝 {ev.crew_notes}
@@ -249,14 +255,12 @@ export default function EventsPage() {
                     <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${getTypeStyle(ev.type)}`}>
                       {getTypeLabel(ev.type)}
                     </span>
-                    {/* Crew button */}
                     <button onClick={()=>togglePanel(ev.id,PANEL_CREW)}
                       title="צוות"
                       className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition-colors flex-shrink-0 ${isOpen(ev.id,PANEL_CREW)?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
                       <i className="ti ti-users" style={{fontSize:11}}/>
                       {assignedCrew.length}
                     </button>
-                    {/* Equipment button */}
                     <button onClick={()=>togglePanel(ev.id,PANEL_EQUIP)}
                       title="ציוד"
                       className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition-colors flex-shrink-0 ${isOpen(ev.id,PANEL_EQUIP)?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
@@ -271,7 +275,6 @@ export default function EventsPage() {
                     </button>
                   </div>
 
-                  {/* CREW PANEL */}
                   {isOpen(ev.id,PANEL_CREW)&&(
                     <div className="mt-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
                       <div className="text-[11px] font-medium text-gray-500 mb-2 text-right">שיוך צוות לאירוע</div>
@@ -293,7 +296,6 @@ export default function EventsPage() {
                     </div>
                   )}
 
-                  {/* EQUIPMENT PANEL */}
                   {isOpen(ev.id,PANEL_EQUIP)&&(
                     <div className="mt-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
                       <div className="text-[11px] font-medium text-gray-500 mb-2 text-right">ציוד לאירוע</div>
@@ -324,7 +326,6 @@ export default function EventsPage() {
                           })}
                         </div>
                       )}
-                      {/* Summary */}
                       {assignedEquip.length>0&&(
                         <div className="mt-3 pt-2 border-t border-gray-200">
                           <div className="text-[11px] font-medium text-gray-500 mb-1.5 text-right">סיכום ציוד ({assignedEquip.length} פריטים):</div>
