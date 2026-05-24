@@ -180,19 +180,7 @@ function EventsPageInner() {
           <textarea value={form.crew_notes} onChange={e=>setForm(f=>({...f,crew_notes:e.target.value}))}
             placeholder="הערות לצוות..." rows={2}
             className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] resize-none"/>
-          {depts.length>0&&(
-            <div>
-              <div className="text-[11px] text-gray-400 mb-1.5">מחלקות (ריק = כולם):</div>
-              <div className="flex gap-1.5 flex-wrap">
-                {depts.map(d=>(
-                  <button key={d} type="button" onClick={()=>toggleDept(d)}
-                    className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${form.depts.includes(d)?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+
           <button type="submit" disabled={adding}
             className="bg-[#CC1010] text-white text-sm py-2 rounded-lg hover:bg-[#a00c0c] disabled:opacity-50">
             {adding?'מוסיף...':'הוסף אירוע'}
