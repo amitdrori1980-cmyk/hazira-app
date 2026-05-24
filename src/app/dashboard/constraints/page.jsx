@@ -41,6 +41,9 @@ export default function ConstraintsPage() {
   const [form, setForm]       = useState({ crew_name:'', date:'', hours:'', notes:'' })
   const [adding, setAdding]   = useState(false)
   const [confirmId, setConfirmId] = useState(null)
+  const [editItem, setEditItem] = useState(null) // constraint being edited
+  const [editForm, setEditForm] = useState({ crew_name:'', date:'', hours:'', notes:'' })
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => { load() }, [])
 
@@ -146,6 +149,27 @@ export default function ConstraintsPage() {
     await supabase.from('crew_constraints').delete().eq('id', confirmId)
     setConstraints(prev => prev.filter(c => c.id !== confirmId))
     setConfirmId(null)
+  }
+
+  function openEdit(c) {
+    setEditItem(c)
+    setEditForm({ crew_name: c.crew_name, date: c.date, hours: c.hours || '', notes: c.notes || '' })
+  }
+
+  async function saveEdit() {
+    if (!editItem) return
+    setSaving(true)
+    const member = crew.find(m => m.full_name.trim() === editForm.crew_name.trim())
+    await supabase.from('crew_constraints').update({
+      crew_member_id: member?.id || null,
+      crew_name: editForm.crew_name,
+      date: editForm.date,
+      hours: editForm.hours,
+      notes: editForm.notes,
+    }).eq('id', editItem.id)
+    setConstraints(prev => prev.map(c => c.id === editItem.id ? { ...c, ...editForm } : c))
+    setEditItem(null)
+    setSaving(false)
   }
 
   return (
@@ -305,10 +329,16 @@ export default function ConstraintsPage() {
                       {c.hours && <div className="text-[11px] text-[#6366f1]">🕐 {c.hours}</div>}
                       {c.notes && <div className="text-[11px] text-gray-500">{c.notes}</div>}
                     </div>
-                    <button onClick={()=>deleteConstraint(c.id)}
-                      className="text-gray-300 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100 transition-all p-1">
-                      <i className="ti ti-trash" style={{fontSize:14}}/>
-                    </button>
+                    <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-all">
+                      <button onClick={()=>openEdit(c)}
+                        className="text-gray-300 hover:text-[#6366f1] p-1">
+                        <i className="ti ti-pencil" style={{fontSize:14}}/>
+                      </button>
+                      <button onClick={()=>deleteConstraint(c.id)}
+                        className="text-gray-300 hover:text-red-500 p-1">
+                        <i className="ti ti-trash" style={{fontSize:14}}/>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -320,6 +350,45 @@ export default function ConstraintsPage() {
           )}
         </div>
       )}
+      {/* Edit Modal */}
+      {editItem && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0"
+          style={{background:'rgba(0,0,0,0.4)'}}>
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={() => setEditItem(null)} className="text-gray-400 hover:text-gray-600 p-1">
+                <i className="ti ti-x" style={{fontSize:18}}/>
+              </button>
+              <div className="text-[16px] font-semibold text-gray-900">עריכת אילוץ</div>
+              <div style={{width:26}}/>
+            </div>
+            <div className="flex flex-col gap-3">
+              <select value={editForm.crew_name} onChange={e=>setEditForm(f=>({...f,crew_name:e.target.value}))}
+                className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1] text-right">
+                <option value="">בחר איש צוות...</option>
+                {crew.map(m=><option key={m.id} value={m.full_name}>{m.full_name}</option>)}
+              </select>
+              <input value={editForm.date} onChange={e=>setEditForm(f=>({...f,date:e.target.value}))}
+                type="date" className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1]"/>
+              <input value={editForm.hours} onChange={e=>setEditForm(f=>({...f,hours:e.target.value}))}
+                placeholder="שעות (09:00-13:00)" className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1] text-right"/>
+              <input value={editForm.notes} onChange={e=>setEditForm(f=>({...f,notes:e.target.value}))}
+                placeholder="הערה" className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1] text-right"/>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setEditItem(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-[14px] text-gray-600 hover:bg-gray-50">
+                ביטול
+              </button>
+              <button onClick={saveEdit} disabled={saving}
+                className="flex-1 py-2.5 rounded-xl bg-[#6366f1] text-white text-[14px] hover:bg-[#4f52d8] disabled:opacity-60">
+                {saving ? 'שומר...' : 'שמור'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirm Delete Modal */}
       {confirmId && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0"
