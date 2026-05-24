@@ -820,52 +820,56 @@ function ShowFoldersMode() {
 
   async function loadFolders() {
     setLoading(true)
-    const { data } = await supabase.storage.from(BUCKET).list(ROOT, { sortBy: { column: 'name', order: 'asc' } })
-    setFolders((data || []).filter(f => f.id === null))
+    const { data } = await supabase.from('show_folders').select('*').order('created_at', { ascending: true })
+    setFolders(data || [])
     setLoading(false)
   }
 
   async function createFolder() {
     if (!newFolderName.trim()) return
     setCreatingFolder(true)
-    const safeName = newFolderName.trim().replace(/\s+/g, '_')
-    await supabase.storage.from(BUCKET).upload(`${ROOT}/${safeName}/.keep`, new Blob(['']))
+    const storageKey = Date.now().toString()
+    const displayName = newFolderName.trim()
+    await supabase.storage.from(BUCKET).upload(`${ROOT}/${storageKey}/.keep`, new Blob(['']))
+    await supabase.from('show_folders').insert({ name: displayName, storage_key: storageKey })
     setNewFolderName('')
     setShowNewFolder(false)
     await loadFolders()
     setCreatingFolder(false)
   }
 
-  async function openFolderFiles(folderName) {
-    if (openFolder === folderName) { setOpenFolder(null); return }
-    setOpenFolder(folderName)
+  async function openFolderFiles(folder) {
+    const key = folder.storage_key
+    if (openFolder === key) { setOpenFolder(null); return }
+    setOpenFolder(key)
     setLoadingFiles(true)
-    const { data } = await supabase.storage.from(BUCKET).list(`${ROOT}/${folderName}`, { sortBy: { column: 'name', order: 'asc' } })
-    setFolderFiles(prev => ({ ...prev, [folderName]: (data || []).filter(f => f.name !== '.keep') }))
+    const { data } = await supabase.storage.from(BUCKET).list(`${ROOT}/${key}`, { sortBy: { column: 'name', order: 'asc' } })
+    setFolderFiles(prev => ({ ...prev, [key]: (data || []).filter(f => f.name !== '.keep') }))
     setLoadingFiles(false)
   }
 
-  async function uploadFiles(e, folderName) {
+  async function uploadFiles(e, folder) {
+    const key = folder.storage_key
     const fileList = Array.from(e.target.files)
     if (!fileList.length) return
     setUploading(true)
     for (const file of fileList) {
       const safeName = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9.\-_\u0590-\u05FF]/g, '_')
-      await supabase.storage.from(BUCKET).upload(`${ROOT}/${folderName}/${safeName}`, file, { upsert: true })
+      await supabase.storage.from(BUCKET).upload(`${ROOT}/${key}/${safeName}`, file, { upsert: true })
     }
-    const { data } = await supabase.storage.from(BUCKET).list(`${ROOT}/${folderName}`, { sortBy: { column: 'name', order: 'asc' } })
-    setFolderFiles(prev => ({ ...prev, [folderName]: (data || []).filter(f => f.name !== '.keep') }))
+    const { data } = await supabase.storage.from(BUCKET).list(`${ROOT}/${key}`, { sortBy: { column: 'name', order: 'asc' } })
+    setFolderFiles(prev => ({ ...prev, [key]: (data || []).filter(f => f.name !== '.keep') }))
     setUploading(false)
     e.target.value = ''
   }
 
-  async function deleteFile(folderName, fileName) {
-    await supabase.storage.from(BUCKET).remove([`${ROOT}/${folderName}/${fileName}`])
-    setFolderFiles(prev => ({ ...prev, [folderName]: prev[folderName].filter(f => f.name !== fileName) }))
+  async function deleteFile(folderKey, fileName) {
+    await supabase.storage.from(BUCKET).remove([`${ROOT}/${folderKey}/${fileName}`])
+    setFolderFiles(prev => ({ ...prev, [folderKey]: prev[folderKey].filter(f => f.name !== fileName) }))
   }
 
-  function openFile(folderName, fileName) {
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(`${ROOT}/${folderName}/${fileName}`)
+  function openFile(folderKey, fileName) {
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(`${ROOT}/${folderKey}/${fileName}`)
     const isMobile = window.innerWidth < 768
     const isPdf = /\.pdf$/i.test(fileName)
     if (isMobile || !isPdf) { window.open(data.publicUrl, '_blank') }
@@ -931,28 +935,28 @@ function ShowFoldersMode() {
 
       <div className="flex flex-col gap-2">
         {folders.map(folder => (
-          <div key={folder.name} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+          <div key={folder.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 flex-row-reverse"
-              onClick={() => openFolderFiles(folder.name)}>
+              onClick={() => openFolderFiles(folder)}>
               <div className="w-9 h-9 bg-[#FDEAEA] rounded-lg flex items-center justify-center flex-shrink-0">
-                <i className={`ti ${openFolder === folder.name ? 'ti-folder-open' : 'ti-folder'} text-[#CC1010]`} style={{fontSize:18}}/>
+                <i className={`ti ${openFolder === folder.storage_key ? 'ti-folder-open' : 'ti-folder'} text-[#CC1010]`} style={{fontSize:18}}/>
               </div>
               <div className="flex-1 text-right">
                 <div className="text-[13px] font-semibold text-gray-800">{folder.name}</div>
-                {folderFiles[folder.name] && (
-                  <div className="text-[11px] text-gray-400">{folderFiles[folder.name].length} קבצים</div>
+                {folderFiles[folder.storage_key] && (
+                  <div className="text-[11px] text-gray-400">{folderFiles[folder.storage_key].length} קבצים</div>
                 )}
               </div>
-              <i className={`ti ${openFolder === folder.name ? 'ti-chevron-up' : 'ti-chevron-down'} text-gray-300`} style={{fontSize:13}}/>
+              <i className={`ti ${openFolder === folder.storage_key ? 'ti-chevron-up' : 'ti-chevron-down'} text-gray-300`} style={{fontSize:13}}/>
             </div>
 
-            {openFolder === folder.name && (
+            {openFolder === folder.storage_key && (
               <div className="border-t border-gray-50">
                 {loadingFiles && <div className="text-center text-[13px] text-gray-400 py-4">טוען...</div>}
-                {!loadingFiles && folderFiles[folder.name]?.length === 0 && (
+                {!loadingFiles && folderFiles[folder.storage_key]?.length === 0 && (
                   <div className="text-center text-[13px] text-gray-400 py-4">אין קבצים בתיקייה זו</div>
                 )}
-                {!loadingFiles && folderFiles[folder.name]?.map(f => (
+                {!loadingFiles && folderFiles[folder.storage_key]?.map(f => (
                   <div key={f.name} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 flex-row-reverse group">
                     <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0">
                       <i className={`ti ${fileIcon(f.name)}`} style={{fontSize:16}}/>
@@ -962,11 +966,11 @@ function ShowFoldersMode() {
                       <div className="text-[11px] text-gray-400">{f.metadata?.size ? `${Math.round(f.metadata.size/1024)} KB` : ''}</div>
                     </div>
                     <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
-                      <button onClick={() => openFile(folder.name, f.name)}
+                      <button onClick={() => openFile(folder.storage_key, f.name)}
                         className="text-[12px] text-[#CC1010] border border-[#CC1010] px-2 py-1 rounded-lg flex items-center gap-1">
                         <i className="ti ti-eye" style={{fontSize:12}}/> פתח
                       </button>
-                      <button onClick={() => { if(window.confirm('למחוק?')) deleteFile(folder.name, f.name) }}
+                      <button onClick={() => { if(window.confirm('למחוק?')) deleteFile(folder.storage_key, f.name) }}
                         className="text-gray-300 hover:text-red-500 p-1">
                         <i className="ti ti-trash" style={{fontSize:13}}/>
                       </button>
@@ -976,7 +980,7 @@ function ShowFoldersMode() {
                 <label className="w-full py-3 text-[13px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors flex items-center justify-center gap-1 cursor-pointer">
                   {uploading ? <><i className="ti ti-loader-2 animate-spin" style={{fontSize:13}}/> מעלה...</> : <><i className="ti ti-upload" style={{fontSize:13}}/> העלה קובץ</>}
                   <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls" className="hidden"
-                    onChange={e => uploadFiles(e, folder.name)} disabled={uploading}/>
+                    onChange={e => uploadFiles(e, folder)} disabled={uploading}/>
                 </label>
               </div>
             )}
