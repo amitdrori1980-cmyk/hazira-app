@@ -92,7 +92,7 @@ function EventsPageInner() {
     e.preventDefault()
     if(!form.title||!form.date) return
     setAdding(true)
-    const payload={...form, depts:form.depts.length?form.depts:depts, end_date:form.end_date||null}
+    const payload={...form, depts:form.depts.length?form.depts:depts, end_date:form.end_date||null, time:form.time||null}
     const {data,error}=await supabase.from('events').insert(payload).select().single()
     if(!error){
       setEvents(prev=>[...prev,data].sort((a,b)=>a.date.localeCompare(b.date)))
