@@ -19,7 +19,7 @@ function EventsPageInner() {
   const [eventCrew, setEventCrew]   = useState({})
   const [eventEquip, setEventEquip] = useState({})
   const [loading, setLoading]       = useState(true)
-  const [form, setForm] = useState({ title:'', date: (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('date') : '') || '', time:'', type:'', description:'', crew_notes:'', venue:'', depts:[] })
+  const [form, setForm] = useState({ title:'', date: (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('date') : '') || '', end_date:'', time:'', type:'', description:'', crew_notes:'', venue:'', depts:[] })
   const [adding, setAdding]         = useState(false)
   const [editing, setEditing]       = useState(null)
   const [editVal, setEditVal]       = useState({})
@@ -99,7 +99,7 @@ function EventsPageInner() {
       setEventCrew(prev=>({...prev,[data.id]:[]}))
       setEventEquip(prev=>({...prev,[data.id]:[]}))
     }
-    setForm(f=>({...f,title:'',date:'',time:'',description:'',crew_notes:'',depts:[]}))
+    setForm(f=>({...f,title:'',date:'',end_date:'',time:'',description:'',crew_notes:'',depts:[]}))
     setAdding(false)
   }
 
@@ -110,7 +110,7 @@ function EventsPageInner() {
 
   function startEdit(ev) {
     setEditing(ev.id)
-    setEditVal({title:ev.title,date:ev.date,time:ev.time||'',type:ev.type,description:ev.description||'',crew_notes:ev.crew_notes||''})
+    setEditVal({title:ev.title,date:ev.date,end_date:ev.end_date||'',time:ev.time||'',type:ev.type,description:ev.description||'',crew_notes:ev.crew_notes||''})
   }
   async function saveEdit(id) {
     await supabase.from('events').update(editVal).eq('id',id)
@@ -160,6 +160,11 @@ function EventsPageInner() {
               className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
             <input value={form.time} onChange={e=>setForm(f=>({...f,time:e.target.value}))} type="time"
               className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-gray-400 whitespace-nowrap">עד תאריך:</span>
+            <input value={form.end_date} onChange={e=>setForm(f=>({...f,end_date:e.target.value}))} type="date"
+              className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
           </div>
           <select value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}
             className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
@@ -213,6 +218,9 @@ function EventsPageInner() {
                     className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
                   <div className="grid grid-cols-2 gap-2">
                     <input value={editVal.date} onChange={e=>setEditVal(v=>({...v,date:e.target.value}))} type="date"
+                      className="text-sm px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+                    <input value={editVal.end_date||''} onChange={e=>setEditVal(v=>({...v,end_date:e.target.value}))} type="date" placeholder="עד תאריך"
+
                       className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
                     <input value={editVal.time} onChange={e=>setEditVal(v=>({...v,time:e.target.value}))} type="time"
                       className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
