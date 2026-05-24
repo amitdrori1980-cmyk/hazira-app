@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -8,7 +8,7 @@ const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','�
 const PANEL_CREW = 'crew'
 const PANEL_EQUIP = 'equip'
 
-export default function EventsPage() {
+function EventsPageInner() {
   const searchParams = useSearchParams()
   const [events, setEvents]         = useState([])
   const [depts, setDepts]           = useState([])
@@ -352,5 +352,13 @@ export default function EventsPage() {
         })}
       </div>
     </div>
+  )
+}
+
+export default function EventsPage() {
+  return (
+    <Suspense fallback={<div className="text-center text-sm text-gray-400 py-8">טוען...</div>}>
+      <EventsPageInner />
+    </Suspense>
   )
 }

@@ -14,7 +14,7 @@ export default function EquipmentPage() {
 
   // Add item form
   const [addingTo, setAddingTo]     = useState(null) // subcat id
-  const [newItem, setNewItem]       = useState({ name:'', units:'', details:'', location:'' })
+  const [newItem, setNewItem]       = useState({ name:'', units:'', details:'' })
   const [saving, setSaving]         = useState(false)
 
   // Edit
@@ -77,12 +77,12 @@ export default function EquipmentPage() {
       name:     newItem.name.trim(),
       units:    newItem.units.trim(),
       details:  newItem.details.trim(),
-      location: newItem.location.trim(),
+
     }).select().single()
     if (!error) {
       setItems(prev => ({ ...prev, [subId]: [...(prev[subId]||[]), data].sort((a,b)=>a.name.localeCompare(b.name)) }))
     }
-    setNewItem({ name:'', units:'', details:'', location:'' })
+    setNewItem({ name:'', units:'', details:'' })
     setAddingTo(null)
     setSaving(false)
   }
@@ -123,8 +123,7 @@ export default function EquipmentPage() {
           <input value={val.details||''} onChange={e=>setVal(v=>({...v,details:e.target.value}))}
             placeholder="Details" className={cls} style={{flex:1,minWidth:80}}/>
         )}
-        <input value={val.location||''} onChange={e=>setVal(v=>({...v,location:e.target.value}))}
-          placeholder="Location" className={cls} style={{flex:1,minWidth:80}}/>
+
       </div>
     )
   }
@@ -153,7 +152,7 @@ export default function EquipmentPage() {
                 <div className="text-[13px] font-medium">{item.name}</div>
                 <div className="text-[11px] text-gray-400">
                   {item.subcategory?.category?.name} › {item.subcategory?.name}
-                  {item.location ? ` · ${item.location}` : ''}
+
                 </div>
               </div>
               {item.units   && <span className="text-[11px] bg-[#E3F0FF] text-[#1A4A8A] px-2 py-0.5 rounded-full">×{item.units}</span>}
@@ -207,7 +206,6 @@ export default function EquipmentPage() {
                           <span className="flex-1 text-right">Name</span>
                           {(sub.param_type==='units'||sub.param_type==='both') && <span className="w-14 text-center">Units</span>}
                           {(sub.param_type==='details'||sub.param_type==='both') && <span className="w-32 text-right">Details</span>}
-                          <span className="w-24 text-right">Location</span>
                           {isManager && <span className="w-12"/>}
                         </div>
 
@@ -233,10 +231,9 @@ export default function EquipmentPage() {
                                 {(sub.param_type==='details'||sub.param_type==='both') && (
                                   <span className="w-32 text-right text-[11px] text-gray-400 truncate">{item.details||'—'}</span>
                                 )}
-                                <span className="w-24 text-right text-[11px] text-gray-400 truncate">{item.location||'—'}</span>
                                 {isManager && (
                                   <div className="w-12 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                    <button onClick={() => { setEditing(item.id); setEditVal({name:item.name,units:item.units||'',details:item.details||'',location:item.location||''}) }}
+                                    <button onClick={() => { setEditing(item.id); setEditVal({name:item.name,units:item.units||'',details:item.details||''}) }}
                                       className="text-gray-300 hover:text-[#CC1010]"><i className="ti ti-pencil" style={{fontSize:12}}/></button>
                                     <button onClick={() => deleteItem(item.id, sub.id)}
                                       className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:12}}/></button>
@@ -265,7 +262,7 @@ export default function EquipmentPage() {
                               </div>
                             </div>
                           ) : (
-                            <button onClick={() => { setAddingTo(sub.id); setNewItem({name:'',units:'',details:'',location:''}) }}
+                            <button onClick={() => { setAddingTo(sub.id); setNewItem({name:'',units:'',details:''}) }}
                               className="w-full py-2 text-[12px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors border-t border-gray-50 flex items-center justify-center gap-1">
                               <i className="ti ti-plus" style={{fontSize:12}}/> Add item
                             </button>
