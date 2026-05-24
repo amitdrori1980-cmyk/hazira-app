@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef, Suspense } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import * as XLSX from 'xlsx-js-style'
 
@@ -36,7 +36,6 @@ function ProductionInquiries() {
   const [savingEvent, setSavingEvent]   = useState(false)
   const [editingEvent, setEditingEvent] = useState(null)
   const [editEventVal, setEditEventVal] = useState({})
-  const [savingSlot, setSavingSlot] = useState(null)
   const [statusPicker, setStatusPicker] = useState(null)
 
   useEffect(() => { load() }, [])
@@ -128,7 +127,6 @@ function ProductionInquiries() {
           <i className="ti ti-plus"/> אירוע חדש
         </button>
       </div>
-
       {showNewEvent && (
         <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
           <div className="text-[13px] font-medium text-gray-700 mb-3 text-right">הוסף אירוע חדש</div>
@@ -157,13 +155,11 @@ function ProductionInquiries() {
           </div>
         </div>
       )}
-
       {events.length === 0 && !showNewEvent && (
         <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">
           אין אירועים — לחץ על "אירוע חדש" להתחלה
         </div>
       )}
-
       {events.map(ev => {
         const evSlots = slots[ev.id] || emptySlots()
         const isOpen = openEvent === ev.id
@@ -171,7 +167,6 @@ function ProductionInquiries() {
         const statCounts = STATUSES.slice(1).map(s => ({
           ...s, count: evSlots.filter(x => x.status === s.value && x.name.trim()).length
         })).filter(s => s.count > 0)
-
         return (
           <div key={ev.id} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 flex-row-reverse"
@@ -221,7 +216,6 @@ function ProductionInquiries() {
                 <i className={`ti ${isOpen?'ti-chevron-up':'ti-chevron-down'} text-gray-300`} style={{fontSize:13}}/>
               </div>
             </div>
-
             {isOpen && (
               <div className="border-t border-gray-50">
                 <div className="px-3 py-2 bg-gray-50 flex gap-2 flex-wrap justify-end">
@@ -239,18 +233,13 @@ function ProductionInquiries() {
                   return (
                     <div key={idx} className={`flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 flex-row-reverse ${st.bg} transition-colors`}>
                       <span className="text-[11px] text-gray-400 w-5 text-center">{idx+1}</span>
-                      <input
-                        value={slot.name}
-                        onChange={e => updateSlotName(ev.id, idx, e.target.value)}
-                        onBlur={() => saveSlotName(ev.id, idx)}
-                        placeholder={`איש צוות ${idx+1}`}
-                        className={`flex-1 text-[13px] bg-transparent outline-none text-right ${st.text} placeholder:text-gray-300`}
-                      />
+                      <input value={slot.name} onChange={e => updateSlotName(ev.id, idx, e.target.value)}
+                        onBlur={() => saveSlotName(ev.id, idx)} placeholder={`איש צוות ${idx+1}`}
+                        className={`flex-1 text-[13px] bg-transparent outline-none text-right ${st.text} placeholder:text-gray-300`}/>
                       <div className="relative">
                         <button onClick={() => setStatusPicker(isPickerOpen ? null : pickerKey)}
                           className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ring-2 ${st.ring} transition-all`}
-                          style={{background: st.dot}}>
-                        </button>
+                          style={{background: st.dot}}/>
                         {isPickerOpen && (
                           <div className="absolute left-0 top-8 z-20 bg-white border border-gray-200 rounded-xl shadow-lg p-2 flex flex-col gap-1 min-w-[140px]">
                             {STATUSES.map(s => (
@@ -275,8 +264,6 @@ function ProductionInquiries() {
   )
 }
 
-
-// ─── טוען לוזים כללי ───────────────────────────────────────────
 function LoadFromGeneralSchedules({ onLoad }) {
   const [files, setFiles] = useState([])
   const [open, setOpen] = useState(false)
@@ -312,9 +299,7 @@ function LoadFromGeneralSchedules({ onLoad }) {
       {open && (
         <div className="mt-1 bg-white border border-gray-100 rounded-xl overflow-hidden">
           {loading && <div className="text-center text-[13px] text-gray-400 py-4">טוען...</div>}
-          {!loading && files.length === 0 && (
-            <div className="text-center text-[13px] text-gray-400 py-4">אין קבצים בתיקיית "לוזים כללי"</div>
-          )}
+          {!loading && files.length === 0 && <div className="text-center text-[13px] text-gray-400 py-4">אין קבצים</div>}
           {files.map(f => (
             <div key={f.name} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 flex-row-reverse group">
               <div className="w-8 h-8 bg-[#FDEAEA] rounded-lg flex items-center justify-center flex-shrink-0">
@@ -343,7 +328,6 @@ function ProductionSchedule({ profile }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
-  const [generalFileViewer, setGeneralFileViewer] = useState(null)
   const [generalFileViewer, setGeneralFileViewer] = useState(null)
 
   useEffect(() => {
@@ -413,9 +397,7 @@ function ProductionSchedule({ profile }) {
     if (profile.is_manager) return true
     if (schedule.status === 'final') return true
     if (schedule.visible_to === 'all') return true
-    if (schedule.visible_to === 'specific') {
-      return (schedule.visible_to_users || []).includes(profile.uid)
-    }
+    if (schedule.visible_to === 'specific') return (schedule.visible_to_users || []).includes(profile.uid)
     return false
   }
 
@@ -425,7 +407,7 @@ function ProductionSchedule({ profile }) {
     const wb = XLSX.utils.book_new()
     const ws = {}
     const borderThin = { top:{style:'thin',color:{rgb:'999999'}}, bottom:{style:'thin',color:{rgb:'999999'}}, left:{style:'thin',color:{rgb:'999999'}}, right:{style:'thin',color:{rgb:'999999'}} }
-    ws['A1'] = { v: `לו"ז: ${selEv.title}`, t:'s', s:{ font:{bold:true,sz:16,name:'Calibri',color:{rgb:'CC1010'}}, alignment:{horizontal:'right',readingOrder:2} } }
+    ws['A1'] = { v: `לוז: ${selEv.title}`, t:'s', s:{ font:{bold:true,sz:16,name:'Calibri',color:{rgb:'CC1010'}}, alignment:{horizontal:'right',readingOrder:2} } }
     ws['A2'] = { v: `תאריך: ${fmtDate(selEv.date)}${selEv.venue?` | ${selEv.venue}`:''}`, t:'s', s:{ font:{sz:12,name:'Calibri',color:{rgb:'666666'}}, alignment:{horizontal:'right',readingOrder:2} } }
     ws['A3'] = { v: `משתתפים: ${schedule.participants||''}`, t:'s', s:{ font:{sz:12,name:'Calibri',italic:true}, alignment:{horizontal:'right',readingOrder:2} } }
     ws['A4'] = { v:'', t:'s' }
@@ -457,15 +439,7 @@ function ProductionSchedule({ profile }) {
 
   return (
     <>
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          #schedule-print, #schedule-print * { visibility: visible; }
-          #schedule-print { position: fixed; top: 0; left: 0; width: 100%; direction: rtl; }
-          .no-print { display: none !important; }
-        }
-      `}</style>
-
+      <style>{`@media print { body * { visibility: hidden; } #schedule-print, #schedule-print * { visibility: visible; } #schedule-print { position: fixed; top: 0; left: 0; width: 100%; direction: rtl; } .no-print { display: none !important; } }`}</style>
       <div className="max-w-4xl">
         <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4 no-print">
           <div className="text-[11px] font-semibold text-gray-500 mb-2">בחר אירוע</div>
@@ -476,30 +450,6 @@ function ProductionSchedule({ profile }) {
           </select>
         </div>
 
-        {/* Load from general schedules */}
-        <LoadFromGeneralSchedules onLoad={(url, name) => setGeneralFileViewer({url, name})} />
-        {generalFileViewer && (
-          <div className="fixed inset-0 z-50 bg-black/70 flex flex-col no-print">
-            <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 flex-row-reverse">
-              <button onClick={() => setGeneralFileViewer(null)} className="flex items-center gap-1.5 text-gray-600 text-[13px]">
-                <i className="ti ti-x" style={{fontSize:16}}/> סגור
-              </button>
-              <span className="text-[13px] font-medium text-gray-800 truncate max-w-[45%]">{generalFileViewer.name}</span>
-              <a href={generalFileViewer.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[13px] text-[#CC1010] hover:underline">
-                <i className="ti ti-external-link" style={{fontSize:14}}/> פתח בדפדפן
-              </a>
-            </div>
-            <iframe src={generalFileViewer.url} className="flex-1 w-full hidden md:block" title={generalFileViewer.name} allow="fullscreen" style={{border:'none'}}/>
-            <div className="flex-1 flex flex-col items-center justify-center gap-5 bg-gray-50 md:hidden px-6 text-center">
-              <a href={generalFileViewer.url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 text-[14px] bg-[#CC1010] text-white px-6 py-3 rounded-xl font-medium">
-                <i className="ti ti-external-link" style={{fontSize:15}}/> פתח קובץ
-              </a>
-            </div>
-          </div>
-        )}
-
-        {/* Load from general schedules */}
         <LoadFromGeneralSchedules onLoad={(url, name) => setGeneralFileViewer({url, name})} />
         {generalFileViewer && (
           <div className="fixed inset-0 z-50 bg-black/70 flex flex-col no-print">
@@ -523,14 +473,12 @@ function ProductionSchedule({ profile }) {
         )}
 
         {loading && <div className="text-center text-gray-400 py-8">טוען...</div>}
-
         {selectedEvent && !loading && !schedule && isManager && (
           <div className="bg-white border border-gray-100 rounded-xl p-8 text-center no-print">
             <div className="text-[14px] text-gray-500 mb-4">אין לוז לאירוע זה עדיין</div>
             <button onClick={createSchedule} className="bg-[#CC1010] text-white px-6 py-2.5 rounded-lg text-sm hover:bg-[#a00c0c]">+ צור לוז חדש</button>
           </div>
         )}
-
         {selectedEvent && !loading && !schedule && !isManager && (
           <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-gray-400">אין לוז זמין לאירוע זה</div>
         )}
@@ -543,7 +491,7 @@ function ProductionSchedule({ profile }) {
                   <span className="text-[11px] text-gray-500">סטטוס:</span>
                   <button onClick={() => updateSchedule('status', schedule.status==='draft'?'final':'draft')}
                     className={`text-[12px] px-3 py-1.5 rounded-full border font-medium transition-colors ${schedule.status==='final'?'bg-[#E1F5EE] text-[#085041] border-[#085041]':'bg-[#FAEEDA] text-[#633806] border-[#633806]'}`}>
-                    {schedule.status==='final' ? '✅ סופי' : '✏️ בעבודה'}
+                    {schedule.status==='final' ? 'סופי' : 'בעבודה'}
                   </button>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -596,7 +544,6 @@ function ProductionSchedule({ profile }) {
                 </button>
               </div>
             )}
-
             {!isManager && schedule.status==='final' && (
               <div className="flex gap-2 mb-4 justify-end no-print">
                 <button onClick={exportExcel} disabled={exporting} className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#CC1010] text-gray-600 bg-white">
@@ -607,7 +554,6 @@ function ProductionSchedule({ profile }) {
                 </button>
               </div>
             )}
-
             <div id="schedule-print" className="bg-white border border-gray-100 rounded-xl overflow-hidden">
               <div className="hidden print:flex justify-center py-3 border-b border-gray-200" style={{backgroundColor:'white'}}>
                 <img src="/icon-192.png" style={{height:'55px'}} alt="הזירה"/>
@@ -619,17 +565,15 @@ function ProductionSchedule({ profile }) {
                     <div className="text-[13px] text-gray-500 mt-0.5">{fmtDate(selEv?.date)}{selEv?.venue?` · ${selEv.venue}`:''}</div>
                   </div>
                   <div className={`text-[11px] px-2.5 py-1 rounded-full font-medium no-print ${schedule.status==='final'?'bg-[#E1F5EE] text-[#085041]':'bg-[#FAEEDA] text-[#633806]'}`}>
-                    {schedule.status==='final' ? '✅ סופי' : '✏️ בעבודה'}
+                    {schedule.status==='final' ? 'סופי' : 'בעבודה'}
                   </div>
                 </div>
                 <div className="mt-3">
                   {isManager ? (
                     <div className="flex items-center gap-2 flex-row-reverse">
                       <span className="text-[11px] text-gray-400 whitespace-nowrap">משתתפים:</span>
-                      <input value={schedule.participants||''}
-                        onChange={e => setSchedule(prev => ({...prev, participants: e.target.value}))}
-                        onBlur={e => updateSchedule('participants', e.target.value)}
-                        placeholder="רשימת משתתפים..."
+                      <input value={schedule.participants||''} onChange={e => setSchedule(prev => ({...prev, participants: e.target.value}))}
+                        onBlur={e => updateSchedule('participants', e.target.value)} placeholder="רשימת משתתפים..."
                         className="flex-1 text-[13px] px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] text-right no-print"/>
                       <span className="hidden print:inline text-[13px] text-gray-700">{schedule.participants}</span>
                     </div>
@@ -640,7 +584,6 @@ function ProductionSchedule({ profile }) {
                   )}
                 </div>
               </div>
-
               <div className={`grid gap-0 bg-[#CC1010] text-white text-[12px] font-semibold no-print ${isManager?'grid-cols-[80px_1fr_1fr_1fr_40px]':'grid-cols-[80px_1fr_1fr_1fr]'}`}>
                 <div className="px-3 py-2.5 text-right">שעה</div>
                 <div className="px-3 py-2.5 text-right border-r border-red-700">מה</div>
@@ -648,13 +591,11 @@ function ProductionSchedule({ profile }) {
                 <div className="px-3 py-2.5 text-right border-r border-red-700">הערות</div>
                 {isManager && <div className="px-2 py-2.5"/>}
               </div>
-
               {rows.length === 0 && (
                 <div className="text-center text-[13px] text-gray-400 py-8 no-print">
                   {isManager ? 'לחץ על "הוסף שורה" כדי להתחיל' : 'הלוז ריק'}
                 </div>
               )}
-
               {rows.map((row, index) => (
                 <div key={row.id}
                   className={`grid gap-0 border-b border-gray-50 group ${isManager?'grid-cols-[80px_1fr_1fr_1fr_40px]':'grid-cols-[80px_1fr_1fr_1fr]'} ${index%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
@@ -690,7 +631,6 @@ function ProductionSchedule({ profile }) {
                   )}
                 </div>
               ))}
-
               {isManager && (
                 <button onClick={addRow}
                   className="w-full py-3 text-[13px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors flex items-center justify-center gap-1 no-print">
@@ -700,7 +640,6 @@ function ProductionSchedule({ profile }) {
             </div>
           </>
         )}
-
         {schedule && !canView() && !isManager && (
           <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-gray-400">הלוז עדיין לא זמין לצפייה</div>
         )}
@@ -709,8 +648,6 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-
-// ─── לוזים כללי ────────────────────────────────────────────────
 function GeneralSchedulesMode() {
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(true)
@@ -757,9 +694,7 @@ function GeneralSchedulesMode() {
     else { setViewing({ url: data.publicUrl, name: fileName }) }
   }
 
-  function toggleSelect(fileName) {
-    setSelectedFiles(prev => ({ ...prev, [fileName]: !prev[fileName] }))
-  }
+  function toggleSelect(fileName) { setSelectedFiles(prev => ({ ...prev, [fileName]: !prev[fileName] })) }
 
   function selectAll() {
     const allSelected = files.every(f => selectedFiles[f.name])
@@ -799,9 +734,7 @@ function GeneralSchedulesMode() {
           <iframe src={viewing.url} className="flex-1 w-full hidden md:block" title={viewing.name} allow="fullscreen" style={{border:'none'}}/>
         </div>
       )}
-
       <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload}/>
-
       <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
         {files.length > 0 && (
           <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex-row-reverse">
@@ -823,11 +756,7 @@ function GeneralSchedulesMode() {
             )}
           </div>
         )}
-
-        {files.length === 0 && (
-          <div className="text-center text-[13px] text-gray-400 py-8">אין קבצים עדיין</div>
-        )}
-
+        {files.length === 0 && <div className="text-center text-[13px] text-gray-400 py-8">אין קבצים עדיין</div>}
         {files.map(f => (
           <div key={f.name} className="flex items-center gap-2 px-4 py-3 border-b border-gray-50 last:border-0 group hover:bg-gray-50 flex-row-reverse">
             <input type="checkbox" checked={!!selectedFiles[f.name]} onChange={() => toggleSelect(f.name)}
@@ -837,9 +766,7 @@ function GeneralSchedulesMode() {
             </div>
             <div className="flex-1 text-right min-w-0 overflow-hidden">
               <div className="text-[13px] font-medium text-gray-800 truncate">{f.name}</div>
-              <div className="text-[11px] text-gray-400">
-                {f.metadata?.size ? `${Math.round(f.metadata.size / 1024)} KB` : ''}
-              </div>
+              <div className="text-[11px] text-gray-400">{f.metadata?.size ? `${Math.round(f.metadata.size / 1024)} KB` : ''}</div>
             </div>
             <button onClick={() => openFile(f.name)}
               className="text-[#CC1010] hover:text-[#a00c0c] text-[12px] flex items-center gap-1 px-2 py-1.5 border border-[#CC1010] rounded-lg flex-shrink-0 whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
@@ -847,13 +774,11 @@ function GeneralSchedulesMode() {
             </button>
           </div>
         ))}
-
         <button onClick={() => fileInputRef.current.click()} disabled={uploading}
           className="w-full py-3 text-[13px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors flex items-center justify-center gap-1">
           {uploading ? <><i className="ti ti-loader-2 animate-spin" style={{fontSize:13}}/> מעלה...</> : <><i className="ti ti-upload" style={{fontSize:13}}/> העלה קובץ</>}
         </button>
       </div>
-
       {confirmId && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0" style={{background:'rgba(0,0,0,0.4)'}}>
           <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
@@ -872,9 +797,7 @@ function GeneralSchedulesMode() {
                   for (const f of selected) await deleteFile(f.name)
                   setSelectedFiles({})
                   setConfirmId(null)
-                } else {
-                  deleteFile(confirmId)
-                }
+                } else { deleteFile(confirmId) }
               }} className="flex-1 py-2.5 rounded-xl bg-[#CC1010] text-white text-[14px]">מחק</button>
             </div>
           </div>
@@ -884,7 +807,6 @@ function GeneralSchedulesMode() {
   )
 }
 
-// ─── דף ראשי עם טאבים ──────────────────────────────────────────
 export default function ProductionPage() {
   const [profile, setProfile] = useState(null)
   const [tab, setTab] = useState('inquiries')
@@ -901,9 +823,9 @@ export default function ProductionPage() {
     <div>
       <div className="flex gap-2 mb-4">
         {[
-          { id: 'inquiries', label: '👥 בדיקת פניות' },
-          { id: 'schedule',  label: '📋 לוז הפקה' },
-          { id: 'files',     label: '📁 לוזים כללי' },
+          { id: 'inquiries', label: 'בדיקת פניות' },
+          { id: 'schedule',  label: 'לוז הפקה' },
+          { id: 'files',     label: 'לוזים כללי' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`text-[13px] px-4 py-2 rounded-lg border transition-colors ${tab===t.id?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-600 hover:border-[#CC1010]'}`}>
@@ -911,7 +833,6 @@ export default function ProductionPage() {
           </button>
         ))}
       </div>
-
       {tab === 'inquiries' && <ProductionInquiries />}
       {tab === 'schedule'  && <ProductionSchedule profile={profile} />}
       {tab === 'files'     && <GeneralSchedulesMode />}
