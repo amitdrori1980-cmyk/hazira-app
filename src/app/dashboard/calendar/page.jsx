@@ -181,6 +181,10 @@ export default function CalendarPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {selectedEvents.map(e => (
                 <div key={e.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border-r-2 border-[#CC1010] flex-row-reverse">
+                  <button onClick={() => router.push(`/dashboard/events?edit=${e.id}`)}
+                    className="text-gray-300 hover:text-[#CC1010] p-1 flex-shrink-0">
+                    <i className="ti ti-pencil" style={{fontSize:13}}/>
+                  </button>
                   <div className="flex-1">
                     <div className="text-[13px] font-medium text-right">{e.title}</div>
                     {e.description && <div className="text-[12px] text-gray-500 text-right mt-0.5">{e.description}</div>}
