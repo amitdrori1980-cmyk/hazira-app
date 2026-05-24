@@ -45,12 +45,12 @@ function ProductionInquiries() {
     const { data: evs } = await supabase.from('production_events').select('*').order('date', { ascending: true })
     setEvents(evs || [])
     if (evs?.length) {
-      const { data: ppl } = await supabase.from('production_people').select('*').in('event_id', evs.map(e => e.id))
+      const { data: ppl } = await supabase.from('production_people').select('*').in('production_event_id', evs.map(e => e.id))
       const map = {}
       evs.forEach(e => { map[e.id] = emptySlots() })
       ;(ppl || []).forEach(p => {
-        if (map[p.event_id] && p.slot < SLOTS) {
-          map[p.event_id][p.slot] = { slot: p.slot, name: p.name || '', status: p.status || 'white' }
+        if (map[p.production_event_id] && p.slot < SLOTS) {
+          map[p.production_event_id][p.slot] = { slot: p.slot, name: p.name || '', status: p.status || 'white' }
         }
       })
       setSlots(map)
@@ -83,7 +83,7 @@ function ProductionInquiries() {
   }
 
   async function deleteEvent(id) {
-    await supabase.from('production_people').delete().eq('event_id', id)
+    await supabase.from('production_people').delete().eq('production_event_id', id)
     await supabase.from('production_events').delete().eq('id', id)
     setEvents(prev => prev.filter(e => e.id !== id))
     setSlots(prev => { const n = {...prev}; delete n[id]; return n })
@@ -101,8 +101,8 @@ function ProductionInquiries() {
   async function saveSlotName(eventId, slotIdx) {
     const slot = (slots[eventId] || emptySlots())[slotIdx]
     await supabase.from('production_people').upsert({
-      event_id: eventId, slot: slotIdx, name: slot.name, status: slot.status,
-    }, { onConflict: 'event_id,slot' })
+      production_event_id: eventId, slot: slotIdx, name: slot.name, status: slot.status,
+    }, { onConflict: 'production_event_id,slot' })
   }
 
   async function updateSlotStatus(eventId, slotIdx, status) {
@@ -113,9 +113,9 @@ function ProductionInquiries() {
     })
     setStatusPicker(null)
     await supabase.from('production_people').upsert({
-      event_id: eventId, slot: slotIdx,
+      production_event_id: eventId, slot: slotIdx,
       name: (slots[eventId]||emptySlots())[slotIdx].name, status,
-    }, { onConflict: 'event_id,slot' })
+    }, { onConflict: 'production_event_id,slot' })
   }
 
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
