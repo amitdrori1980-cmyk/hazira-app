@@ -37,6 +37,7 @@ function ProductionInquiries() {
   const [editingEvent, setEditingEvent] = useState(null)
   const [editEventVal, setEditEventVal] = useState({})
   const [statusPicker, setStatusPicker] = useState(null)
+  const [collapsedEvents, setCollapsedEvents] = useState({})
 
   useEffect(() => { load() }, [])
 
@@ -209,6 +210,9 @@ function ProductionInquiries() {
                 )}
               </div>
               <div className="flex items-center gap-1">
+                <button onClick={e=>{e.stopPropagation();setCollapsedEvents(p=>({...p,[ev.id]:!p[ev.id]}))}}
+                  className="text-gray-300 hover:text-[#CC1010] p-1" title={collapsedEvents[ev.id]?'הרחב':'כווץ'}>
+                  <i className={`ti ${collapsedEvents[ev.id]?'ti-layout-list':'ti-layout-navbar-collapse'}`} style={{fontSize:13}}/></button>
                 <button onClick={e=>{e.stopPropagation();setEditingEvent(ev.id);setEditEventVal({event_name:ev.event_name,date:ev.date||'',day:ev.day||'',venue:ev.venue||''})}}
                   className="text-gray-300 hover:text-gray-600 p-1"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
                 <button onClick={e=>{e.stopPropagation();if(window.confirm('למחוק את האירוע?'))deleteEvent(ev.id)}}
@@ -216,7 +220,7 @@ function ProductionInquiries() {
                 <i className={`ti ${isOpen?'ti-chevron-up':'ti-chevron-down'} text-gray-300`} style={{fontSize:13}}/>
               </div>
             </div>
-            {isOpen && (
+            {isOpen && !collapsedEvents[ev.id] && (
               <div className="border-t border-gray-50">
                 <div className="px-3 py-2 bg-gray-50 flex gap-2 flex-wrap justify-end">
                   {STATUSES.map(s => (
