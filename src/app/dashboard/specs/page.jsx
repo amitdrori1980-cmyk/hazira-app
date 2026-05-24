@@ -924,7 +924,6 @@ function ShowFoldersMode() {
 
       {folders.length === 0 && !showNewFolder && (
         <div className="bg-white border border-gray-100 rounded-xl p-10 text-center">
-          <div className="text-4xl mb-3">🎭</div>
           <div className="text-[14px] text-gray-500 mb-1">אין תיקיות עדיין</div>
           <div className="text-[12px] text-gray-400">לחץ על "תיקייה חדשה" להתחלה</div>
         </div>
