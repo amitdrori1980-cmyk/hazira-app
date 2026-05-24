@@ -264,11 +264,13 @@ function ProductionInquiries() {
   )
 }
 
-function LoadFromGeneralSchedules({ onLoad }) {
+function LoadFromGeneralSchedules({ onLoad, onImportExcel }) {
   const [files, setFiles] = useState([])
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const FOLDER = 'schedules-general'
+
+  const isExcel = name => /\.(xlsx|xls)$/i.test(name)
 
   async function loadFiles() {
     setLoading(true)
@@ -288,6 +290,25 @@ function LoadFromGeneralSchedules({ onLoad }) {
     setOpen(false)
   }
 
+  async function importExcel(fileName) {
+    const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${fileName}`)
+    const res = await fetch(data.publicUrl)
+    const buf = await res.arrayBuffer()
+    const wb = XLSX.read(buf, { type: 'array' })
+    const ws = wb.Sheets[wb.SheetNames[0]]
+    const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+    const rows = json
+      .filter(r => r.some(c => String(c).trim()))
+      .map(r => ({
+        time:  String(r[0] || '').trim(),
+        what:  String(r[1] || '').trim(),
+        who:   String(r[2] || '').trim(),
+        notes: String(r[3] || '').trim(),
+      }))
+    onImportExcel(rows, fileName)
+    setOpen(false)
+  }
+
   return (
     <div className="mb-4 no-print">
       <button onClick={handleOpen}
@@ -302,16 +323,23 @@ function LoadFromGeneralSchedules({ onLoad }) {
           {!loading && files.length === 0 && <div className="text-center text-[13px] text-gray-400 py-4">אין קבצים</div>}
           {files.map(f => (
             <div key={f.name} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 flex-row-reverse group">
-              <div className="w-8 h-8 bg-[#FDEAEA] rounded-lg flex items-center justify-center flex-shrink-0">
-                <i className="ti ti-file-type-pdf text-[#CC1010]" style={{fontSize:16}}/>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isExcel(f.name) ? 'bg-green-50' : 'bg-[#FDEAEA]'}`}>
+                <i className={`ti ${isExcel(f.name) ? 'ti-file-spreadsheet text-green-600' : 'ti-file-type-pdf text-[#CC1010]'}`} style={{fontSize:16}}/>
               </div>
               <div className="flex-1 text-right min-w-0">
                 <div className="text-[13px] text-gray-800 truncate">{f.name}</div>
               </div>
-              <button onClick={() => openFile(f.name)}
-                className="text-[12px] text-[#CC1010] border border-[#CC1010] px-2 py-1 rounded-lg flex items-center gap-1 flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
-                <i className="ti ti-eye" style={{fontSize:12}}/> פתח
-              </button>
+              {isExcel(f.name) ? (
+                <button onClick={() => importExcel(f.name)}
+                  className="text-[12px] text-green-600 border border-green-600 px-2 py-1 rounded-lg flex items-center gap-1 flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+                  <i className="ti ti-table-import" style={{fontSize:12}}/> ייבא
+                </button>
+              ) : (
+                <button onClick={() => openFile(f.name)}
+                  className="text-[12px] text-[#CC1010] border border-[#CC1010] px-2 py-1 rounded-lg flex items-center gap-1 flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+                  <i className="ti ti-eye" style={{fontSize:12}}/> פתח
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -329,11 +357,34 @@ function ProductionSchedule({ profile }) {
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [generalFileViewer, setGeneralFileViewer] = useState(null)
+  const [importing, setImporting] = useState(false)
 
   useEffect(() => {
     supabase.from('events').select('id,title,date,venue').order('date').then(({ data }) => setEvents(data || []))
     supabase.from('crew_members').select('id,full_name,role').eq('active',true).order('full_name').then(({ data }) => setCrew(data || []))
   }, [])
+
+  async function importFromExcel(excelRows, fileName) {
+    if (!schedule) {
+      alert('בחר אירוע וצור לוז תחילה')
+      return
+    }
+    setImporting(true)
+    const startOrder = rows.length
+    const inserted = []
+    for (let i = 0; i < excelRows.length; i++) {
+      const r = excelRows[i]
+      const { data } = await supabase.from('schedule_rows').insert({
+        schedule_id: schedule.id,
+        time: r.time, what: r.what, who: r.who, notes: r.notes,
+        sort_order: startOrder + i,
+      }).select().single()
+      if (data) inserted.push(data)
+    }
+    setRows(prev => [...prev, ...inserted])
+    setImporting(false)
+    alert(`יובאו ${inserted.length} שורות מ-${fileName}`)
+  }
 
   async function selectEvent(eventId) {
     setSelectedEvent(eventId)
@@ -450,7 +501,16 @@ function ProductionSchedule({ profile }) {
           </select>
         </div>
 
-        <LoadFromGeneralSchedules onLoad={(url, name) => setGeneralFileViewer({url, name})} />
+        <LoadFromGeneralSchedules
+          onLoad={(url, name) => setGeneralFileViewer({url, name})}
+          onImportExcel={importFromExcel}
+        />
+        {importing && (
+          <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-4 text-[13px] text-green-700 flex items-center gap-2 flex-row-reverse no-print">
+            <i className="ti ti-loader-2 animate-spin" style={{fontSize:15}}/>
+            מייבא שורות מ-Excel...
+          </div>
+        )}
         {generalFileViewer && (
           <div className="fixed inset-0 z-50 bg-black/70 flex flex-col no-print">
             <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 flex-row-reverse">
@@ -667,6 +727,8 @@ function GeneralSchedulesMode() {
     setLoading(false)
   }
 
+  const isExcel = name => /\.(xlsx|xls)$/i.test(name)
+
   async function handleUpload(e) {
     const fileList = Array.from(e.target.files)
     if (!fileList.length) return
@@ -734,7 +796,7 @@ function GeneralSchedulesMode() {
           <iframe src={viewing.url} className="flex-1 w-full hidden md:block" title={viewing.name} allow="fullscreen" style={{border:'none'}}/>
         </div>
       )}
-      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload}/>
+      <input ref={fileInputRef} type="file" multiple accept=".pdf,.xlsx,.xls" className="hidden" onChange={handleUpload}/>
       <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
         {files.length > 0 && (
           <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex-row-reverse">
@@ -761,8 +823,8 @@ function GeneralSchedulesMode() {
           <div key={f.name} className="flex items-center gap-2 px-4 py-3 border-b border-gray-50 last:border-0 group hover:bg-gray-50 flex-row-reverse">
             <input type="checkbox" checked={!!selectedFiles[f.name]} onChange={() => toggleSelect(f.name)}
               className="w-4 h-4 accent-[#CC1010] flex-shrink-0 cursor-pointer"/>
-            <div className="w-9 h-9 bg-[#FDEAEA] rounded-lg flex items-center justify-center flex-shrink-0">
-              <i className="ti ti-file-type-pdf text-[#CC1010]" style={{fontSize:18}}/>
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isExcel(f.name) ? 'bg-green-50' : 'bg-[#FDEAEA]'}`}>
+              <i className={`ti ${isExcel(f.name) ? 'ti-file-spreadsheet text-green-600' : 'ti-file-type-pdf text-[#CC1010]'}`} style={{fontSize:18}}/>
             </div>
             <div className="flex-1 text-right min-w-0 overflow-hidden">
               <div className="text-[13px] font-medium text-gray-800 truncate">{f.name}</div>
