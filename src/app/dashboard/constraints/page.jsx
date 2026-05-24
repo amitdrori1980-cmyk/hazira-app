@@ -40,6 +40,7 @@ export default function ConstraintsPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm]       = useState({ crew_name:'', date:'', hours:'', notes:'' })
   const [adding, setAdding]   = useState(false)
+  const [confirmId, setConfirmId] = useState(null)
 
   useEffect(() => { load() }, [])
 
@@ -138,8 +139,13 @@ export default function ConstraintsPage() {
   }
 
   async function deleteConstraint(id) {
-    await supabase.from('crew_constraints').delete().eq('id', id)
-    setConstraints(prev => prev.filter(c => c.id !== id))
+    setConfirmId(id)
+  }
+
+  async function confirmDelete() {
+    await supabase.from('crew_constraints').delete().eq('id', confirmId)
+    setConstraints(prev => prev.filter(c => c.id !== confirmId))
+    setConfirmId(null)
   }
 
   return (
@@ -300,8 +306,8 @@ export default function ConstraintsPage() {
                       {c.notes && <div className="text-[11px] text-gray-500">{c.notes}</div>}
                     </div>
                     <button onClick={()=>deleteConstraint(c.id)}
-                      className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                      <i className="ti ti-trash" style={{fontSize:12}}/>
+                      className="text-gray-300 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100 transition-all p-1">
+                      <i className="ti ti-trash" style={{fontSize:14}}/>
                     </button>
                   </div>
                 ))}
@@ -312,6 +318,31 @@ export default function ConstraintsPage() {
           {selectedData.dayEvents.length===0 && selectedData.dayConstraints.length===0 && (
             <div className="text-[13px] text-gray-400 text-center py-4">אין נתונים ליום זה</div>
           )}
+        </div>
+      )}
+      {/* Confirm Delete Modal */}
+      {confirmId && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0"
+          style={{background:'rgba(0,0,0,0.4)'}}>
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
+            <div className="flex items-center justify-center w-12 h-12 bg-red-50 rounded-full mx-auto mb-3">
+              <i className="ti ti-trash text-[#CC1010]" style={{fontSize:22}}/>
+            </div>
+            <div className="text-center mb-4">
+              <div className="text-[16px] font-semibold text-gray-900 mb-1">מחיקת אילוץ</div>
+              <div className="text-[13px] text-gray-500">האם למחוק את האילוץ? לא ניתן לבטל פעולה זו.</div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmId(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-[14px] text-gray-600 hover:bg-gray-50">
+                ביטול
+              </button>
+              <button onClick={confirmDelete}
+                className="flex-1 py-2.5 rounded-xl bg-[#CC1010] text-white text-[14px] hover:bg-[#a00c0c]">
+                מחק
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
