@@ -214,12 +214,21 @@ export default function ConstraintsPage() {
           <form onSubmit={addConstraint} className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-2">
             <div className="grid grid-cols-2 gap-2">
               <div className="col-span-2 relative">
-                <input value={form.crew_name} onChange={e=>setForm(f=>({...f,crew_name:e.target.value}))}
-                  list="crew-list-add" placeholder="בחר איש צוות..." required
+                <input value={form.crew_name} onChange={e=>{setForm(f=>({...f,crew_name:e.target.value}));setCrewOpen(true)}}
+                  onFocus={()=>setCrewOpen(true)}
+                  onBlur={()=>setTimeout(()=>setCrewOpen(false),150)}
+                  placeholder="בחר איש צוות..." required autoComplete="off"
                   className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] text-right"/>
-                <datalist id="crew-list-add">
-                  {crew.map(c=><option key={c.id} value={c.full_name}/>)}
-                </datalist>
+                {crewOpen && crew.filter(c=>!form.crew_name||c.full_name.includes(form.crew_name)).length>0 && (
+                  <div className="absolute top-full right-0 left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
+                    {crew.filter(c=>!form.crew_name||c.full_name.includes(form.crew_name)).map(c=>(
+                      <div key={c.id} onMouseDown={()=>setForm(f=>({...f,crew_name:c.full_name}))}
+                        className="px-3 py-2 text-[13px] text-right hover:bg-[#FDEAEA] cursor-pointer">
+                        {c.full_name}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <input value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}
                 type="date" required className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
