@@ -672,7 +672,7 @@ function GeneralSchedulesMode() {
     if (!fileList.length) return
     setUploading(true)
     for (const file of fileList) {
-      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_\u0590-\u05FF ]/g, '_')
+      const safeName = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9.\-_\u0590-\u05FF]/g, '_')
       await supabase.storage.from('venues').upload(`${FOLDER}/${safeName}`, file, { upsert: true })
     }
     await loadFiles()
