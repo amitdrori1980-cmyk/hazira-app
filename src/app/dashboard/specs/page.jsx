@@ -854,7 +854,8 @@ function ShowFoldersMode() {
     if (!fileList.length) return
     setUploading(true)
     for (const file of fileList) {
-      const safeName = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9.\-_\u0590-\u05FF]/g, '_')
+      const ext = file.name.includes('.') ? file.name.split('.').pop() : ''
+      const safeName = Date.now() + '_' + Math.random().toString(36).slice(2,6) + (ext ? '.' + ext : '')
       await supabase.storage.from(BUCKET).upload(`${ROOT}/${key}/${safeName}`, file, { upsert: true })
     }
     const { data } = await supabase.storage.from(BUCKET).list(`${ROOT}/${key}`, { sortBy: { column: 'name', order: 'asc' } })
