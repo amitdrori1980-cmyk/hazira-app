@@ -111,7 +111,13 @@ export default function CalendarPage() {
             const ds = dateStr(calYear, calMonth, d)
             const isToday = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d
             const isSelected = selectedDay === ds
-            const dayEvs = filteredEvents.filter(e => e.date === ds)
+            const dayEvs = filteredEvents.filter(e => {
+              if (!e.end_date) return e.date === ds
+              return ds >= e.date && ds <= e.end_date
+            })
+            const isMultiStart = (e) => e.end_date && e.date === ds
+            const isMultiMid   = (e) => e.end_date && ds > e.date && ds < e.end_date
+            const isMultiEnd   = (e) => e.end_date && e.end_date === ds
 
             return (
               <div
@@ -137,8 +143,13 @@ export default function CalendarPage() {
                 </div>
                 {/* Desktop: text */}
                 {dayEvs.slice(0,2).map(e => (
-                  <div key={e.id} className={`hidden md:block text-[10px] px-1.5 py-0.5 rounded mb-0.5 truncate ${TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'}`}>
-                    {e.time?.slice(0,5)} {e.title}
+                  <div key={e.id} className={`hidden md:block text-[10px] px-1.5 py-0.5 mb-0.5 truncate ${TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'} ${
+                    isMultiStart(e) ? 'rounded-r-full rounded-l-none pl-2' :
+                    isMultiMid(e)   ? 'rounded-none -mx-1 px-2' :
+                    isMultiEnd(e)   ? 'rounded-l-full rounded-r-none pr-2' :
+                    'rounded'
+                  }`}>
+                    {isMultiStart(e) || !e.end_date ? <>{e.time?.slice(0,5)} {e.title}</> : ''}
                   </div>
                 ))}
                 {dayEvs.length > 2 && (
