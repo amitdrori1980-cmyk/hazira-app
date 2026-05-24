@@ -828,7 +828,7 @@ function ShowFoldersMode() {
   async function createFolder() {
     if (!newFolderName.trim()) return
     setCreatingFolder(true)
-    const safeName = newFolderName.trim().replace(/[^a-zA-Z0-9.\-_֐-׿ ]/g, '_')
+    const safeName = newFolderName.trim().replace(/\s+/g, '_')
     await supabase.storage.from(BUCKET).upload(`${ROOT}/${safeName}/.keep`, new Blob(['']))
     setNewFolderName('')
     setShowNewFolder(false)
