@@ -271,17 +271,24 @@ export default function DashboardPage() {
 
           {constraints.length > 0 && (
             <Card title="אילוצים השבוע" icon="ti-ban" href="/dashboard/constraints">
-              {constraints.map(c => {
+              {(() => {
                 const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
-                const dayName = c.date ? HE_DAYS_FULL[new Date(c.date).getDay()] : ''
-                return (
-                  <div key={c.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
-                    <span className="flex-1 text-[13px] text-right font-medium">{c.crew_name}</span>
-                    <span className="text-[11px] text-gray-400">{dayName} {c.date?.slice(5).replace('-','/')}</span>
-  
+                const byDay = {}
+                constraints.forEach(c => {
+                  if (!c.date) return
+                  const d = new Date(c.date)
+                  const key = c.date
+                  const label = HE_DAYS_FULL[d.getDay()] + ' ' + c.date.slice(5).replace('-','/')
+                  if (!byDay[key]) byDay[key] = { label, names: [] }
+                  byDay[key].names.push(c.crew_name)
+                })
+                return Object.entries(byDay).sort(([a],[b]) => a.localeCompare(b)).map(([key, { label, names }]) => (
+                  <div key={key} className="py-2 border-b border-gray-50 last:border-0 text-right">
+                    <div className="text-[11px] text-gray-400 mb-0.5">{label}</div>
+                    <div className="text-[13px] text-gray-800 font-medium">{names.join(', ')}</div>
                   </div>
-                )
-              })}
+                ))
+              })()}
             </Card>
           )}
         </>
