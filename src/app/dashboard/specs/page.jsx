@@ -871,10 +871,10 @@ function ShowFoldersMode() {
 
   function openFile(folderKey, fileName) {
     const { data } = supabase.storage.from(BUCKET).getPublicUrl(`${ROOT}/${folderKey}/${fileName}`)
-    const isMobile = window.innerWidth < 768
+    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)
     const isPdf = /\.pdf$/i.test(fileName)
-    if (isMobile || !isPdf) { window.open(data.publicUrl, '_blank') }
-    else { setViewing({ url: data.publicUrl, name: fileName }) }
+    if (isPdf || isImage) { setViewing({ url: data.publicUrl, name: fileName, type: isImage ? 'image' : 'pdf' }) }
+    else { window.open(data.publicUrl, '_blank') }
   }
 
   function fileIcon(name) {
@@ -899,7 +899,13 @@ function ShowFoldersMode() {
               <i className="ti ti-external-link" style={{fontSize:14}}/> פתח בדפדפן
             </a>
           </div>
-          <iframe src={viewing.url} className="flex-1 w-full" title={viewing.name} allow="fullscreen" style={{border:'none'}}/>
+          {viewing.type === 'image' ? (
+            <div className="flex-1 flex items-center justify-center bg-gray-900 p-4">
+              <img src={viewing.url} alt={viewing.name} className="max-w-full max-h-full object-contain rounded"/>
+            </div>
+          ) : (
+            <iframe src={viewing.url} className="flex-1 w-full" title={viewing.name} allow="fullscreen" style={{border:'none'}}/>
+          )}
         </div>
       )}
 
