@@ -22,7 +22,7 @@ export default function CalendarPage() {
       const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfile(p)
       const q = supabase.from('events').select('*').order('date')
-      if (!p?.is_manager) q.contains('depts', [p?.dept])
+      // כולם רואים את כל האירועים
       const { data } = await q
       setEvents(data || [])
       const { data: vs } = await supabase.from('venues').select('name').order('sort_order')
