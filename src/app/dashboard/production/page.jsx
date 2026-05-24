@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import * as XLSX from 'xlsx-js-style'
 
@@ -10,7 +10,6 @@ function fmtDate(ds) {
   return `${d} ${HE_MONTHS[m-1]} ${y}`
 }
 
-// ─── בדיקת פניות ───────────────────────────────────────────────
 const STATUSES = [
   { value: 'white',  label: 'לא נבדק',    bg: 'bg-white',       text: 'text-gray-600',   ring: 'ring-gray-300',   dot: '#e5e7eb' },
   { value: 'green',  label: 'מוכן לביצוע', bg: 'bg-green-100',   text: 'text-green-900',  ring: 'ring-green-400',  dot: '#22c55e' },
@@ -276,8 +275,65 @@ function ProductionInquiries() {
   )
 }
 
-// ─── לוז הפקה ──────────────────────────────────────────────────
 
+// ─── טוען לוזים כללי ───────────────────────────────────────────
+function LoadFromGeneralSchedules({ onLoad }) {
+  const [files, setFiles] = useState([])
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const FOLDER = 'schedules-general'
+
+  async function loadFiles() {
+    setLoading(true)
+    const { data } = await supabase.storage.from('venues').list(FOLDER, { sortBy: { column: 'name', order: 'asc' } })
+    setFiles((data || []).filter(f => f.name !== '.emptydir'))
+    setLoading(false)
+  }
+
+  function handleOpen() {
+    setOpen(v => !v)
+    if (!open) loadFiles()
+  }
+
+  function openFile(fileName) {
+    const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${fileName}`)
+    onLoad(data.publicUrl, fileName)
+    setOpen(false)
+  }
+
+  return (
+    <div className="mb-4 no-print">
+      <button onClick={handleOpen}
+        className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-colors flex-row-reverse text-right text-[13px] ${open ? 'bg-[#FDEAEA] border-[#CC1010] text-[#CC1010]' : 'bg-white border-gray-100 text-gray-600 hover:border-[#CC1010]'}`}>
+        <i className="ti ti-folder text-[#CC1010]" style={{fontSize:15}}/>
+        <span className="flex-1 font-medium">טען לוז מ"לוזים כללי"</span>
+        <i className={`ti ${open ? 'ti-chevron-up' : 'ti-chevron-down'} text-gray-400`} style={{fontSize:13}}/>
+      </button>
+      {open && (
+        <div className="mt-1 bg-white border border-gray-100 rounded-xl overflow-hidden">
+          {loading && <div className="text-center text-[13px] text-gray-400 py-4">טוען...</div>}
+          {!loading && files.length === 0 && (
+            <div className="text-center text-[13px] text-gray-400 py-4">אין קבצים בתיקיית "לוזים כללי"</div>
+          )}
+          {files.map(f => (
+            <div key={f.name} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 flex-row-reverse group">
+              <div className="w-8 h-8 bg-[#FDEAEA] rounded-lg flex items-center justify-center flex-shrink-0">
+                <i className="ti ti-file-type-pdf text-[#CC1010]" style={{fontSize:16}}/>
+              </div>
+              <div className="flex-1 text-right min-w-0">
+                <div className="text-[13px] text-gray-800 truncate">{f.name}</div>
+              </div>
+              <button onClick={() => openFile(f.name)}
+                className="text-[12px] text-[#CC1010] border border-[#CC1010] px-2 py-1 rounded-lg flex items-center gap-1 flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+                <i className="ti ti-eye" style={{fontSize:12}}/> פתח
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function ProductionSchedule({ profile }) {
   const [events, setEvents] = useState([])
@@ -287,6 +343,8 @@ function ProductionSchedule({ profile }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [generalFileViewer, setGeneralFileViewer] = useState(null)
+  const [generalFileViewer, setGeneralFileViewer] = useState(null)
 
   useEffect(() => {
     supabase.from('events').select('id,title,date,venue').order('date').then(({ data }) => setEvents(data || []))
@@ -417,6 +475,52 @@ function ProductionSchedule({ profile }) {
             {events.map(e => <option key={e.id} value={e.id}>{e.title} — {fmtDate(e.date)}</option>)}
           </select>
         </div>
+
+        {/* Load from general schedules */}
+        <LoadFromGeneralSchedules onLoad={(url, name) => setGeneralFileViewer({url, name})} />
+        {generalFileViewer && (
+          <div className="fixed inset-0 z-50 bg-black/70 flex flex-col no-print">
+            <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 flex-row-reverse">
+              <button onClick={() => setGeneralFileViewer(null)} className="flex items-center gap-1.5 text-gray-600 text-[13px]">
+                <i className="ti ti-x" style={{fontSize:16}}/> סגור
+              </button>
+              <span className="text-[13px] font-medium text-gray-800 truncate max-w-[45%]">{generalFileViewer.name}</span>
+              <a href={generalFileViewer.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[13px] text-[#CC1010] hover:underline">
+                <i className="ti ti-external-link" style={{fontSize:14}}/> פתח בדפדפן
+              </a>
+            </div>
+            <iframe src={generalFileViewer.url} className="flex-1 w-full hidden md:block" title={generalFileViewer.name} allow="fullscreen" style={{border:'none'}}/>
+            <div className="flex-1 flex flex-col items-center justify-center gap-5 bg-gray-50 md:hidden px-6 text-center">
+              <a href={generalFileViewer.url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 text-[14px] bg-[#CC1010] text-white px-6 py-3 rounded-xl font-medium">
+                <i className="ti ti-external-link" style={{fontSize:15}}/> פתח קובץ
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* Load from general schedules */}
+        <LoadFromGeneralSchedules onLoad={(url, name) => setGeneralFileViewer({url, name})} />
+        {generalFileViewer && (
+          <div className="fixed inset-0 z-50 bg-black/70 flex flex-col no-print">
+            <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 flex-row-reverse">
+              <button onClick={() => setGeneralFileViewer(null)} className="flex items-center gap-1.5 text-gray-600 text-[13px]">
+                <i className="ti ti-x" style={{fontSize:16}}/> סגור
+              </button>
+              <span className="text-[13px] font-medium text-gray-800 truncate max-w-[45%]">{generalFileViewer.name}</span>
+              <a href={generalFileViewer.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[13px] text-[#CC1010] hover:underline">
+                <i className="ti ti-external-link" style={{fontSize:14}}/> פתח בדפדפן
+              </a>
+            </div>
+            <iframe src={generalFileViewer.url} className="flex-1 w-full hidden md:block" title={generalFileViewer.name} allow="fullscreen" style={{border:'none'}}/>
+            <div className="flex-1 flex flex-col items-center justify-center gap-5 bg-gray-50 md:hidden px-6 text-center">
+              <a href={generalFileViewer.url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 text-[14px] bg-[#CC1010] text-white px-6 py-3 rounded-xl font-medium">
+                <i className="ti ti-external-link" style={{fontSize:15}}/> פתח קובץ
+              </a>
+            </div>
+          </div>
+        )}
 
         {loading && <div className="text-center text-gray-400 py-8">טוען...</div>}
 
@@ -605,6 +709,181 @@ function ProductionSchedule({ profile }) {
   )
 }
 
+
+// ─── לוזים כללי ────────────────────────────────────────────────
+function GeneralSchedulesMode() {
+  const [files, setFiles] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [selectedFiles, setSelectedFiles] = useState({})
+  const [viewing, setViewing] = useState(null)
+  const [confirmId, setConfirmId] = useState(null)
+  const fileInputRef = useRef(null)
+  const FOLDER = 'schedules-general'
+
+  useEffect(() => { loadFiles() }, [])
+
+  async function loadFiles() {
+    setLoading(true)
+    const { data } = await supabase.storage.from('venues').list(FOLDER, { sortBy: { column: 'name', order: 'asc' } })
+    setFiles((data || []).filter(f => f.name !== '.emptydir'))
+    setLoading(false)
+  }
+
+  async function handleUpload(e) {
+    const fileList = Array.from(e.target.files)
+    if (!fileList.length) return
+    setUploading(true)
+    for (const file of fileList) {
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_\u0590-\u05FF ]/g, '_')
+      await supabase.storage.from('venues').upload(`${FOLDER}/${safeName}`, file, { upsert: true })
+    }
+    await loadFiles()
+    setUploading(false)
+    e.target.value = ''
+  }
+
+  async function deleteFile(fileName) {
+    await supabase.storage.from('venues').remove([`${FOLDER}/${fileName}`])
+    setFiles(prev => prev.filter(f => f.name !== fileName))
+    setSelectedFiles(prev => { const n = {...prev}; delete n[fileName]; return n })
+    setConfirmId(null)
+  }
+
+  function openFile(fileName) {
+    const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${fileName}`)
+    const isMobile = window.innerWidth < 768
+    if (isMobile) { window.open(data.publicUrl, '_blank') }
+    else { setViewing({ url: data.publicUrl, name: fileName }) }
+  }
+
+  function toggleSelect(fileName) {
+    setSelectedFiles(prev => ({ ...prev, [fileName]: !prev[fileName] }))
+  }
+
+  function selectAll() {
+    const allSelected = files.every(f => selectedFiles[f.name])
+    const newSel = {}
+    files.forEach(f => { newSel[f.name] = !allSelected })
+    setSelectedFiles(newSel)
+  }
+
+  function sendByEmail() {
+    const selected = files.filter(f => selectedFiles[f.name])
+    if (!selected.length) return
+    const links = selected.map(f => {
+      const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${f.name}`)
+      return `${f.name}: ${data.publicUrl}`
+    }).join('%0D%0A')
+    window.location.href = `mailto:?subject=${encodeURIComponent('לוזים כללי')}&body=${links}`
+  }
+
+  const anySelected = files.some(f => selectedFiles[f.name])
+  const selectedCount = files.filter(f => selectedFiles[f.name]).length
+
+  if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
+
+  return (
+    <div className="max-w-2xl">
+      {viewing && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 flex-row-reverse">
+            <button onClick={() => setViewing(null)} className="flex items-center gap-1.5 text-gray-600 text-[13px]">
+              <i className="ti ti-x" style={{fontSize:16}}/> סגור
+            </button>
+            <span className="text-[13px] font-medium text-gray-800 truncate max-w-[45%]">{viewing.name}</span>
+            <a href={viewing.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[13px] text-[#CC1010] hover:underline">
+              <i className="ti ti-external-link" style={{fontSize:14}}/> פתח בדפדפן
+            </a>
+          </div>
+          <iframe src={viewing.url} className="flex-1 w-full hidden md:block" title={viewing.name} allow="fullscreen" style={{border:'none'}}/>
+        </div>
+      )}
+
+      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload}/>
+
+      <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+        {files.length > 0 && (
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex-row-reverse">
+            <button onClick={selectAll} className="text-[11px] text-gray-500 hover:text-[#CC1010]">
+              {files.every(f => selectedFiles[f.name]) ? 'בטל הכל' : 'בחר הכל'}
+            </button>
+            <div className="flex-1"/>
+            {anySelected && (
+              <button onClick={() => setConfirmId('bulk')}
+                className="flex items-center gap-1.5 text-[12px] bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors">
+                <i className="ti ti-trash" style={{fontSize:13}}/> מחק ({selectedCount})
+              </button>
+            )}
+            {anySelected && (
+              <button onClick={sendByEmail}
+                className="flex items-center gap-1.5 text-[12px] bg-[#CC1010] text-white px-3 py-1.5 rounded-lg hover:bg-[#a00c0c]">
+                <i className="ti ti-mail" style={{fontSize:13}}/> שלח במייל ({selectedCount})
+              </button>
+            )}
+          </div>
+        )}
+
+        {files.length === 0 && (
+          <div className="text-center text-[13px] text-gray-400 py-8">אין קבצים עדיין</div>
+        )}
+
+        {files.map(f => (
+          <div key={f.name} className="flex items-center gap-2 px-4 py-3 border-b border-gray-50 last:border-0 group hover:bg-gray-50 flex-row-reverse">
+            <input type="checkbox" checked={!!selectedFiles[f.name]} onChange={() => toggleSelect(f.name)}
+              className="w-4 h-4 accent-[#CC1010] flex-shrink-0 cursor-pointer"/>
+            <div className="w-9 h-9 bg-[#FDEAEA] rounded-lg flex items-center justify-center flex-shrink-0">
+              <i className="ti ti-file-type-pdf text-[#CC1010]" style={{fontSize:18}}/>
+            </div>
+            <div className="flex-1 text-right min-w-0 overflow-hidden">
+              <div className="text-[13px] font-medium text-gray-800 truncate">{f.name}</div>
+              <div className="text-[11px] text-gray-400">
+                {f.metadata?.size ? `${Math.round(f.metadata.size / 1024)} KB` : ''}
+              </div>
+            </div>
+            <button onClick={() => openFile(f.name)}
+              className="text-[#CC1010] hover:text-[#a00c0c] text-[12px] flex items-center gap-1 px-2 py-1.5 border border-[#CC1010] rounded-lg flex-shrink-0 whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+              <i className="ti ti-eye" style={{fontSize:13}}/> צפה
+            </button>
+          </div>
+        ))}
+
+        <button onClick={() => fileInputRef.current.click()} disabled={uploading}
+          className="w-full py-3 text-[13px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors flex items-center justify-center gap-1">
+          {uploading ? <><i className="ti ti-loader-2 animate-spin" style={{fontSize:13}}/> מעלה...</> : <><i className="ti ti-upload" style={{fontSize:13}}/> העלה קובץ</>}
+        </button>
+      </div>
+
+      {confirmId && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0" style={{background:'rgba(0,0,0,0.4)'}}>
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
+            <div className="flex items-center justify-center w-12 h-12 bg-red-50 rounded-full mx-auto mb-3">
+              <i className="ti ti-trash text-[#CC1010]" style={{fontSize:22}}/>
+            </div>
+            <div className="text-center mb-4">
+              <div className="text-[16px] font-semibold text-gray-900 mb-1">מחיקת קבצים</div>
+              <div className="text-[13px] text-gray-500">האם למחוק {confirmId === 'bulk' ? selectedCount + ' קבצים' : 'את הקובץ'}?</div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmId(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-[14px] text-gray-600">ביטול</button>
+              <button onClick={async () => {
+                if (confirmId === 'bulk') {
+                  const selected = files.filter(f => selectedFiles[f.name])
+                  for (const f of selected) await deleteFile(f.name)
+                  setSelectedFiles({})
+                  setConfirmId(null)
+                } else {
+                  deleteFile(confirmId)
+                }
+              }} className="flex-1 py-2.5 rounded-xl bg-[#CC1010] text-white text-[14px]">מחק</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── דף ראשי עם טאבים ──────────────────────────────────────────
 export default function ProductionPage() {
   const [profile, setProfile] = useState(null)
@@ -624,6 +903,7 @@ export default function ProductionPage() {
         {[
           { id: 'inquiries', label: '👥 בדיקת פניות' },
           { id: 'schedule',  label: '📋 לוז הפקה' },
+          { id: 'files',     label: '📁 לוזים כללי' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`text-[13px] px-4 py-2 rounded-lg border transition-colors ${tab===t.id?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-600 hover:border-[#CC1010]'}`}>
@@ -634,6 +914,7 @@ export default function ProductionPage() {
 
       {tab === 'inquiries' && <ProductionInquiries />}
       {tab === 'schedule'  && <ProductionSchedule profile={profile} />}
+      {tab === 'files'     && <GeneralSchedulesMode />}
     </div>
   )
 }
