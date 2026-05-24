@@ -261,7 +261,7 @@ function ProductionInquiries() {
                           className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ring-2 ${st.ring} transition-all`}
                           style={{background: st.dot}}/>
                         {isPickerOpen && (
-                          <div className="absolute left-0 top-8 z-50 bg-white border border-gray-200 rounded-xl shadow-xl p-2 flex flex-col gap-1 min-w-[140px]" style={{boxShadow:"0 8px 32px rgba(0,0,0,0.18)"}}>
+                          <div className="fixed z-[9999] bg-white border border-gray-200 rounded-xl shadow-xl p-2 flex flex-col gap-1 min-w-[140px]" style={{boxShadow:"0 8px 32px rgba(0,0,0,0.18)", top: "auto", left: "auto", marginTop: "4px"}}>
                             {STATUSES.map(s => (
                               <button key={s.value} onClick={() => updateSlotStatus(ev.id, idx, s.value)}
                                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] ${s.bg} ${s.text} hover:opacity-80 text-right`}>
