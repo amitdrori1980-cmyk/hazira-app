@@ -652,7 +652,7 @@ export default function SpecsPage() {
           {id:'templates', label:'⭐ מפרטים כלליים הפקות'},
           {id:'compare', label:'⚡ השוואת התנגשויות'},
           {id:'files', label:'📁 מפרטים כללי'},
-          {id:'showfolders', label:'🎭 תיקי הצגות'},
+          {id:'showfolders', label:'תיקי הצגות'},
         ].map(tab=>(
           <button key={tab.id} onClick={()=>setMode(tab.id)}
             className={`text-[13px] px-4 py-2 rounded-lg border transition-colors ${mode===tab.id?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-600 hover:border-[#CC1010]'}`}>
