@@ -652,6 +652,7 @@ export default function SpecsPage() {
           {id:'templates', label:'⭐ מפרטים כלליים הפקות'},
           {id:'compare', label:'⚡ השוואת התנגשויות'},
           {id:'files', label:'📁 מפרטים כללי'},
+          {id:'showfolders', label:'🎭 תיקי הצגות'},
         ].map(tab=>(
           <button key={tab.id} onClick={()=>setMode(tab.id)}
             className={`text-[13px] px-4 py-2 rounded-lg border transition-colors ${mode===tab.id?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-600 hover:border-[#CC1010]'}`}>
@@ -793,6 +794,196 @@ export default function SpecsPage() {
       {mode === 'files' && (
         <GeneralFilesMode />
       )}
+      {mode === 'showfolders' && (
+        <ShowFoldersMode />
+      )}
+    </div>
+  )
+}
+
+function ShowFoldersMode() {
+  const BUCKET = 'venues'
+  const ROOT = 'show-files'
+  const [folders, setFolders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [openFolder, setOpenFolder] = useState(null)
+  const [folderFiles, setFolderFiles] = useState({})
+  const [loadingFiles, setLoadingFiles] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+  const [showNewFolder, setShowNewFolder] = useState(false)
+  const [creatingFolder, setCreatingFolder] = useState(false)
+  const [viewing, setViewing] = useState(null)
+  const fileInputRef = useRef(null)
+
+  useEffect(() => { loadFolders() }, [])
+
+  async function loadFolders() {
+    setLoading(true)
+    const { data } = await supabase.storage.from(BUCKET).list(ROOT, { sortBy: { column: 'name', order: 'asc' } })
+    setFolders((data || []).filter(f => f.id === null))
+    setLoading(false)
+  }
+
+  async function createFolder() {
+    if (!newFolderName.trim()) return
+    setCreatingFolder(true)
+    const safeName = newFolderName.trim().replace(/[^a-zA-Z0-9.\-_֐-׿ ]/g, '_')
+    await supabase.storage.from(BUCKET).upload(`${ROOT}/${safeName}/.keep`, new Blob(['']))
+    setNewFolderName('')
+    setShowNewFolder(false)
+    await loadFolders()
+    setCreatingFolder(false)
+  }
+
+  async function openFolderFiles(folderName) {
+    if (openFolder === folderName) { setOpenFolder(null); return }
+    setOpenFolder(folderName)
+    setLoadingFiles(true)
+    const { data } = await supabase.storage.from(BUCKET).list(`${ROOT}/${folderName}`, { sortBy: { column: 'name', order: 'asc' } })
+    setFolderFiles(prev => ({ ...prev, [folderName]: (data || []).filter(f => f.name !== '.keep') }))
+    setLoadingFiles(false)
+  }
+
+  async function uploadFiles(e, folderName) {
+    const fileList = Array.from(e.target.files)
+    if (!fileList.length) return
+    setUploading(true)
+    for (const file of fileList) {
+      const safeName = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9.\-_\u0590-\u05FF]/g, '_')
+      await supabase.storage.from(BUCKET).upload(`${ROOT}/${folderName}/${safeName}`, file, { upsert: true })
+    }
+    const { data } = await supabase.storage.from(BUCKET).list(`${ROOT}/${folderName}`, { sortBy: { column: 'name', order: 'asc' } })
+    setFolderFiles(prev => ({ ...prev, [folderName]: (data || []).filter(f => f.name !== '.keep') }))
+    setUploading(false)
+    e.target.value = ''
+  }
+
+  async function deleteFile(folderName, fileName) {
+    await supabase.storage.from(BUCKET).remove([`${ROOT}/${folderName}/${fileName}`])
+    setFolderFiles(prev => ({ ...prev, [folderName]: prev[folderName].filter(f => f.name !== fileName) }))
+  }
+
+  function openFile(folderName, fileName) {
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(`${ROOT}/${folderName}/${fileName}`)
+    const isMobile = window.innerWidth < 768
+    const isPdf = /\.pdf$/i.test(fileName)
+    if (isMobile || !isPdf) { window.open(data.publicUrl, '_blank') }
+    else { setViewing({ url: data.publicUrl, name: fileName }) }
+  }
+
+  function fileIcon(name) {
+    if (/\.pdf$/i.test(name)) return 'ti-file-type-pdf text-[#CC1010]'
+    if (/\.(jpg|jpeg|png|gif|webp)$/i.test(name)) return 'ti-photo text-blue-500'
+    if (/\.(xlsx|xls)$/i.test(name)) return 'ti-file-spreadsheet text-green-600'
+    return 'ti-file text-gray-400'
+  }
+
+  if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
+
+  return (
+    <div className="max-w-2xl">
+      {viewing && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 flex-row-reverse">
+            <button onClick={() => setViewing(null)} className="flex items-center gap-1.5 text-gray-600 text-[13px]">
+              <i className="ti ti-x" style={{fontSize:16}}/> סגור
+            </button>
+            <span className="text-[13px] font-medium text-gray-800 truncate max-w-[45%]">{viewing.name}</span>
+            <a href={viewing.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[13px] text-[#CC1010] hover:underline">
+              <i className="ti ti-external-link" style={{fontSize:14}}/> פתח בדפדפן
+            </a>
+          </div>
+          <iframe src={viewing.url} className="flex-1 w-full" title={viewing.name} allow="fullscreen" style={{border:'none'}}/>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={() => setShowNewFolder(v => !v)}
+          className="bg-[#CC1010] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#a00c0c] flex items-center gap-1.5">
+          <i className="ti ti-folder-plus" style={{fontSize:14}}/> תיקייה חדשה
+        </button>
+        <span className="text-[12px] text-gray-400">{folders.length} תיקיות</span>
+      </div>
+
+      {showNewFolder && (
+        <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
+          <div className="flex gap-2 flex-row-reverse">
+            <input value={newFolderName} onChange={e => setNewFolderName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && createFolder()}
+              placeholder="שם התיקייה..." autoFocus
+              className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] text-right"/>
+            <button onClick={createFolder} disabled={creatingFolder || !newFolderName.trim()}
+              className="bg-[#CC1010] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#a00c0c] disabled:opacity-50">
+              {creatingFolder ? 'יוצר...' : 'צור'}
+            </button>
+            <button onClick={() => setShowNewFolder(false)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-500">ביטול</button>
+          </div>
+        </div>
+      )}
+
+      {folders.length === 0 && !showNewFolder && (
+        <div className="bg-white border border-gray-100 rounded-xl p-10 text-center">
+          <div className="text-4xl mb-3">🎭</div>
+          <div className="text-[14px] text-gray-500 mb-1">אין תיקיות עדיין</div>
+          <div className="text-[12px] text-gray-400">לחץ על "תיקייה חדשה" להתחלה</div>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {folders.map(folder => (
+          <div key={folder.name} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 flex-row-reverse"
+              onClick={() => openFolderFiles(folder.name)}>
+              <div className="w-9 h-9 bg-[#FDEAEA] rounded-lg flex items-center justify-center flex-shrink-0">
+                <i className={`ti ${openFolder === folder.name ? 'ti-folder-open' : 'ti-folder'} text-[#CC1010]`} style={{fontSize:18}}/>
+              </div>
+              <div className="flex-1 text-right">
+                <div className="text-[13px] font-semibold text-gray-800">{folder.name}</div>
+                {folderFiles[folder.name] && (
+                  <div className="text-[11px] text-gray-400">{folderFiles[folder.name].length} קבצים</div>
+                )}
+              </div>
+              <i className={`ti ${openFolder === folder.name ? 'ti-chevron-up' : 'ti-chevron-down'} text-gray-300`} style={{fontSize:13}}/>
+            </div>
+
+            {openFolder === folder.name && (
+              <div className="border-t border-gray-50">
+                {loadingFiles && <div className="text-center text-[13px] text-gray-400 py-4">טוען...</div>}
+                {!loadingFiles && folderFiles[folder.name]?.length === 0 && (
+                  <div className="text-center text-[13px] text-gray-400 py-4">אין קבצים בתיקייה זו</div>
+                )}
+                {!loadingFiles && folderFiles[folder.name]?.map(f => (
+                  <div key={f.name} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 flex-row-reverse group">
+                    <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <i className={`ti ${fileIcon(f.name)}`} style={{fontSize:16}}/>
+                    </div>
+                    <div className="flex-1 text-right min-w-0">
+                      <div className="text-[13px] text-gray-800 truncate">{f.name}</div>
+                      <div className="text-[11px] text-gray-400">{f.metadata?.size ? `${Math.round(f.metadata.size/1024)} KB` : ''}</div>
+                    </div>
+                    <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+                      <button onClick={() => openFile(folder.name, f.name)}
+                        className="text-[12px] text-[#CC1010] border border-[#CC1010] px-2 py-1 rounded-lg flex items-center gap-1">
+                        <i className="ti ti-eye" style={{fontSize:12}}/> פתח
+                      </button>
+                      <button onClick={() => { if(window.confirm('למחוק?')) deleteFile(folder.name, f.name) }}
+                        className="text-gray-300 hover:text-red-500 p-1">
+                        <i className="ti ti-trash" style={{fontSize:13}}/>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <label className="w-full py-3 text-[13px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors flex items-center justify-center gap-1 cursor-pointer">
+                  {uploading ? <><i className="ti ti-loader-2 animate-spin" style={{fontSize:13}}/> מעלה...</> : <><i className="ti ti-upload" style={{fontSize:13}}/> העלה קובץ</>}
+                  <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls" className="hidden"
+                    onChange={e => uploadFiles(e, folder.name)} disabled={uploading}/>
+                </label>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
