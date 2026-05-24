@@ -76,13 +76,18 @@ function ProductionInquiries() {
   }
 
   async function pushToCalendar(ev) {
+    const evSlots = slots[ev.id] || emptySlots()
+    const crewNames = evSlots.filter(s => s.name.trim()).map(s => s.name.trim())
+    const crewList = crewNames.length ? 'צוות:\n' + crewNames.join('\n') : ''
+    const dayStr = ev.day ? `יום ${ev.day}` : ''
+    const description = [dayStr, crewList].filter(Boolean).join('\n')
     const { error } = await supabase.from('events').insert({
       title: ev.event_name,
       date: ev.date || null,
       time: null,
       type: 'show',
       venue: ev.venue || null,
-      description: `יום ${ev.day || ''}`.trim(),
+      description: description || null,
     })
     if (!error) alert('האירוע נוסף ליומן!')
     else alert('שגיאה: ' + error.message)
