@@ -648,9 +648,9 @@ export default function SpecsPage() {
       {/* Mode tabs */}
       <div className="flex gap-2 mb-4">
         {[
-          {id:'spec', label:'📋 מפרט ציוד'},
-          {id:'templates', label:'⭐ מפרטים כלליים הפקות'},
-          {id:'compare', label:'⚡ השוואת התנגשויות'},
+          {id:'spec', label:'מפרט ציוד'},
+          {id:'templates', label:'מפרטים כלליים הפקות'},
+          {id:'compare', label:'השוואת התנגשויות'},
           {id:'files', label:'📁 מפרטים כללי'},
           {id:'showfolders', label:'תיקי הצגות'},
         ].map(tab=>(
