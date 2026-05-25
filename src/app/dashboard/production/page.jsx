@@ -163,6 +163,8 @@ function ProductionInquiries() {
               <option value="">יום בשבוע</option>
               {DAYS.map(d=><option key={d} value={d}>{d}</option>)}
             </select>
+            <input type="time" value={newEvent.time||''} onChange={e=>setNewEvent(p=>({...p,time:e.target.value}))}
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
             <select value={newEvent.venue} onChange={e=>setNewEvent(p=>({...p,venue:e.target.value}))}
               className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] col-span-2">
               <option value="">בחר אולם</option>
