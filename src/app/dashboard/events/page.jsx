@@ -169,6 +169,52 @@ function EventsPageInner() {
     setEventEquip(prev=>({...prev,[eventId]:prev[eventId].map(r=>r.equipment_id===equipId?{...r,quantity_needed:qty}:r)}))
   }
 
+      {duplicating && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-xl" dir="rtl">
+            <div className="text-[15px] font-semibold text-gray-800 mb-4">שכפול אירוע</div>
+            <form onSubmit={saveDuplicate} className="flex flex-col gap-3">
+              <div>
+                <label className="text-[12px] text-gray-500 mb-1 block">שם האירוע</label>
+                <input value={dupForm.title||""} onChange={e=>setDupForm(f=>({...f,title:e.target.value}))}
+                  className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5]" required/>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[12px] text-gray-500 mb-1 block">תאריך חדש *</label>
+                  <input type="date" value={dupForm.date||""} onChange={e=>setDupForm(f=>({...f,date:e.target.value}))}
+                    className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5]" required/>
+                </div>
+                <div>
+                  <label className="text-[12px] text-gray-500 mb-1 block">שעה</label>
+                  <input type="time" value={dupForm.time||""} onChange={e=>setDupForm(f=>({...f,time:e.target.value}))}
+                    className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                </div>
+              </div>
+              <div>
+                <label className="text-[12px] text-gray-500 mb-1 block">סוג</label>
+                <select value={dupForm.type||""} onChange={e=>setDupForm(f=>({...f,type:e.target.value}))}
+                  className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5]">
+                  {eventTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[12px] text-gray-500 mb-1 block">תיאור</label>
+                <textarea value={dupForm.description||""} onChange={e=>setDupForm(f=>({...f,description:e.target.value}))}
+                  rows={2} className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5] resize-none"/>
+              </div>
+              <div className="flex gap-2 mt-1">
+                <button type="submit" disabled={savingDup}
+                  className="flex-1 bg-[#FF3EB5] text-white text-sm py-2.5 rounded-xl font-medium disabled:opacity-50">
+                  {savingDup ? "שומר..." : "שכפל אירוע"}
+                </button>
+                <button type="button" onClick={()=>setDuplicating(null)}
+                  className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl">ביטול</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
   return (
     <div className="max-w-xl">
       {/* Add form */}
