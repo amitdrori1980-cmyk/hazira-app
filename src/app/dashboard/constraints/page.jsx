@@ -77,7 +77,7 @@ export default function ConstraintsPage() {
 
   function getDayData(ds) {
     const dayEvents      = showEvents      ? events.filter(e => e.date === ds) : []
-    const dayConstraints = showConstraints ? constraints.filter(c => c.date === ds) : []
+    const dayConstraints = showConstraints ? constraints.filter(c => c.date === ds || (c.date_to && ds >= c.date && ds <= c.date_to)) : []
     return { dayEvents, dayConstraints }
   }
 
