@@ -58,18 +58,18 @@ export default function DashboardLayout({ children }) {
           <div className="flex items-center gap-2 mb-2">
             <HaziraLogo size={32} />
             <div>
-              <div className="text-sm font-bold text-[#CC1010]">הזירה</div>
+              <div className="text-sm font-bold text-[#1ABBB4]">הזירה</div>
             </div>
           </div>
           {profile && (
-            <div className="flex items-center gap-2 bg-[#FDEAEA] rounded-full px-2 py-1">
-              <div className="w-5 h-5 rounded-full bg-[#CC1010] text-white text-[9px] font-medium flex items-center justify-center flex-shrink-0">
+            <div className="flex items-center gap-2 bg-[#E6F7F7] rounded-full px-2 py-1">
+              <div className="w-5 h-5 rounded-full bg-[#1ABBB4] text-white text-[9px] font-medium flex items-center justify-center flex-shrink-0">
                 {initials}
               </div>
-              <span className="text-[11px] font-medium text-[#8B0000] flex-1 truncate">
+              <span className="text-[11px] font-medium text-[#0D7A76] flex-1 truncate">
                 {profile.full_name?.split(' ')[0]}
               </span>
-              <button onClick={logout} className="text-[#CC1010] text-xs" title="התנתק">
+              <button onClick={logout} className="text-[#1ABBB4] text-xs" title="התנתק">
                 <i className="ti ti-logout" style={{ fontSize: 12 }} />
               </button>
             </div>
@@ -83,14 +83,14 @@ export default function DashboardLayout({ children }) {
               href={item.href}
               className={`flex items-center gap-2 px-4 py-2.5 text-[13px] transition-colors ${
                 pathname === item.href
-                  ? 'bg-white text-[#CC1010] font-medium border-l-2 border-[#CC1010]'
+                  ? 'bg-white text-[#1ABBB4] font-medium border-l-2 border-[#1ABBB4]'
                   : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
               }`}
             >
               <i className={`ti ${item.icon}`} style={{ fontSize: 15 }} aria-hidden />
               {item.label}
               {item.label === 'הודעות' && unread > 0 && (
-                <span className="mr-auto bg-[#CC1010] text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">
+                <span className="mr-auto bg-[#1ABBB4] text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">
                   {unread}
                 </span>
               )}
@@ -104,7 +104,7 @@ export default function DashboardLayout({ children }) {
                 href="/dashboard/settings"
                 className={`flex items-center gap-2 px-4 py-2.5 text-[13px] transition-colors ${
                   pathname === '/dashboard/settings'
-                    ? 'bg-white text-[#CC1010] font-medium border-l-2 border-[#CC1010]'
+                    ? 'bg-white text-[#1ABBB4] font-medium border-l-2 border-[#1ABBB4]'
                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                 }`}
               >
@@ -151,13 +151,13 @@ export default function DashboardLayout({ children }) {
             key={item.href}
             href={item.href}
             className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full relative ${
-              pathname === item.href ? 'text-[#CC1010]' : 'text-gray-400'
+              pathname === item.href ? 'text-[#1ABBB4]' : 'text-gray-400'
             }`}
           >
             <i className={`ti ${item.icon}`} style={{ fontSize: 20 }} />
             <span className="text-[10px]">{item.label}</span>
             {item.label === 'הודעות' && unread > 0 && (
-              <span className="absolute top-2 right-1/4 bg-[#CC1010] text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center">
+              <span className="absolute top-2 right-1/4 bg-[#1ABBB4] text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center">
                 {unread}
               </span>
             )}
@@ -181,7 +181,7 @@ export default function DashboardLayout({ children }) {
             <div className="flex items-center justify-between p-4 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <HaziraLogo size={28} />
-                <span className="font-bold text-[#CC1010]">הזירה</span>
+                <span className="font-bold text-[#1ABBB4]">הזירה</span>
               </div>
               <button onClick={() => setMenuOpen(false)} className="text-gray-400 p-1">
                 <i className="ti ti-x" style={{ fontSize: 18 }} />
@@ -189,13 +189,13 @@ export default function DashboardLayout({ children }) {
             </div>
 
             {profile && (
-              <div className="flex items-center gap-3 px-4 py-3 bg-[#FDEAEA] mx-3 mt-3 rounded-xl">
-                <div className="w-8 h-8 rounded-full bg-[#CC1010] text-white text-sm font-medium flex items-center justify-center">
+              <div className="flex items-center gap-3 px-4 py-3 bg-[#E6F7F7] mx-3 mt-3 rounded-xl">
+                <div className="w-8 h-8 rounded-full bg-[#1ABBB4] text-white text-sm font-medium flex items-center justify-center">
                   {initials}
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-[#8B0000]">{profile.full_name}</div>
-                  <div className="text-[11px] text-[#CC1010]">{profile.role}</div>
+                  <div className="text-sm font-medium text-[#0D7A76]">{profile.full_name}</div>
+                  <div className="text-[11px] text-[#1ABBB4]">{profile.role}</div>
                 </div>
               </div>
             )}
@@ -208,14 +208,14 @@ export default function DashboardLayout({ children }) {
                   onClick={() => setMenuOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 text-[14px] ${
                     pathname === item.href
-                      ? 'text-[#CC1010] font-medium bg-[#FDEAEA]'
+                      ? 'text-[#1ABBB4] font-medium bg-[#E6F7F7]'
                       : 'text-gray-600'
                   }`}
                 >
                   <i className={`ti ${item.icon}`} style={{ fontSize: 17 }} />
                   {item.label}
                   {item.label === 'הודעות' && unread > 0 && (
-                    <span className="mr-auto bg-[#CC1010] text-white text-[10px] rounded-full px-1.5 py-0.5">
+                    <span className="mr-auto bg-[#1ABBB4] text-white text-[10px] rounded-full px-1.5 py-0.5">
                       {unread}
                     </span>
                   )}
@@ -230,7 +230,7 @@ export default function DashboardLayout({ children }) {
                     onClick={() => setMenuOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 text-[14px] ${
                       pathname === '/dashboard/settings'
-                        ? 'text-[#CC1010] font-medium bg-[#FDEAEA]'
+                        ? 'text-[#1ABBB4] font-medium bg-[#E6F7F7]'
                         : 'text-gray-600'
                     }`}
                   >

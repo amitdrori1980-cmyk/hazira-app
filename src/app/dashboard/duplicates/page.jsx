@@ -88,7 +88,7 @@ export default function DuplicatesPage() {
                 : `נמצאו ${groups.length} קבוצות כפולות`}
             </div>
           </div>
-          <button onClick={load} className="text-[12px] text-[#CC1010] border border-[#CC1010] px-3 py-1.5 rounded-lg hover:bg-[#FDEAEA]">
+          <button onClick={load} className="text-[12px] text-[#1ABBB4] border border-[#1ABBB4] px-3 py-1.5 rounded-lg hover:bg-[#E6F7F7]">
             <i className="ti ti-refresh"/> רענן
           </button>
         </div>
@@ -109,7 +109,7 @@ export default function DuplicatesPage() {
                   <div className="text-[13px] font-semibold text-gray-800">{group[0].title}</div>
                   <div className="text-[11px] text-gray-400">{formatDate(group[0].date)}</div>
                 </div>
-                <span className="text-[11px] bg-[#FDEAEA] text-[#CC1010] px-2 py-0.5 rounded-full font-medium">
+                <span className="text-[11px] bg-[#E6F7F7] text-[#1ABBB4] px-2 py-0.5 rounded-full font-medium">
                   {group.length} עותקים
                 </span>
               </div>
@@ -121,7 +121,7 @@ export default function DuplicatesPage() {
                     type="checkbox"
                     checked={!!selected[ev.id]}
                     onChange={() => toggle(ev.id)}
-                    style={{ accentColor: '#CC1010' }}
+                    style={{ accentColor: '#1ABBB4' }}
                     className="w-4 h-4 flex-shrink-0"
                   />
                   <div className="flex-1 text-right">
@@ -143,7 +143,7 @@ export default function DuplicatesPage() {
           <button
             onClick={deleteSelected}
             disabled={deleting || totalSelected === 0}
-            className="w-full bg-[#CC1010] text-white text-sm py-3 rounded-xl hover:bg-[#a00c0c] disabled:opacity-50 font-medium flex items-center justify-center gap-2">
+            className="w-full bg-[#1ABBB4] text-white text-sm py-3 rounded-xl hover:bg-[#0D7A76] disabled:opacity-50 font-medium flex items-center justify-center gap-2">
             {deleting
               ? <><i className="ti ti-loader-2 animate-spin"/> מוחק...</>
               : <><i className="ti ti-trash"/> מחק {totalSelected} אירועים מסומנים</>

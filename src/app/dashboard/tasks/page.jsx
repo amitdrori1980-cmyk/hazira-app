@@ -8,7 +8,7 @@ const PRI_COLOR = {
   'גבוהה':  'bg-[#FAEEDA] text-[#633806]',
   'רגיל':   'bg-[#E3F0FF] text-[#1A4A8A]',
   'היום':   'bg-[#FAECE7] text-[#4A1B0C]',
-  'מחר':    'bg-[#FDEAEA] text-[#8B0000]',
+  'מחר':    'bg-[#E6F7F7] text-[#0D7A76]',
   'השבוע':  'bg-[#FAEEDA] text-[#633806]',
 }
 
@@ -104,7 +104,7 @@ export default function TasksPage() {
         <form onSubmit={addTask} className="flex flex-col gap-2">
           <input value={newTask} onChange={e => setNewTask(e.target.value)}
             placeholder="משימה חדשה..."
-            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
           <div className="flex gap-2 flex-row-reverse">
             <select value={newPri} onChange={e => setNewPri(e.target.value)}
               className="text-sm px-2 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
@@ -118,7 +118,7 @@ export default function TasksPage() {
               ))}
             </select>
             <button type="submit" disabled={adding}
-              className="bg-[#CC1010] hover:bg-[#a00c0c] text-white text-sm px-4 py-2 rounded-lg transition-colors disabled:opacity-50">
+              className="bg-[#1ABBB4] hover:bg-[#0D7A76] text-white text-sm px-4 py-2 rounded-lg transition-colors disabled:opacity-50">
               <i className="ti ti-plus"/>
             </button>
           </div>
@@ -133,7 +133,7 @@ export default function TasksPage() {
           <div className="bg-white border border-gray-100 rounded-xl p-4 mb-3">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[13px] font-medium text-gray-800">משימות פתוחות</span>
-              <span className="text-[11px] bg-[#FDEAEA] text-[#8B0000] px-2 py-0.5 rounded-full">{open.length}</span>
+              <span className="text-[11px] bg-[#E6F7F7] text-[#0D7A76] px-2 py-0.5 rounded-full">{open.length}</span>
             </div>
             {open.length === 0 && <p className="text-[13px] text-gray-400 text-center py-3">כל המשימות הושלמו!</p>}
             {open.map(t => (
@@ -141,7 +141,7 @@ export default function TasksPage() {
                 {editing === t.id ? (
                   <div className="py-2 flex flex-col gap-2">
                     <input value={editVal.title} onChange={e => setEditVal(v=>({...v,title:e.target.value}))}
-                      className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+                      className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
                     <div className="flex gap-2">
                       <select value={editVal.priority} onChange={e => setEditVal(v=>({...v,priority:e.target.value}))}
                         className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
@@ -154,14 +154,14 @@ export default function TasksPage() {
                       </select>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => saveEdit(t.id)} className="flex-1 bg-[#CC1010] text-white text-sm py-1.5 rounded-lg">שמור</button>
+                      <button onClick={() => saveEdit(t.id)} className="flex-1 bg-[#1ABBB4] text-white text-sm py-1.5 rounded-lg">שמור</button>
                       <button onClick={() => setEditing(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm py-1.5 rounded-lg">ביטול</button>
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2.5 py-2 flex-row-reverse group">
                     <input type="checkbox" checked={false} onChange={() => toggleDone(t)}
-                      className="w-4 h-4 flex-shrink-0" style={{accentColor:'#CC1010'}}/>
+                      className="w-4 h-4 flex-shrink-0" style={{accentColor:'#1ABBB4'}}/>
                     <div className="flex-1 text-right min-w-0">
                       <div className="text-[13px]">{t.title}</div>
                       {t.crew?.full_name && (
@@ -175,7 +175,7 @@ export default function TasksPage() {
                       {t.priority}
                     </span>
                     <button onClick={() => startEdit(t)}
-                      className="text-gray-200 hover:text-[#CC1010] opacity-0 group-hover:opacity-100 transition-all">
+                      className="text-gray-200 hover:text-[#1ABBB4] opacity-0 group-hover:opacity-100 transition-all">
                       <i className="ti ti-pencil" style={{fontSize:13}}/>
                     </button>
                     <button onClick={() => deleteTask(t.id)}
@@ -195,7 +195,7 @@ export default function TasksPage() {
               {done.map(t => (
                 <div key={t.id} className="flex items-center gap-2.5 py-2 border-b border-gray-50 last:border-0 flex-row-reverse group">
                   <input type="checkbox" checked={true} onChange={() => toggleDone(t)}
-                    className="w-4 h-4 flex-shrink-0" style={{accentColor:'#CC1010'}}/>
+                    className="w-4 h-4 flex-shrink-0" style={{accentColor:'#1ABBB4'}}/>
                   <div className="flex-1 text-right">
                     <div className="text-[13px] line-through text-gray-400">{t.title}</div>
                     {t.crew?.full_name && (

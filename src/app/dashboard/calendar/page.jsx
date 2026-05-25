@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']
-const TYPE_COLOR = { rehearsal:'bg-[#FDEAEA] text-[#8B0000]', show:'bg-[#E1F5EE] text-[#085041]', crew:'bg-[#FAEEDA] text-[#633806]', technical:'bg-[#FAECE7] text-[#4A1B0C]', strike:'bg-[#FAECE7] text-[#4A1B0C]' }
+const TYPE_COLOR = { rehearsal:'bg-[#E6F7F7] text-[#0D7A76]', show:'bg-[#E1F5EE] text-[#085041]', crew:'bg-[#FAEEDA] text-[#633806]', technical:'bg-[#FAECE7] text-[#4A1B0C]', strike:'bg-[#FAECE7] text-[#4A1B0C]' }
 const TYPE_LABEL = { rehearsal:'חזרה', show:'הצגה', crew:'צוות', technical:'טכני', strike:'פירוק' }
 
 export default function CalendarPage() {
@@ -65,7 +65,7 @@ export default function CalendarPage() {
           <button onClick={() => changeMonth(-1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">
             ‹ הקודם
           </button>
-          <span className="text-base font-semibold text-[#CC1010]">
+          <span className="text-base font-semibold text-[#1ABBB4]">
             {HE_MONTHS[calMonth]} {calYear}
           </span>
           <button onClick={() => changeMonth(1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">
@@ -77,12 +77,12 @@ export default function CalendarPage() {
         {venues.length > 0 && (
           <div className="flex gap-1.5 flex-wrap justify-end mb-4">
             <button onClick={()=>setSelectedVenue('all')}
-              className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${selectedVenue==='all'?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
+              className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${selectedVenue==='all'?'bg-[#1ABBB4] text-white border-[#1ABBB4]':'border-gray-200 text-gray-500 hover:border-[#1ABBB4]'}`}>
               כל האולמות
             </button>
             {venues.map(v => (
               <button key={v} onClick={()=>setSelectedVenue(v)}
-                className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${selectedVenue===v?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
+                className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${selectedVenue===v?'bg-[#1ABBB4] text-white border-[#1ABBB4]':'border-gray-200 text-gray-500 hover:border-[#1ABBB4]'}`}>
                 {v}
               </button>
             ))}
@@ -124,18 +124,18 @@ export default function CalendarPage() {
                 key={d}
                 onClick={() => setSelectedDay(ds)}
                 className={`min-h-[52px] md:min-h-[80px] rounded-lg p-1 md:p-1.5 cursor-pointer border transition-all ${
-                  isSelected ? 'border-[#CC1010] bg-[#FDEAEA]' :
-                  isToday    ? 'bg-[#FDEAEA] border-transparent' :
+                  isSelected ? 'border-[#1ABBB4] bg-[#E6F7F7]' :
+                  isToday    ? 'bg-[#E6F7F7] border-transparent' :
                                'border-transparent hover:border-gray-200 hover:bg-gray-50'
                 }`}
               >
-                <div className={`text-center text-[11px] md:text-[12px] font-medium mb-1 ${isToday || isSelected ? 'text-[#CC1010]' : 'text-gray-700'}`}>{d}</div>
+                <div className={`text-center text-[11px] md:text-[12px] font-medium mb-1 ${isToday || isSelected ? 'text-[#1ABBB4]' : 'text-gray-700'}`}>{d}</div>
                 {/* Mobile: dots only */}
                 <div className="flex flex-wrap gap-0.5 md:hidden">
                   {dayEvs.slice(0,3).map(e => (
                     <span key={e.id} className={`w-2.5 h-2.5 rounded-full inline-block ${
                       e.type==='show' ? 'bg-[#22c55e]' :
-                      e.type==='rehearsal' ? 'bg-[#CC1010]' :
+                      e.type==='rehearsal' ? 'bg-[#1ABBB4]' :
                       e.type==='crew' ? 'bg-[#f59e0b]' : 'bg-[#f97316]'
                     }`}/>
                   ))}
@@ -170,7 +170,7 @@ export default function CalendarPage() {
             </span>
             <button
               onClick={() => router.push(`/dashboard/events?date=${selectedDay}`)}
-              className="text-xs bg-[#CC1010] text-white px-3 py-1.5 rounded-lg flex items-center gap-1"
+              className="text-xs bg-[#1ABBB4] text-white px-3 py-1.5 rounded-lg flex items-center gap-1"
             >
               <i className="ti ti-plus" /> הוסף אירוע
             </button>
@@ -180,9 +180,9 @@ export default function CalendarPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {selectedEvents.map(e => (
-                <div key={e.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border-r-2 border-[#CC1010] flex-row-reverse">
+                <div key={e.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border-r-2 border-[#1ABBB4] flex-row-reverse">
                   <button onClick={() => router.push(`/dashboard/events?edit=${e.id}`)}
-                    className="text-gray-300 hover:text-[#CC1010] p-1 flex-shrink-0">
+                    className="text-gray-300 hover:text-[#1ABBB4] p-1 flex-shrink-0">
                     <i className="ti ti-pencil" style={{fontSize:13}}/>
                   </button>
                   <div className="flex-1">

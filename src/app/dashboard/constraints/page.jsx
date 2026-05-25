@@ -189,8 +189,8 @@ export default function ConstraintsPage() {
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer text-[13px] text-gray-700">
               <input type="checkbox" checked={showEvents} onChange={e=>setShowEvents(e.target.checked)}
-                style={{accentColor:'#CC1010'}} className="w-4 h-4"/>
-              <span className="w-3 h-3 rounded-sm bg-[#FDEAEA] inline-block"/>
+                style={{accentColor:'#1ABBB4'}} className="w-4 h-4"/>
+              <span className="w-3 h-3 rounded-sm bg-[#E6F7F7] inline-block"/>
               הצג אירועים
             </label>
             <label className="flex items-center gap-2 cursor-pointer text-[13px] text-gray-700">
@@ -228,7 +228,7 @@ export default function ConstraintsPage() {
           </div>
           <div className="flex gap-2">
             <button onClick={() => setShowAdd(!showAdd)}
-              className="text-[12px] border border-[#CC1010] text-[#CC1010] px-3 py-1.5 rounded-lg hover:bg-[#FDEAEA]">
+              className="text-[12px] border border-[#1ABBB4] text-[#1ABBB4] px-3 py-1.5 rounded-lg hover:bg-[#E6F7F7]">
               <i className="ti ti-plus"/> הוסף ידנית
             </button>
             <label className={`text-[12px] border px-3 py-1.5 rounded-lg cursor-pointer transition-colors ${importing ? 'border-gray-200 text-gray-400' : 'border-[#6366f1] text-[#6366f1] hover:bg-[#EEF2FF]'}`}>
@@ -241,7 +241,7 @@ export default function ConstraintsPage() {
         {importResult && (
           <div className="mt-3 text-[12px] text-right">
             {importResult.success > 0 && <span className="text-[#085041]">✅ {importResult.success} אילוצים יובאו  </span>}
-            {importResult.failed > 0  && <span className="text-[#CC1010]">❌ {importResult.failed} נכשלו</span>}
+            {importResult.failed > 0  && <span className="text-[#1ABBB4]">❌ {importResult.failed} נכשלו</span>}
           </div>
         )}
 
@@ -253,12 +253,12 @@ export default function ConstraintsPage() {
                   onFocus={()=>setCrewOpen(true)}
                   onBlur={()=>setTimeout(()=>setCrewOpen(false),150)}
                   placeholder="בחר איש צוות..." required autoComplete="off"
-                  className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] text-right"/>
+                  className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4] text-right"/>
                 {crewOpen && crew.filter(c=>!form.crew_name||c.full_name.includes(form.crew_name)).length>0 && (
                   <div className="absolute top-full right-0 left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
                     {crew.filter(c=>!form.crew_name||c.full_name.includes(form.crew_name)).map(c=>(
                       <div key={c.id} onMouseDown={()=>setForm(f=>({...f,crew_name:c.full_name}))}
-                        className="px-3 py-2 text-[13px] text-right hover:bg-[#FDEAEA] cursor-pointer">
+                        className="px-3 py-2 text-[13px] text-right hover:bg-[#E6F7F7] cursor-pointer">
                         {c.full_name}
                       </div>
                     ))}
@@ -268,29 +268,29 @@ export default function ConstraintsPage() {
               <div className="flex items-center gap-1">
                 <span className="text-[11px] text-gray-400 flex-shrink-0">מתאריך</span>
                 <input value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}
-                  type="date" required className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+                  type="date" required className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-[11px] text-gray-400 flex-shrink-0">עד תאריך</span>
                 <input value={form.date_to} onChange={e=>setForm(f=>({...f,date_to:e.target.value}))}
-                  type="date" className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+                  type="date" className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-[11px] text-gray-400 flex-shrink-0">משעה</span>
                 <input value={form.time_from} onChange={e=>setForm(f=>({...f,time_from:e.target.value}))}
-                  type="time" className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+                  type="time" className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-[11px] text-gray-400 flex-shrink-0">עד שעה</span>
                 <input value={form.time_to} onChange={e=>setForm(f=>({...f,time_to:e.target.value}))}
-                  type="time" className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+                  type="time" className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
               </div>
               <input value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}
-                placeholder="הערה" className="col-span-2 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+                placeholder="הערה" className="col-span-2 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
             </div>
             <div className="flex gap-2">
               <button type="submit" disabled={adding}
-                className="flex-1 bg-[#CC1010] text-white text-sm py-2 rounded-lg">הוסף</button>
+                className="flex-1 bg-[#1ABBB4] text-white text-sm py-2 rounded-lg">הוסף</button>
               <button type="button" onClick={()=>setShowAdd(false)}
                 className="flex-1 border border-gray-200 text-gray-500 text-sm py-2 rounded-lg">ביטול</button>
             </div>
@@ -302,7 +302,7 @@ export default function ConstraintsPage() {
       <div className="bg-white border border-gray-100 rounded-xl p-5 mb-3">
         <div className="flex items-center justify-between mb-4">
           <button onClick={()=>changeMonth(-1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">‹ הקודם</button>
-          <span className="text-base font-semibold text-[#CC1010]">{HE_MONTHS[calMonth]} {calYear}</span>
+          <span className="text-base font-semibold text-[#1ABBB4]">{HE_MONTHS[calMonth]} {calYear}</span>
           <button onClick={()=>changeMonth(1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">הבא ›</button>
         </div>
 
@@ -327,16 +327,16 @@ export default function ConstraintsPage() {
             return (
               <div key={d} onClick={()=>setSelectedDay(ds)}
                 className={`min-h-[70px] md:min-h-[90px] rounded-lg p-1.5 cursor-pointer border transition-all ${
-                  isSelected ? 'border-[#CC1010] bg-[#FDEAEA]' :
-                  isToday    ? 'bg-[#FDEAEA] border-transparent' :
+                  isSelected ? 'border-[#1ABBB4] bg-[#E6F7F7]' :
+                  isToday    ? 'bg-[#E6F7F7] border-transparent' :
                   hasData    ? 'border-gray-100 bg-gray-50' :
                                'border-transparent hover:border-gray-200 hover:bg-gray-50'
                 }`}>
-                <div className={`text-center text-[12px] font-medium mb-1 ${isToday||isSelected?'text-[#CC1010]':'text-gray-700'}`}>{d}</div>
+                <div className={`text-center text-[12px] font-medium mb-1 ${isToday||isSelected?'text-[#1ABBB4]':'text-gray-700'}`}>{d}</div>
                 {/* Mobile: dots */}
                 <div className="flex flex-wrap gap-0.5 md:hidden">
                   {dayEvents.slice(0,2).map(e=>(
-                    <span key={e.id} className="w-2.5 h-2.5 rounded-full bg-[#CC1010] inline-block"/>
+                    <span key={e.id} className="w-2.5 h-2.5 rounded-full bg-[#1ABBB4] inline-block"/>
                   ))}
                   {dayConstraints.slice(0,3).map(c=>(
                     <span key={c.id} className="w-2.5 h-2.5 rounded-full bg-[#6366f1] inline-block"/>
@@ -344,7 +344,7 @@ export default function ConstraintsPage() {
                 </div>
                 {/* Desktop: text */}
                 {dayEvents.slice(0,1).map(e=>(
-                  <div key={e.id} className="hidden md:block text-[9px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FDEAEA] text-[#8B0000]">
+                  <div key={e.id} className="hidden md:block text-[9px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#E6F7F7] text-[#0D7A76]">
                     {e.time?.slice(0,5)} {e.title}
                   </div>
                 ))}
@@ -478,7 +478,7 @@ export default function ConstraintsPage() {
           style={{background:'rgba(0,0,0,0.4)'}}>
           <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
             <div className="flex items-center justify-center w-12 h-12 bg-red-50 rounded-full mx-auto mb-3">
-              <i className="ti ti-trash text-[#CC1010]" style={{fontSize:22}}/>
+              <i className="ti ti-trash text-[#1ABBB4]" style={{fontSize:22}}/>
             </div>
             <div className="text-center mb-4">
               <div className="text-[16px] font-semibold text-gray-900 mb-1">מחיקת אילוץ</div>
@@ -490,7 +490,7 @@ export default function ConstraintsPage() {
                 ביטול
               </button>
               <button onClick={confirmDelete}
-                className="flex-1 py-2.5 rounded-xl bg-[#CC1010] text-white text-[14px] hover:bg-[#a00c0c]">
+                className="flex-1 py-2.5 rounded-xl bg-[#1ABBB4] text-white text-[14px] hover:bg-[#0D7A76]">
                 מחק
               </button>
             </div>

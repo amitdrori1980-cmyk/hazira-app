@@ -196,13 +196,13 @@ export default function ExportPage() {
           <div className="bg-white rounded-xl p-5 w-full max-w-sm shadow-xl">
             <div className="text-[14px] font-medium text-gray-800 mb-3 text-right">בחר אירוע לייצוא מפרט</div>
             <select value={selectedSpecEvent} onChange={e => setSelectedSpecEvent(e.target.value)}
-              className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] mb-4 text-right">
+              className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4] mb-4 text-right">
               <option value="">בחר אירוע...</option>
               {events.map(e => <option key={e.id} value={e.id}>{e.title} — {fmtDate(e.date)}</option>)}
             </select>
             <div className="flex gap-2">
               <button onClick={exportSpecs} disabled={!selectedSpecEvent}
-                className="flex-1 bg-[#CC1010] text-white text-sm py-2 rounded-lg hover:bg-[#a00c0c] disabled:opacity-50">
+                className="flex-1 bg-[#1ABBB4] text-white text-sm py-2 rounded-lg hover:bg-[#0D7A76] disabled:opacity-50">
                 ייצא לאקסל
               </button>
               <button onClick={() => setShowSpecModal(false)}
@@ -226,24 +226,24 @@ export default function ExportPage() {
           <button key={exp.id}
             onClick={() => exportData(exp.id)}
             disabled={!!loading}
-            className={`bg-white border rounded-xl p-4 flex flex-col items-center gap-3 transition-all hover:border-[#CC1010] hover:shadow-sm disabled:cursor-not-allowed ${
+            className={`bg-white border rounded-xl p-4 flex flex-col items-center gap-3 transition-all hover:border-[#1ABBB4] hover:shadow-sm disabled:cursor-not-allowed ${
               done === exp.id ? 'border-[#085041] bg-[#E1F5EE]' :
-              loading === exp.id ? 'border-[#CC1010] bg-[#FDEAEA]' : 'border-gray-100'
+              loading === exp.id ? 'border-[#1ABBB4] bg-[#E6F7F7]' : 'border-gray-100'
             }`}>
             <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
-              done === exp.id ? 'bg-[#E1F5EE]' : 'bg-[#FDEAEA]'
+              done === exp.id ? 'bg-[#E1F5EE]' : 'bg-[#E6F7F7]'
             }`}>
               {loading === exp.id ? (
-                <i className="ti ti-loader-2 animate-spin text-[#CC1010]" style={{fontSize:22}}/>
+                <i className="ti ti-loader-2 animate-spin text-[#1ABBB4]" style={{fontSize:22}}/>
               ) : done === exp.id ? (
                 <i className="ti ti-circle-check text-[#085041]" style={{fontSize:22}}/>
               ) : (
-                <i className={`ti ${exp.icon} text-[#CC1010]`} style={{fontSize:22}}/>
+                <i className={`ti ${exp.icon} text-[#1ABBB4]`} style={{fontSize:22}}/>
               )}
             </div>
             <div className="text-center">
               <div className="text-[13px] font-medium text-gray-800">{exp.label}</div>
-              <div className={`text-[11px] mt-0.5 ${done===exp.id?'text-[#085041]':loading===exp.id?'text-[#CC1010]':'text-gray-400'}`}>
+              <div className={`text-[11px] mt-0.5 ${done===exp.id?'text-[#085041]':loading===exp.id?'text-[#1ABBB4]':'text-gray-400'}`}>
                 {loading === exp.id ? 'מייצא...' : done === exp.id ? '✅ הורד בהצלחה' : 'לחץ לייצוא'}
               </div>
             </div>

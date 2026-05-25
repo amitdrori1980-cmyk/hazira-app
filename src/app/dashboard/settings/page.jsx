@@ -11,7 +11,7 @@ const NAV_ICONS = [
 ]
 
 const TYPE_COLORS = [
-  { label: 'אדום', value: 'bg-[#FDEAEA] text-[#8B0000]' },
+  { label: 'אדום', value: 'bg-[#E6F7F7] text-[#0D7A76]' },
   { label: 'ירוק',  value: 'bg-[#E1F5EE] text-[#085041]' },
   { label: 'כתום',  value: 'bg-[#FAEEDA] text-[#633806]' },
   { label: 'סגול',  value: 'bg-[#F0EEFF] text-[#3C3489]' },
@@ -198,18 +198,18 @@ export default function SettingsPage() {
                 <div className="p-3 flex flex-col gap-2">
                   <div className="flex gap-2">
                     <input value={editNavVal.label} onChange={e => setEditNavVal(v=>({...v,label:e.target.value}))}
-                      placeholder="שם" className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]" />
+                      placeholder="שם" className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]" />
                     <select value={editNavVal.icon} onChange={e => setEditNavVal(v=>({...v,icon:e.target.value}))}
                       className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
                       {NAV_ICONS.map(ic => <option key={ic} value={ic}>{ic.replace('ti-','')}</option>)}
                     </select>
                   </div>
                   <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer flex-row-reverse justify-end">
-                    <input type="checkbox" checked={editNavVal.manager_only} onChange={e => setEditNavVal(v=>({...v,manager_only:e.target.checked}))} style={{accentColor:'#CC1010'}} />
+                    <input type="checkbox" checked={editNavVal.manager_only} onChange={e => setEditNavVal(v=>({...v,manager_only:e.target.checked}))} style={{accentColor:'#1ABBB4'}} />
                     מנהלים בלבד
                   </label>
                   <div className="flex gap-2">
-                    <button onClick={() => saveNav(item.id)} className="flex-1 bg-[#CC1010] text-white text-sm py-1.5 rounded-lg">שמור</button>
+                    <button onClick={() => saveNav(item.id)} className="flex-1 bg-[#1ABBB4] text-white text-sm py-1.5 rounded-lg">שמור</button>
                     <button onClick={() => setEditingNav(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm py-1.5 rounded-lg">ביטול</button>
                   </div>
                 </div>
@@ -219,11 +219,11 @@ export default function SettingsPage() {
                     <button onClick={() => moveNav(item.id,-1)} disabled={idx===0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 leading-none"><i className="ti ti-chevron-up" style={{fontSize:11}}/></button>
                     <button onClick={() => moveNav(item.id,1)} disabled={idx===navItems.length-1} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 leading-none"><i className="ti ti-chevron-down" style={{fontSize:11}}/></button>
                   </div>
-                  <i className={`ti ${item.icon} text-[#CC1010]`} style={{fontSize:15}}/>
+                  <i className={`ti ${item.icon} text-[#1ABBB4]`} style={{fontSize:15}}/>
                   <span className={`flex-1 text-[13px] text-right ${item.enabled ? 'text-gray-800' : 'text-gray-400 line-through'}`}>{item.label}</span>
                   {item.manager_only && <span className="text-[10px] bg-[#E3F0FF] text-[#1A4A8A] px-1.5 py-0.5 rounded-full">מנהל</span>}
-                  <button onClick={() => { setEditingNav(item.id); setEditNavVal({label:item.label,icon:item.icon,manager_only:item.manager_only}) }} className="text-gray-300 hover:text-[#CC1010]"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
-                  <button onClick={() => toggleNavEnabled(item)} disabled={savingNav===item.id} className={item.enabled ? 'text-[#CC1010]' : 'text-gray-300'} title={item.enabled?'הסתר':'הצג'}><i className={`ti ${item.enabled?'ti-eye':'ti-eye-off'}`} style={{fontSize:13}}/></button>
+                  <button onClick={() => { setEditingNav(item.id); setEditNavVal({label:item.label,icon:item.icon,manager_only:item.manager_only}) }} className="text-gray-300 hover:text-[#1ABBB4]"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
+                  <button onClick={() => toggleNavEnabled(item)} disabled={savingNav===item.id} className={item.enabled ? 'text-[#1ABBB4]' : 'text-gray-300'} title={item.enabled?'הסתר':'הצג'}><i className={`ti ${item.enabled?'ti-eye':'ti-eye-off'}`} style={{fontSize:13}}/></button>
                   <button onClick={() => deleteNav(item.id)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:13}}/></button>
                 </div>
               )}
@@ -233,13 +233,13 @@ export default function SettingsPage() {
         <form onSubmit={addNav} className="flex flex-col gap-2 mt-3 pt-3 border-t border-gray-100">
           <div className="text-[12px] font-medium text-gray-500">הוסף פריט חדש</div>
           <div className="flex gap-2">
-            <input value={newNav.label} onChange={e=>setNewNav(n=>({...n,label:e.target.value}))} placeholder="שם" required className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
-            <input value={newNav.href} onChange={e=>setNewNav(n=>({...n,href:e.target.value}))} placeholder="כתובת" required className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+            <input value={newNav.label} onChange={e=>setNewNav(n=>({...n,label:e.target.value}))} placeholder="שם" required className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
+            <input value={newNav.href} onChange={e=>setNewNav(n=>({...n,href:e.target.value}))} placeholder="כתובת" required className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
             <select value={newNav.icon} onChange={e=>setNewNav(n=>({...n,icon:e.target.value}))} className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
               {NAV_ICONS.map(ic=><option key={ic} value={ic}>{ic.replace('ti-','')}</option>)}
             </select>
           </div>
-          <button type="submit" disabled={addingNav} className="bg-[#CC1010] text-white text-sm py-1.5 rounded-lg hover:bg-[#a00c0c] disabled:opacity-50">הוסף לתפריט</button>
+          <button type="submit" disabled={addingNav} className="bg-[#1ABBB4] text-white text-sm py-1.5 rounded-lg hover:bg-[#0D7A76] disabled:opacity-50">הוסף לתפריט</button>
         </form>
       </Section>
 
@@ -251,14 +251,14 @@ export default function SettingsPage() {
               {editingType === t.id ? (
                 <div className="p-3 flex flex-col gap-2">
                   <div className="flex gap-2">
-                    <input value={editTypeVal.label} onChange={e=>setEditTypeVal(v=>({...v,label:e.target.value}))} placeholder="שם לתצוגה" className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
-                    <input value={editTypeVal.value} onChange={e=>setEditTypeVal(v=>({...v,value:e.target.value}))} placeholder="מזהה (אנגלית)" className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+                    <input value={editTypeVal.label} onChange={e=>setEditTypeVal(v=>({...v,label:e.target.value}))} placeholder="שם לתצוגה" className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
+                    <input value={editTypeVal.value} onChange={e=>setEditTypeVal(v=>({...v,value:e.target.value}))} placeholder="מזהה (אנגלית)" className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
                   </div>
                   <select value={editTypeVal.color} onChange={e=>setEditTypeVal(v=>({...v,color:e.target.value}))} className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
                     {TYPE_COLORS.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
                   <div className="flex gap-2">
-                    <button onClick={() => saveType(t.id)} className="flex-1 bg-[#CC1010] text-white text-sm py-1.5 rounded-lg">שמור</button>
+                    <button onClick={() => saveType(t.id)} className="flex-1 bg-[#1ABBB4] text-white text-sm py-1.5 rounded-lg">שמור</button>
                     <button onClick={() => setEditingType(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm py-1.5 rounded-lg">ביטול</button>
                   </div>
                 </div>
@@ -266,7 +266,7 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-2 px-3 py-2.5 flex-row-reverse">
                   <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${t.color}`}>{t.label}</span>
                   <span className="flex-1 text-[12px] text-gray-400 text-right">{t.value}</span>
-                  <button onClick={() => { setEditingType(t.id); setEditTypeVal({label:t.label,value:t.value,color:t.color}) }} className="text-gray-300 hover:text-[#CC1010]"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
+                  <button onClick={() => { setEditingType(t.id); setEditTypeVal({label:t.label,value:t.value,color:t.color}) }} className="text-gray-300 hover:text-[#1ABBB4]"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
                   <button onClick={() => deleteType(t.id)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:13}}/></button>
                 </div>
               )}
@@ -276,13 +276,13 @@ export default function SettingsPage() {
         <form onSubmit={addType} className="flex flex-col gap-2 mt-3 pt-3 border-t border-gray-100">
           <div className="text-[12px] font-medium text-gray-500">הוסף סוג אירוע</div>
           <div className="flex gap-2">
-            <input value={newType.label} onChange={e=>setNewType(n=>({...n,label:e.target.value}))} placeholder="שם (עברית)" required className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
-            <input value={newType.value} onChange={e=>setNewType(n=>({...n,value:e.target.value}))} placeholder="מזהה (אנגלית)" required className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+            <input value={newType.label} onChange={e=>setNewType(n=>({...n,label:e.target.value}))} placeholder="שם (עברית)" required className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
+            <input value={newType.value} onChange={e=>setNewType(n=>({...n,value:e.target.value}))} placeholder="מזהה (אנגלית)" required className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
           </div>
           <select value={newType.color} onChange={e=>setNewType(n=>({...n,color:e.target.value}))} className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
             {TYPE_COLORS.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
-          <button type="submit" disabled={addingType} className="bg-[#CC1010] text-white text-sm py-1.5 rounded-lg hover:bg-[#a00c0c] disabled:opacity-50">הוסף סוג אירוע</button>
+          <button type="submit" disabled={addingType} className="bg-[#1ABBB4] text-white text-sm py-1.5 rounded-lg hover:bg-[#0D7A76] disabled:opacity-50">הוסף סוג אירוע</button>
         </form>
       </Section>
 
@@ -290,7 +290,7 @@ export default function SettingsPage() {
       <Section title="מחלקות">
         {departments.map(d => (
           <div key={d.id} className="flex items-center gap-2 px-3 py-2.5 flex-row-reverse border-b border-gray-50 last:border-0 group">
-            <i className="ti ti-building text-[#CC1010]" style={{fontSize:14}}/>
+            <i className="ti ti-building text-[#1ABBB4]" style={{fontSize:14}}/>
             <span className="flex-1 text-[13px] text-right text-gray-800">{d.name}</span>
             <button onClick={() => deleteDept(d.id)} className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
               <i className="ti ti-trash" style={{fontSize:13}}/>
@@ -299,9 +299,9 @@ export default function SettingsPage() {
         ))}
         <form onSubmit={addDept} className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
           <input value={newDept} onChange={e=>setNewDept(e.target.value)} placeholder="שם מחלקה חדשה" required
-            className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+            className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
           <button type="submit" disabled={addingDept}
-            className="bg-[#CC1010] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#a00c0c] disabled:opacity-50">
+            className="bg-[#1ABBB4] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#0D7A76] disabled:opacity-50">
             הוסף
           </button>
         </form>
@@ -315,25 +315,25 @@ export default function SettingsPage() {
               <div className="py-2 flex flex-col gap-2">
                 <div className="grid grid-cols-2 gap-2">
                   <input value={editCrewVal.full_name||''} onChange={e=>setEditCrewVal(v=>({...v,full_name:e.target.value}))}
-                    placeholder="שם מלא" className="col-span-2 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+                    placeholder="שם מלא" className="col-span-2 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
                   <input value={editCrewVal.role||''} onChange={e=>setEditCrewVal(v=>({...v,role:e.target.value}))}
-                    placeholder="תפקיד" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+                    placeholder="תפקיד" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
                   <select value={editCrewVal.dept||''} onChange={e=>setEditCrewVal(v=>({...v,dept:e.target.value}))}
                     className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
                     <option value="">מחלקה...</option>
                     {departments.map(d=><option key={d.id}>{d.name}</option>)}
                   </select>
                   <input value={editCrewVal.phone||''} onChange={e=>setEditCrewVal(v=>({...v,phone:e.target.value}))}
-                    placeholder="טלפון" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+                    placeholder="טלפון" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => saveCrew(c.id)} className="flex-1 bg-[#CC1010] text-white text-sm py-1.5 rounded-lg">שמור</button>
+                  <button onClick={() => saveCrew(c.id)} className="flex-1 bg-[#1ABBB4] text-white text-sm py-1.5 rounded-lg">שמור</button>
                   <button onClick={() => setEditingCrew(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm py-1.5 rounded-lg">ביטול</button>
                 </div>
               </div>
             ) : (
               <div className="flex items-center gap-2 px-3 py-2.5 flex-row-reverse group">
-                <div className="w-7 h-7 rounded-full bg-[#FDEAEA] text-[#CC1010] text-[11px] font-semibold flex items-center justify-center flex-shrink-0">
+                <div className="w-7 h-7 rounded-full bg-[#E6F7F7] text-[#1ABBB4] text-[11px] font-semibold flex items-center justify-center flex-shrink-0">
                   {c.full_name?.split(' ').map(w=>w[0]).join('').slice(0,2)}
                 </div>
                 <div className="flex-1 text-right">
@@ -343,7 +343,7 @@ export default function SettingsPage() {
                 {c.phone && <span className="text-[11px] text-gray-400">{c.phone}</span>}
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                   <button onClick={() => { setEditingCrew(c.id); setEditCrewVal({full_name:c.full_name,role:c.role||'',dept:c.dept||'',phone:c.phone||''}) }}
-                    className="text-gray-300 hover:text-[#CC1010]"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
+                    className="text-gray-300 hover:text-[#1ABBB4]"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
                   <button onClick={() => deleteCrew(c.id)}
                     className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:13}}/></button>
                 </div>
@@ -355,19 +355,19 @@ export default function SettingsPage() {
           <div className="text-[12px] font-medium text-gray-500">הוסף איש צוות</div>
           <div className="grid grid-cols-2 gap-2">
             <input value={newCrew.full_name} onChange={e=>setNewCrew(n=>({...n,full_name:e.target.value}))}
-              placeholder="שם מלא *" required className="col-span-2 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+              placeholder="שם מלא *" required className="col-span-2 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
             <input value={newCrew.role} onChange={e=>setNewCrew(n=>({...n,role:e.target.value}))}
-              placeholder="תפקיד" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+              placeholder="תפקיד" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
             <select value={newCrew.dept} onChange={e=>setNewCrew(n=>({...n,dept:e.target.value}))}
               className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
               <option value="">מחלקה...</option>
               {departments.map(d=><option key={d.id}>{d.name}</option>)}
             </select>
             <input value={newCrew.phone} onChange={e=>setNewCrew(n=>({...n,phone:e.target.value}))}
-              placeholder="טלפון" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+              placeholder="טלפון" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
           </div>
           <button type="submit" disabled={addingCrew}
-            className="bg-[#CC1010] text-white text-sm py-1.5 rounded-lg hover:bg-[#a00c0c] disabled:opacity-50">
+            className="bg-[#1ABBB4] text-white text-sm py-1.5 rounded-lg hover:bg-[#0D7A76] disabled:opacity-50">
             הוסף לצוות
           </button>
         </form>
@@ -377,7 +377,7 @@ export default function SettingsPage() {
       <Section title="אולמות ומקומות">
         {venues.map(v => (
           <div key={v.id} className="flex items-center gap-2 px-3 py-2.5 flex-row-reverse border-b border-gray-50 last:border-0 group">
-            <i className="ti ti-map-pin text-[#CC1010]" style={{fontSize:14}}/>
+            <i className="ti ti-map-pin text-[#1ABBB4]" style={{fontSize:14}}/>
             <span className="flex-1 text-[13px] text-right text-gray-800">{v.name}</span>
             <button onClick={() => deleteVenue(v.id)} className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
               <i className="ti ti-trash" style={{fontSize:13}}/>
@@ -386,9 +386,9 @@ export default function SettingsPage() {
         ))}
         <form onSubmit={addVenue} className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
           <input value={newVenue} onChange={e=>setNewVenue(e.target.value)} placeholder="שם אולם חדש" required
-            className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+            className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
           <button type="submit" disabled={addingVenue}
-            className="bg-[#CC1010] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#a00c0c] disabled:opacity-50">
+            className="bg-[#1ABBB4] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#0D7A76] disabled:opacity-50">
             הוסף
           </button>
         </form>

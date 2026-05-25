@@ -142,7 +142,7 @@ function ProductionInquiries() {
     <div className="max-w-3xl">
       <div className="flex justify-end mb-4">
         <button onClick={() => setShowNewEvent(v => !v)}
-          className="bg-[#CC1010] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#a00c0c] flex items-center gap-1">
+          className="bg-[#1ABBB4] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#0D7A76] flex items-center gap-1">
           <i className="ti ti-plus"/> אירוע חדש
         </button>
       </div>
@@ -151,23 +151,23 @@ function ProductionInquiries() {
           <div className="text-[13px] font-medium text-gray-700 mb-3 text-right">הוסף אירוע חדש</div>
           <div className="grid grid-cols-2 gap-2 mb-3">
             <input value={newEvent.event_name} onChange={e=>setNewEvent(p=>({...p,event_name:e.target.value}))}
-              placeholder="שם האירוע *" className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] text-right col-span-2"/>
+              placeholder="שם האירוע *" className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4] text-right col-span-2"/>
             <input type="date" value={newEvent.date} onChange={e=>setNewEvent(p=>({...p,date:e.target.value}))}
-              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
             <select value={newEvent.day} onChange={e=>setNewEvent(p=>({...p,day:e.target.value}))}
-              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]">
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]">
               <option value="">יום בשבוע</option>
               {DAYS.map(d=><option key={d} value={d}>{d}</option>)}
             </select>
             <select value={newEvent.venue} onChange={e=>setNewEvent(p=>({...p,venue:e.target.value}))}
-              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] col-span-2">
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4] col-span-2">
               <option value="">בחר אולם</option>
               {VENUES.map(v=><option key={v} value={v}>{v}</option>)}
             </select>
           </div>
           <div className="flex gap-2">
             <button onClick={addEvent} disabled={savingEvent || !newEvent.event_name.trim()}
-              className="flex-1 bg-[#CC1010] text-white text-sm py-2 rounded-lg hover:bg-[#a00c0c] disabled:opacity-50">
+              className="flex-1 bg-[#1ABBB4] text-white text-sm py-2 rounded-lg hover:bg-[#0D7A76] disabled:opacity-50">
               {savingEvent ? 'שומר...' : 'הוסף'}
             </button>
             <button onClick={()=>setShowNewEvent(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-500 hover:bg-gray-50">ביטול</button>
@@ -194,7 +194,7 @@ function ProductionInquiries() {
                 {editingEvent === ev.id ? (
                   <div className="flex gap-2 flex-row-reverse" onClick={e=>e.stopPropagation()}>
                     <input value={editEventVal.event_name||''} onChange={e=>setEditEventVal(p=>({...p,event_name:e.target.value}))}
-                      className="text-sm font-medium px-2 py-1 border border-[#CC1010] rounded-lg outline-none text-right flex-1"/>
+                      className="text-sm font-medium px-2 py-1 border border-[#1ABBB4] rounded-lg outline-none text-right flex-1"/>
                     <input type="date" value={editEventVal.date||''} onChange={e=>setEditEventVal(p=>({...p,date:e.target.value}))}
                       className="text-sm px-2 py-1 border border-gray-200 rounded-lg outline-none"/>
                     <select value={editEventVal.venue||''} onChange={e=>setEditEventVal(p=>({...p,venue:e.target.value}))}
@@ -202,7 +202,7 @@ function ProductionInquiries() {
                       <option value="">אולם</option>
                       {VENUES.map(v=><option key={v} value={v}>{v}</option>)}
                     </select>
-                    <button onClick={saveEventEdit} className="text-[#CC1010] text-sm font-medium">שמור</button>
+                    <button onClick={saveEventEdit} className="text-[#1ABBB4] text-sm font-medium">שמור</button>
                     <button onClick={()=>setEditingEvent(null)} className="text-gray-400 text-sm">ביטול</button>
                   </div>
                 ) : (
@@ -229,10 +229,10 @@ function ProductionInquiries() {
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={e=>{e.stopPropagation();setCollapsedEvents(p=>({...p,[ev.id]:!p[ev.id]}))}}
-                  className="text-gray-300 hover:text-[#CC1010] p-1" title={collapsedEvents[ev.id]?'הרחב':'כווץ'}>
+                  className="text-gray-300 hover:text-[#1ABBB4] p-1" title={collapsedEvents[ev.id]?'הרחב':'כווץ'}>
                   <i className={`ti ${collapsedEvents[ev.id]?'ti-layout-list':'ti-layout-navbar-collapse'}`} style={{fontSize:13}}/></button>
                 <button onClick={e=>{e.stopPropagation();pushToCalendar(ev)}}
-                  className="text-gray-300 hover:text-[#CC1010] p-1" title="עדכן ביומן">
+                  className="text-gray-300 hover:text-[#1ABBB4] p-1" title="עדכן ביומן">
                   <i className="ti ti-calendar-plus" style={{fontSize:13}}/></button>
                 <button onClick={e=>{e.stopPropagation();setEditingEvent(ev.id);setEditEventVal({event_name:ev.event_name,date:ev.date||'',day:ev.day||'',venue:ev.venue||''})}}
                   className="text-gray-300 hover:text-gray-600 p-1"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
@@ -337,8 +337,8 @@ function LoadFromGeneralSchedules({ onLoad, onImportExcel }) {
   return (
     <div className="mb-4 no-print">
       <button onClick={handleOpen}
-        className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-colors flex-row-reverse text-right text-[13px] ${open ? 'bg-[#FDEAEA] border-[#CC1010] text-[#CC1010]' : 'bg-white border-gray-100 text-gray-600 hover:border-[#CC1010]'}`}>
-        <i className="ti ti-folder text-[#CC1010]" style={{fontSize:15}}/>
+        className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-colors flex-row-reverse text-right text-[13px] ${open ? 'bg-[#E6F7F7] border-[#1ABBB4] text-[#1ABBB4]' : 'bg-white border-gray-100 text-gray-600 hover:border-[#1ABBB4]'}`}>
+        <i className="ti ti-folder text-[#1ABBB4]" style={{fontSize:15}}/>
         <span className="flex-1 font-medium">טען לוז מ"לוזים כללי"</span>
         <i className={`ti ${open ? 'ti-chevron-up' : 'ti-chevron-down'} text-gray-400`} style={{fontSize:13}}/>
       </button>
@@ -348,8 +348,8 @@ function LoadFromGeneralSchedules({ onLoad, onImportExcel }) {
           {!loading && files.length === 0 && <div className="text-center text-[13px] text-gray-400 py-4">אין קבצים</div>}
           {files.map(f => (
             <div key={f.name} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 flex-row-reverse group">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isExcel(f.name) ? 'bg-green-50' : 'bg-[#FDEAEA]'}`}>
-                <i className={`ti ${isExcel(f.name) ? 'ti-file-spreadsheet text-green-600' : 'ti-file-type-pdf text-[#CC1010]'}`} style={{fontSize:16}}/>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isExcel(f.name) ? 'bg-green-50' : 'bg-[#E6F7F7]'}`}>
+                <i className={`ti ${isExcel(f.name) ? 'ti-file-spreadsheet text-green-600' : 'ti-file-type-pdf text-[#1ABBB4]'}`} style={{fontSize:16}}/>
               </div>
               <div className="flex-1 text-right min-w-0">
                 <div className="text-[13px] text-gray-800 truncate">{f.name}</div>
@@ -361,7 +361,7 @@ function LoadFromGeneralSchedules({ onLoad, onImportExcel }) {
                 </button>
               ) : (
                 <button onClick={() => openFile(f.name)}
-                  className="text-[12px] text-[#CC1010] border border-[#CC1010] px-2 py-1 rounded-lg flex items-center gap-1 flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+                  className="text-[12px] text-[#1ABBB4] border border-[#1ABBB4] px-2 py-1 rounded-lg flex items-center gap-1 flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
                   <i className="ti ti-eye" style={{fontSize:12}}/> פתח
                 </button>
               )}
@@ -520,7 +520,7 @@ function ProductionSchedule({ profile }) {
         <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4 no-print">
           <div className="text-[11px] font-semibold text-gray-500 mb-2">בחר אירוע</div>
           <select value={selectedEvent} onChange={e => selectEvent(e.target.value)}
-            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]">
+            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]">
             <option value="">בחר אירוע...</option>
             {events.map(e => <option key={e.id} value={e.id}>{e.title} — {fmtDate(e.date)}</option>)}
           </select>
@@ -543,14 +543,14 @@ function ProductionSchedule({ profile }) {
                 <i className="ti ti-x" style={{fontSize:16}}/> סגור
               </button>
               <span className="text-[13px] font-medium text-gray-800 truncate max-w-[45%]">{generalFileViewer.name}</span>
-              <a href={generalFileViewer.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[13px] text-[#CC1010] hover:underline">
+              <a href={generalFileViewer.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[13px] text-[#1ABBB4] hover:underline">
                 <i className="ti ti-external-link" style={{fontSize:14}}/> פתח בדפדפן
               </a>
             </div>
             <iframe src={generalFileViewer.url} className="flex-1 w-full hidden md:block" title={generalFileViewer.name} allow="fullscreen" style={{border:'none'}}/>
             <div className="flex-1 flex flex-col items-center justify-center gap-5 bg-gray-50 md:hidden px-6 text-center">
               <a href={generalFileViewer.url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 text-[14px] bg-[#CC1010] text-white px-6 py-3 rounded-xl font-medium">
+                className="flex items-center gap-2 text-[14px] bg-[#1ABBB4] text-white px-6 py-3 rounded-xl font-medium">
                 <i className="ti ti-external-link" style={{fontSize:15}}/> פתח קובץ
               </a>
             </div>
@@ -561,7 +561,7 @@ function ProductionSchedule({ profile }) {
         {selectedEvent && !loading && !schedule && isManager && (
           <div className="bg-white border border-gray-100 rounded-xl p-8 text-center no-print">
             <div className="text-[14px] text-gray-500 mb-4">אין לוז לאירוע זה עדיין</div>
-            <button onClick={createSchedule} className="bg-[#CC1010] text-white px-6 py-2.5 rounded-lg text-sm hover:bg-[#a00c0c]">+ צור לוז חדש</button>
+            <button onClick={createSchedule} className="bg-[#1ABBB4] text-white px-6 py-2.5 rounded-lg text-sm hover:bg-[#0D7A76]">+ צור לוז חדש</button>
           </div>
         )}
         {selectedEvent && !loading && !schedule && !isManager && (
@@ -583,15 +583,15 @@ function ProductionSchedule({ profile }) {
                   <span className="text-[11px] text-gray-500 whitespace-nowrap">גלוי ל:</span>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <button onClick={() => updateSchedule('visible_to', 'managers')}
-                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${schedule.visible_to==='managers'?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
+                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${schedule.visible_to==='managers'?'bg-[#1ABBB4] text-white border-[#1ABBB4]':'border-gray-200 text-gray-500 hover:border-[#1ABBB4]'}`}>
                       מנהלים בלבד
                     </button>
                     <button onClick={() => updateSchedule('visible_to', 'all')}
-                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${schedule.visible_to==='all'?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
+                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${schedule.visible_to==='all'?'bg-[#1ABBB4] text-white border-[#1ABBB4]':'border-gray-200 text-gray-500 hover:border-[#1ABBB4]'}`}>
                       כולם
                     </button>
                     <button onClick={() => updateSchedule('visible_to', 'specific')}
-                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${schedule.visible_to==='specific'?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
+                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${schedule.visible_to==='specific'?'bg-[#1ABBB4] text-white border-[#1ABBB4]':'border-gray-200 text-gray-500 hover:border-[#1ABBB4]'}`}>
                       אנשים ספציפיים
                     </button>
                   </div>
@@ -610,7 +610,7 @@ function ProductionSchedule({ profile }) {
                               await supabase.from('schedules').update({ visible_to_users: updated }).eq('id', schedule.id)
                               setSchedule(prev => ({ ...prev, visible_to_users: updated }))
                             }}
-                            className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${selected?'bg-[#E1F5EE] text-[#085041] border-[#085041]':'border-gray-200 text-gray-500 hover:border-[#CC1010]'}`}>
+                            className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${selected?'bg-[#E1F5EE] text-[#085041] border-[#085041]':'border-gray-200 text-gray-500 hover:border-[#1ABBB4]'}`}>
                             {c.full_name}
                           </button>
                         )
@@ -620,21 +620,21 @@ function ProductionSchedule({ profile }) {
                 )}
                 <div className="flex-1"/>
                 <button onClick={exportExcel} disabled={exporting}
-                  className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#CC1010] text-gray-600 disabled:opacity-50">
+                  className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#1ABBB4] text-gray-600 disabled:opacity-50">
                   <i className="ti ti-file-spreadsheet" style={{fontSize:14}}/> אקסל
                 </button>
                 <button onClick={() => window.print()}
-                  className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#CC1010] text-gray-600">
+                  className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#1ABBB4] text-gray-600">
                   <i className="ti ti-file-type-pdf" style={{fontSize:14}}/> PDF
                 </button>
               </div>
             )}
             {!isManager && schedule.status==='final' && (
               <div className="flex gap-2 mb-4 justify-end no-print">
-                <button onClick={exportExcel} disabled={exporting} className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#CC1010] text-gray-600 bg-white">
+                <button onClick={exportExcel} disabled={exporting} className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#1ABBB4] text-gray-600 bg-white">
                   <i className="ti ti-file-spreadsheet" style={{fontSize:14}}/> ייצוא לאקסל
                 </button>
-                <button onClick={() => window.print()} className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#CC1010] text-gray-600 bg-white">
+                <button onClick={() => window.print()} className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#1ABBB4] text-gray-600 bg-white">
                   <i className="ti ti-file-type-pdf" style={{fontSize:14}}/> ייצוא PDF
                 </button>
               </div>
@@ -643,7 +643,7 @@ function ProductionSchedule({ profile }) {
               <div className="hidden print:flex justify-center py-3 border-b border-gray-200" style={{backgroundColor:'white'}}>
                 <img src="/icon-192.png" style={{height:'55px'}} alt="הזירה"/>
               </div>
-              <div className="px-6 py-5 border-b border-gray-100" style={{borderRight:'4px solid #CC1010'}}>
+              <div className="px-6 py-5 border-b border-gray-100" style={{borderRight:'4px solid #1ABBB4'}}>
                 <div className="flex items-start justify-between flex-row-reverse">
                   <div className="text-right">
                     <div className="text-[20px] font-bold text-gray-900">{selEv?.title}</div>
@@ -659,7 +659,7 @@ function ProductionSchedule({ profile }) {
                       <span className="text-[11px] text-gray-400 whitespace-nowrap">משתתפים:</span>
                       <input value={schedule.participants||''} onChange={e => setSchedule(prev => ({...prev, participants: e.target.value}))}
                         onBlur={e => updateSchedule('participants', e.target.value)} placeholder="רשימת משתתפים..."
-                        className="flex-1 text-[13px] px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] text-right no-print"/>
+                        className="flex-1 text-[13px] px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4] text-right no-print"/>
                       <span className="hidden print:inline text-[13px] text-gray-700">{schedule.participants}</span>
                     </div>
                   ) : schedule.participants && (
@@ -669,7 +669,7 @@ function ProductionSchedule({ profile }) {
                   )}
                 </div>
               </div>
-              <div className={`grid gap-0 bg-[#CC1010] text-white text-[12px] font-semibold no-print ${isManager?'grid-cols-[80px_1fr_1fr_1fr_40px]':'grid-cols-[80px_1fr_1fr_1fr]'}`}>
+              <div className={`grid gap-0 bg-[#1ABBB4] text-white text-[12px] font-semibold no-print ${isManager?'grid-cols-[80px_1fr_1fr_1fr_40px]':'grid-cols-[80px_1fr_1fr_1fr]'}`}>
                 <div className="px-3 py-2.5 text-right">שעה</div>
                 <div className="px-3 py-2.5 text-right border-r border-red-700">מה</div>
                 <div className="px-3 py-2.5 text-right border-r border-red-700">מי</div>
@@ -708,7 +708,7 @@ function ProductionSchedule({ profile }) {
                     </>
                   ) : (
                     <>
-                      <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 font-mono text-[#CC1010] font-medium">{row.time}</div>
+                      <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 font-mono text-[#1ABBB4] font-medium">{row.time}</div>
                       <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100">{row.what}</div>
                       <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 text-gray-600">{row.who}</div>
                       <div className="px-3 py-2.5 text-[13px] text-right text-gray-400">{row.notes}</div>
@@ -718,7 +718,7 @@ function ProductionSchedule({ profile }) {
               ))}
               {isManager && (
                 <button onClick={addRow}
-                  className="w-full py-3 text-[13px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors flex items-center justify-center gap-1 no-print">
+                  className="w-full py-3 text-[13px] text-gray-400 hover:text-[#1ABBB4] hover:bg-[#E6F7F7] transition-colors flex items-center justify-center gap-1 no-print">
                   <i className="ti ti-plus" style={{fontSize:13}}/> הוסף שורה
                 </button>
               )}
@@ -814,7 +814,7 @@ function GeneralSchedulesMode() {
               <i className="ti ti-x" style={{fontSize:16}}/> סגור
             </button>
             <span className="text-[13px] font-medium text-gray-800 truncate max-w-[45%]">{viewing.name}</span>
-            <a href={viewing.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[13px] text-[#CC1010] hover:underline">
+            <a href={viewing.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[13px] text-[#1ABBB4] hover:underline">
               <i className="ti ti-external-link" style={{fontSize:14}}/> פתח בדפדפן
             </a>
           </div>
@@ -825,7 +825,7 @@ function GeneralSchedulesMode() {
       <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
         {files.length > 0 && (
           <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex-row-reverse">
-            <button onClick={selectAll} className="text-[11px] text-gray-500 hover:text-[#CC1010]">
+            <button onClick={selectAll} className="text-[11px] text-gray-500 hover:text-[#1ABBB4]">
               {files.every(f => selectedFiles[f.name]) ? 'בטל הכל' : 'בחר הכל'}
             </button>
             <div className="flex-1"/>
@@ -837,7 +837,7 @@ function GeneralSchedulesMode() {
             )}
             {anySelected && (
               <button onClick={sendByEmail}
-                className="flex items-center gap-1.5 text-[12px] bg-[#CC1010] text-white px-3 py-1.5 rounded-lg hover:bg-[#a00c0c]">
+                className="flex items-center gap-1.5 text-[12px] bg-[#1ABBB4] text-white px-3 py-1.5 rounded-lg hover:bg-[#0D7A76]">
                 <i className="ti ti-mail" style={{fontSize:13}}/> שלח במייל ({selectedCount})
               </button>
             )}
@@ -847,22 +847,22 @@ function GeneralSchedulesMode() {
         {files.map(f => (
           <div key={f.name} className="flex items-center gap-2 px-4 py-3 border-b border-gray-50 last:border-0 group hover:bg-gray-50 flex-row-reverse">
             <input type="checkbox" checked={!!selectedFiles[f.name]} onChange={() => toggleSelect(f.name)}
-              className="w-4 h-4 accent-[#CC1010] flex-shrink-0 cursor-pointer"/>
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isExcel(f.name) ? 'bg-green-50' : 'bg-[#FDEAEA]'}`}>
-              <i className={`ti ${isExcel(f.name) ? 'ti-file-spreadsheet text-green-600' : 'ti-file-type-pdf text-[#CC1010]'}`} style={{fontSize:18}}/>
+              className="w-4 h-4 accent-[#1ABBB4] flex-shrink-0 cursor-pointer"/>
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isExcel(f.name) ? 'bg-green-50' : 'bg-[#E6F7F7]'}`}>
+              <i className={`ti ${isExcel(f.name) ? 'ti-file-spreadsheet text-green-600' : 'ti-file-type-pdf text-[#1ABBB4]'}`} style={{fontSize:18}}/>
             </div>
             <div className="flex-1 text-right min-w-0 overflow-hidden">
               <div className="text-[13px] font-medium text-gray-800 truncate">{f.name}</div>
               <div className="text-[11px] text-gray-400">{f.metadata?.size ? `${Math.round(f.metadata.size / 1024)} KB` : ''}</div>
             </div>
             <button onClick={() => openFile(f.name)}
-              className="text-[#CC1010] hover:text-[#a00c0c] text-[12px] flex items-center gap-1 px-2 py-1.5 border border-[#CC1010] rounded-lg flex-shrink-0 whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+              className="text-[#1ABBB4] hover:text-[#0D7A76] text-[12px] flex items-center gap-1 px-2 py-1.5 border border-[#1ABBB4] rounded-lg flex-shrink-0 whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
               <i className="ti ti-eye" style={{fontSize:13}}/> צפה
             </button>
           </div>
         ))}
         <button onClick={() => fileInputRef.current.click()} disabled={uploading}
-          className="w-full py-3 text-[13px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors flex items-center justify-center gap-1">
+          className="w-full py-3 text-[13px] text-gray-400 hover:text-[#1ABBB4] hover:bg-[#E6F7F7] transition-colors flex items-center justify-center gap-1">
           {uploading ? <><i className="ti ti-loader-2 animate-spin" style={{fontSize:13}}/> מעלה...</> : <><i className="ti ti-upload" style={{fontSize:13}}/> העלה קובץ</>}
         </button>
       </div>
@@ -870,7 +870,7 @@ function GeneralSchedulesMode() {
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0" style={{background:'rgba(0,0,0,0.4)'}}>
           <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
             <div className="flex items-center justify-center w-12 h-12 bg-red-50 rounded-full mx-auto mb-3">
-              <i className="ti ti-trash text-[#CC1010]" style={{fontSize:22}}/>
+              <i className="ti ti-trash text-[#1ABBB4]" style={{fontSize:22}}/>
             </div>
             <div className="text-center mb-4">
               <div className="text-[16px] font-semibold text-gray-900 mb-1">מחיקת קבצים</div>
@@ -885,7 +885,7 @@ function GeneralSchedulesMode() {
                   setSelectedFiles({})
                   setConfirmId(null)
                 } else { deleteFile(confirmId) }
-              }} className="flex-1 py-2.5 rounded-xl bg-[#CC1010] text-white text-[14px]">מחק</button>
+              }} className="flex-1 py-2.5 rounded-xl bg-[#1ABBB4] text-white text-[14px]">מחק</button>
             </div>
           </div>
         </div>
@@ -915,7 +915,7 @@ export default function ProductionPage() {
           { id: 'files',     label: 'לוזים כללי' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`text-[13px] px-4 py-2 rounded-lg border transition-colors ${tab===t.id?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-600 hover:border-[#CC1010]'}`}>
+            className={`text-[13px] px-4 py-2 rounded-lg border transition-colors ${tab===t.id?'bg-[#1ABBB4] text-white border-[#1ABBB4]':'border-gray-200 text-gray-600 hover:border-[#1ABBB4]'}`}>
             {t.label}
           </button>
         ))}

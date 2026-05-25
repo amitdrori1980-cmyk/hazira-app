@@ -64,7 +64,7 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
       <div className="bg-white border border-gray-100 rounded-xl p-3 mb-4">
         <div className="text-[11px] font-semibold text-gray-500 mb-2">בחר אירוע לבדיקה</div>
         <select value={selectedEvent} onChange={e=>selectEvent(e.target.value)}
-          className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]">
+          className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]">
           <option value="">בחר אירוע...</option>
           {events.map(e=><option key={e.id} value={e.id}>{e.title} — {fmtDate(e.date)}</option>)}
         </select>
@@ -81,7 +81,7 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
             ) : (
               <div className="flex flex-wrap gap-2 justify-end">
                 {[selEv, ...sameDay].map(e => (
-                  <span key={e.id} className={`text-[12px] px-3 py-1.5 rounded-full border ${e.id===selectedEvent?'bg-[#CC1010] text-white border-[#CC1010]':'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                  <span key={e.id} className={`text-[12px] px-3 py-1.5 rounded-full border ${e.id===selectedEvent?'bg-[#1ABBB4] text-white border-[#1ABBB4]':'bg-gray-50 text-gray-600 border-gray-200'}`}>
                     {e.title}
                   </span>
                 ))}
@@ -93,7 +93,7 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
           ) : (
             <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
               <div className={`px-4 py-3 flex items-center justify-between flex-row-reverse ${conflicts.length>0?'bg-[#FAECE7]':'bg-[#E1F5EE]'}`}>
-                <div className={`text-[13px] font-semibold ${conflicts.length>0?'text-[#CC1010]':'text-[#085041]'}`}>
+                <div className={`text-[13px] font-semibold ${conflicts.length>0?'text-[#1ABBB4]':'text-[#085041]'}`}>
                   {conflicts.length>0 ? `⚠️ ${conflicts.length} התנגשויות ציוד` : '✅ אין התנגשויות'}
                 </div>
                 <div className="text-[11px] text-gray-500">{specItems.length} פריטים במפרט</div>
@@ -110,7 +110,7 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
                     </div>
                   </div>
                   <div className="text-center flex-shrink-0">
-                    <div className={`text-[13px] font-bold ${overStock?'text-red-600':'text-[#CC1010]'}`}>{data.qty}/{stock || '∞'}</div>
+                    <div className={`text-[13px] font-bold ${overStock?'text-red-600':'text-[#1ABBB4]'}`}>{data.qty}/{stock || '∞'}</div>
                     <div className="text-[10px] text-gray-400">סה״כ / מלאי</div>
                     {overStock && <div className="text-[10px] text-red-500 font-bold">חסר {data.qty - stock}</div>}
                   </div>
@@ -215,11 +215,11 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate }) {
         <div className="bg-white border border-gray-100 rounded-xl p-3">
           <div className="text-[11px] font-semibold text-gray-500 mb-2">תבנית חדשה</div>
           <input value={newName} onChange={e=>setNewName(e.target.value)} placeholder="שם התבנית..."
-            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] mb-2 text-right"/>
+            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4] mb-2 text-right"/>
           <input value={newDesc} onChange={e=>setNewDesc(e.target.value)} placeholder="תיאור (אופציונלי)..."
-            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] mb-2 text-right"/>
+            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4] mb-2 text-right"/>
           <button onClick={createTemplate} disabled={creating || !newName.trim()}
-            className="w-full bg-[#CC1010] text-white text-sm py-2 rounded-lg hover:bg-[#a00c0c] disabled:opacity-50">
+            className="w-full bg-[#1ABBB4] text-white text-sm py-2 rounded-lg hover:bg-[#0D7A76] disabled:opacity-50">
             + צור תבנית
           </button>
         </div>
@@ -232,7 +232,7 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate }) {
           ) : templates.map(t => (
             <div key={t.id}
               onClick={() => selectTemplate(t.id)}
-              className={`flex items-center gap-2 px-3 py-2.5 border-b border-gray-50 last:border-0 cursor-pointer flex-row-reverse group ${selected===t.id?'bg-[#FDEAEA] text-[#CC1010]':'hover:bg-gray-50 text-gray-700'}`}>
+              className={`flex items-center gap-2 px-3 py-2.5 border-b border-gray-50 last:border-0 cursor-pointer flex-row-reverse group ${selected===t.id?'bg-[#E6F7F7] text-[#1ABBB4]':'hover:bg-gray-50 text-gray-700'}`}>
               <div className="flex-1 text-right">
                 <div className="text-[13px] font-medium">{t.name}</div>
                 {t.description && <div className="text-[11px] text-gray-400">{t.description}</div>}
@@ -255,7 +255,7 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate }) {
               return (
                 <div key={cat.id}>
                   <button onClick={()=>setOpenCat(isOpen?null:cat.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 text-[12px] font-medium border-b border-gray-50 flex-row-reverse ${isOpen?'text-[#CC1010] bg-[#FDEAEA]':'text-gray-700 hover:bg-gray-50'}`}>
+                    className={`w-full flex items-center justify-between px-3 py-2.5 text-[12px] font-medium border-b border-gray-50 flex-row-reverse ${isOpen?'text-[#1ABBB4] bg-[#E6F7F7]':'text-gray-700 hover:bg-gray-50'}`}>
                     <span>{cat.name}</span>
                     <i className={`ti ${isOpen?'ti-chevron-up':'ti-chevron-down'} text-gray-400`} style={{fontSize:11}}/>
                   </button>
@@ -265,7 +265,7 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate }) {
                     return (
                       <div key={sub.id}>
                         <button onClick={()=>setOpenSub(isSubOpen?null:sub.id)}
-                          className={`w-full flex items-center justify-between px-5 py-2 text-[11px] border-b border-gray-50 flex-row-reverse ${isSubOpen?'text-[#CC1010]':'text-gray-500 hover:bg-gray-50'}`}>
+                          className={`w-full flex items-center justify-between px-5 py-2 text-[11px] border-b border-gray-50 flex-row-reverse ${isSubOpen?'text-[#1ABBB4]':'text-gray-500 hover:bg-gray-50'}`}>
                           <span>{sub.name}</span>
                           <i className={`ti ${isSubOpen?'ti-chevron-up':'ti-chevron-down'} text-gray-300`} style={{fontSize:10}}/>
                         </button>
@@ -274,7 +274,7 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate }) {
                           return (
                             <button key={item.id} onClick={()=>toggleItem(item)}
                               className={`w-full flex items-center gap-2 px-6 py-1.5 text-[11px] border-b border-gray-50 flex-row-reverse text-right transition-colors ${inTemplate?'bg-[#E1F5EE] text-[#085041]':'text-gray-600 hover:bg-gray-50'}`}>
-                              <i className={`ti ${inTemplate?'ti-circle-check':'ti-circle-plus'} flex-shrink-0`} style={{fontSize:13,color:inTemplate?'#22c55e':'#CC1010'}}/>
+                              <i className={`ti ${inTemplate?'ti-circle-check':'ti-circle-plus'} flex-shrink-0`} style={{fontSize:13,color:inTemplate?'#22c55e':'#1ABBB4'}}/>
                               <span className="flex-1 truncate">{item.name}</span>
                               {item.units && <span className="text-gray-400">×{item.units}</span>}
                             </button>
@@ -309,7 +309,7 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate }) {
               <div className="text-center text-[13px] text-gray-400 py-8">הוסף פריטים מהרשימה</div>
             ) : specByCategory.map(({cat, items}) => (
               <div key={cat.id}>
-                <div className="px-4 py-2 bg-[#FDEAEA] text-[11px] font-semibold text-[#CC1010] text-right">{cat.name}</div>
+                <div className="px-4 py-2 bg-[#E6F7F7] text-[11px] font-semibold text-[#1ABBB4] text-right">{cat.name}</div>
                 {items.map(s => (
                   <div key={s.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 flex-row-reverse group hover:bg-gray-50">
                     <span className="flex-1 text-[13px] text-right text-gray-800">{s.item.name}</span>
@@ -318,7 +318,7 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate }) {
                       onChange={e=>setTemplateItems(prev=>prev.map(x=>x.id===s.id?{...x,quantity:e.target.value}:x))}
                       onBlur={e=>updateQty(s.id, e.target.value)}
                       placeholder="כמות"
-                      className="w-16 text-[11px] px-2 py-1 border border-gray-200 rounded-lg bg-white outline-none text-center focus:border-[#CC1010]"/>
+                      className="w-16 text-[11px] px-2 py-1 border border-gray-200 rounded-lg bg-white outline-none text-center focus:border-[#1ABBB4]"/>
                     <button onClick={()=>toggleItem(s.item)} className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100">
                       <i className="ti ti-x" style={{fontSize:12}}/>
                     </button>
@@ -419,7 +419,7 @@ function GeneralFilesMode() {
             </button>
             <span className="text-[13px] font-medium text-gray-800 truncate max-w-[45%] text-center">{viewing.name}</span>
             <a href={viewing.url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-[13px] text-[#CC1010] hover:underline">
+              className="flex items-center gap-1 text-[13px] text-[#1ABBB4] hover:underline">
               <i className="ti ti-external-link" style={{fontSize:14}}/> פתח בדפדפן
             </a>
           </div>
@@ -433,7 +433,7 @@ function GeneralFilesMode() {
         {/* Toolbar */}
         {files.length > 0 && (
           <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex-row-reverse">
-            <button onClick={selectAll} className="text-[11px] text-gray-500 hover:text-[#CC1010]">
+            <button onClick={selectAll} className="text-[11px] text-gray-500 hover:text-[#1ABBB4]">
               {files.every(f => selectedFiles[f.name]) ? 'בטל הכל' : 'בחר הכל'}
             </button>
             <div className="flex-1"/>
@@ -450,7 +450,7 @@ function GeneralFilesMode() {
             )}
             {anySelected && (
               <button onClick={sendByEmail}
-                className="flex items-center gap-1.5 text-[12px] bg-[#CC1010] text-white px-3 py-1.5 rounded-lg hover:bg-[#a00c0c]">
+                className="flex items-center gap-1.5 text-[12px] bg-[#1ABBB4] text-white px-3 py-1.5 rounded-lg hover:bg-[#0D7A76]">
                 <i className="ti ti-mail" style={{fontSize:13}}/> שלח במייל ({selectedCount})
               </button>
             )}
@@ -466,10 +466,10 @@ function GeneralFilesMode() {
             <input type="checkbox"
               checked={!!selectedFiles[f.name]}
               onChange={() => toggleSelect(f.name)}
-              className="w-4 h-4 accent-[#CC1010] flex-shrink-0 cursor-pointer"
+              className="w-4 h-4 accent-[#1ABBB4] flex-shrink-0 cursor-pointer"
             />
-            <div className="w-9 h-9 bg-[#FDEAEA] rounded-lg flex items-center justify-center flex-shrink-0">
-              <i className="ti ti-file-type-pdf text-[#CC1010]" style={{fontSize:18}}/>
+            <div className="w-9 h-9 bg-[#E6F7F7] rounded-lg flex items-center justify-center flex-shrink-0">
+              <i className="ti ti-file-type-pdf text-[#1ABBB4]" style={{fontSize:18}}/>
             </div>
             <div className="flex-1 text-right min-w-0 overflow-hidden">
               <div className="text-[13px] font-medium text-gray-800 truncate">{f.name}</div>
@@ -478,7 +478,7 @@ function GeneralFilesMode() {
               </div>
             </div>
             <button onClick={() => openFile(f.name)}
-              className="text-[#CC1010] hover:text-[#a00c0c] text-[12px] flex items-center gap-1 px-2 py-1.5 border border-[#CC1010] rounded-lg flex-shrink-0 whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+              className="text-[#1ABBB4] hover:text-[#0D7A76] text-[12px] flex items-center gap-1 px-2 py-1.5 border border-[#1ABBB4] rounded-lg flex-shrink-0 whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
               <i className="ti ti-eye" style={{fontSize:13}}/> צפה
             </button>
           </div>
@@ -488,7 +488,7 @@ function GeneralFilesMode() {
         <button
           onClick={() => fileInputRef.current.click()}
           disabled={uploading}
-          className="w-full py-3 text-[13px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors flex items-center justify-center gap-1">
+          className="w-full py-3 text-[13px] text-gray-400 hover:text-[#1ABBB4] hover:bg-[#E6F7F7] transition-colors flex items-center justify-center gap-1">
           {uploading ? (
             <><i className="ti ti-loader-2 animate-spin" style={{fontSize:13}}/> מעלה...</>
           ) : (
@@ -632,7 +632,7 @@ export default function SpecsPage() {
                 <div className="text-center text-[13px] text-gray-400 py-4">אין תבניות — צור תבנית בטאב "מפרטים כלליים הפקות"</div>
               ) : templates.map(t => (
                 <button key={t.id} onClick={() => loadTemplate(t.id)} disabled={loadingTemplate}
-                  className="text-right px-4 py-3 border border-gray-200 rounded-lg hover:border-[#CC1010] hover:bg-[#FDEAEA] transition-colors disabled:opacity-50">
+                  className="text-right px-4 py-3 border border-gray-200 rounded-lg hover:border-[#1ABBB4] hover:bg-[#E6F7F7] transition-colors disabled:opacity-50">
                   <div className="text-[13px] font-medium text-gray-800">{t.name}</div>
                   {t.description && <div className="text-[11px] text-gray-400">{t.description}</div>}
                 </button>
@@ -655,7 +655,7 @@ export default function SpecsPage() {
           {id:'showfolders', label:'תיקי הצגות'},
         ].map(tab=>(
           <button key={tab.id} onClick={()=>setMode(tab.id)}
-            className={`text-[13px] px-4 py-2 rounded-lg border transition-colors ${mode===tab.id?'bg-[#CC1010] text-white border-[#CC1010]':'border-gray-200 text-gray-600 hover:border-[#CC1010]'}`}>
+            className={`text-[13px] px-4 py-2 rounded-lg border transition-colors ${mode===tab.id?'bg-[#1ABBB4] text-white border-[#1ABBB4]':'border-gray-200 text-gray-600 hover:border-[#1ABBB4]'}`}>
             {tab.label}
           </button>
         ))}
@@ -668,14 +668,14 @@ export default function SpecsPage() {
             <div className="bg-white border border-gray-100 rounded-xl p-3">
               <div className="text-[11px] font-semibold text-gray-500 mb-2">בחר אירוע</div>
               <select value={selectedEvent} onChange={e=>selectEvent(e.target.value)}
-                className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]">
+                className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]">
                 <option value="">בחר אירוע...</option>
                 {events.map(e=><option key={e.id} value={e.id}>{e.title} — {fmtDate(e.date)}</option>)}
               </select>
               {selectedEvent && (
                 <div className="flex gap-2 mt-2">
                   <button onClick={() => setShowLoadModal(true)}
-                    className="flex-1 text-[12px] px-3 py-1.5 border border-[#CC1010] text-[#CC1010] rounded-lg hover:bg-[#FDEAEA] flex items-center justify-center gap-1">
+                    className="flex-1 text-[12px] px-3 py-1.5 border border-[#1ABBB4] text-[#1ABBB4] rounded-lg hover:bg-[#E6F7F7] flex items-center justify-center gap-1">
                     <i className="ti ti-download" style={{fontSize:12}}/> טען תבנית
                   </button>
                   <button onClick={saveAsTemplate} disabled={specItems.length === 0}
@@ -695,7 +695,7 @@ export default function SpecsPage() {
                   return (
                     <div key={cat.id}>
                       <button onClick={()=>setOpenCat(isOpen?null:cat.id)}
-                        className={`w-full flex items-center justify-between px-3 py-2.5 text-[12px] font-medium border-b border-gray-50 flex-row-reverse ${isOpen?'text-[#CC1010] bg-[#FDEAEA]':'text-gray-700 hover:bg-gray-50'}`}>
+                        className={`w-full flex items-center justify-between px-3 py-2.5 text-[12px] font-medium border-b border-gray-50 flex-row-reverse ${isOpen?'text-[#1ABBB4] bg-[#E6F7F7]':'text-gray-700 hover:bg-gray-50'}`}>
                         <span>{cat.name}</span>
                         <i className={`ti ${isOpen?'ti-chevron-up':'ti-chevron-down'} text-gray-400`} style={{fontSize:11}}/>
                       </button>
@@ -705,7 +705,7 @@ export default function SpecsPage() {
                         return (
                           <div key={sub.id}>
                             <button onClick={()=>setOpenSub(isSubOpen?null:sub.id)}
-                              className={`w-full flex items-center justify-between px-5 py-2 text-[11px] border-b border-gray-50 flex-row-reverse ${isSubOpen?'text-[#CC1010]':'text-gray-500 hover:bg-gray-50'}`}>
+                              className={`w-full flex items-center justify-between px-5 py-2 text-[11px] border-b border-gray-50 flex-row-reverse ${isSubOpen?'text-[#1ABBB4]':'text-gray-500 hover:bg-gray-50'}`}>
                               <span>{sub.name}</span>
                               <i className={`ti ${isSubOpen?'ti-chevron-up':'ti-chevron-down'} text-gray-300`} style={{fontSize:10}}/>
                             </button>
@@ -714,7 +714,7 @@ export default function SpecsPage() {
                               return (
                                 <button key={item.id} onClick={()=>toggleItem(item)}
                                   className={`w-full flex items-center gap-2 px-6 py-1.5 text-[11px] border-b border-gray-50 flex-row-reverse text-right transition-colors ${inSpec?'bg-[#E1F5EE] text-[#085041]':'text-gray-600 hover:bg-gray-50'}`}>
-                                  <i className={`ti ${inSpec?'ti-circle-check':'ti-circle-plus'} flex-shrink-0`} style={{fontSize:13,color:inSpec?'#22c55e':'#CC1010'}}/>
+                                  <i className={`ti ${inSpec?'ti-circle-check':'ti-circle-plus'} flex-shrink-0`} style={{fontSize:13,color:inSpec?'#22c55e':'#1ABBB4'}}/>
                                   <span className="flex-1 truncate">{item.name}</span>
                                   {item.units && <span className="text-gray-400">×{item.units}</span>}
                                 </button>
@@ -749,7 +749,7 @@ export default function SpecsPage() {
                   </div>
                 ) : specByCategory.map(({cat, items}) => (
                   <div key={cat.id}>
-                    <div className="px-4 py-2 bg-[#FDEAEA] text-[11px] font-semibold text-[#CC1010] text-right">{cat.name}</div>
+                    <div className="px-4 py-2 bg-[#E6F7F7] text-[11px] font-semibold text-[#1ABBB4] text-right">{cat.name}</div>
                     {items.map(s => (
                       <div key={s.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 flex-row-reverse group hover:bg-gray-50">
                         <span className="flex-1 text-[13px] text-right text-gray-800">{s.item.name}</span>
@@ -760,7 +760,7 @@ export default function SpecsPage() {
                             onChange={e=>setSpecItems(prev=>prev.map(x=>x.id===s.id?{...x,quantity:e.target.value}:x))}
                             onBlur={e=>updateQty(s.id, e.target.value)}
                             placeholder="כמות"
-                            className={`w-16 text-[11px] px-2 py-1 border rounded-lg bg-white outline-none text-center ${s.item.units && parseInt(s.quantity) > parseInt(s.item.units)?'border-red-400 bg-red-50 text-red-600':'border-gray-200 focus:border-[#CC1010]'}`}/>
+                            className={`w-16 text-[11px] px-2 py-1 border rounded-lg bg-white outline-none text-center ${s.item.units && parseInt(s.quantity) > parseInt(s.item.units)?'border-red-400 bg-red-50 text-red-600':'border-gray-200 focus:border-[#1ABBB4]'}`}/>
                           {s.item.units && (
                             <span className={`text-[9px] ${parseInt(s.quantity) > parseInt(s.item.units)?'text-red-500 font-bold':'text-gray-400'}`}>
                               מלאי: {s.item.units}
@@ -878,7 +878,7 @@ function ShowFoldersMode() {
   }
 
   function fileIcon(name) {
-    if (/\.pdf$/i.test(name)) return 'ti-file-type-pdf text-[#CC1010]'
+    if (/\.pdf$/i.test(name)) return 'ti-file-type-pdf text-[#1ABBB4]'
     if (/\.(jpg|jpeg|png|gif|webp)$/i.test(name)) return 'ti-photo text-blue-500'
     if (/\.(xlsx|xls)$/i.test(name)) return 'ti-file-spreadsheet text-green-600'
     return 'ti-file text-gray-400'
@@ -895,7 +895,7 @@ function ShowFoldersMode() {
               <i className="ti ti-x" style={{fontSize:16}}/> סגור
             </button>
             <span className="text-[13px] font-medium text-gray-800 truncate max-w-[45%]">{viewing.name}</span>
-            <a href={viewing.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[13px] text-[#CC1010] hover:underline">
+            <a href={viewing.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[13px] text-[#1ABBB4] hover:underline">
               <i className="ti ti-external-link" style={{fontSize:14}}/> פתח בדפדפן
             </a>
           </div>
@@ -911,7 +911,7 @@ function ShowFoldersMode() {
 
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => setShowNewFolder(v => !v)}
-          className="bg-[#CC1010] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#a00c0c] flex items-center gap-1.5">
+          className="bg-[#1ABBB4] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#0D7A76] flex items-center gap-1.5">
           <i className="ti ti-folder-plus" style={{fontSize:14}}/> תיקייה חדשה
         </button>
         <span className="text-[12px] text-gray-400">{folders.length} תיקיות</span>
@@ -923,9 +923,9 @@ function ShowFoldersMode() {
             <input value={newFolderName} onChange={e => setNewFolderName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && createFolder()}
               placeholder="שם התיקייה..." autoFocus
-              className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010] text-right"/>
+              className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4] text-right"/>
             <button onClick={createFolder} disabled={creatingFolder || !newFolderName.trim()}
-              className="bg-[#CC1010] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#a00c0c] disabled:opacity-50">
+              className="bg-[#1ABBB4] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#0D7A76] disabled:opacity-50">
               {creatingFolder ? 'יוצר...' : 'צור'}
             </button>
             <button onClick={() => setShowNewFolder(false)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-500">ביטול</button>
@@ -945,8 +945,8 @@ function ShowFoldersMode() {
           <div key={folder.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 flex-row-reverse"
               onClick={() => openFolderFiles(folder)}>
-              <div className="w-9 h-9 bg-[#FDEAEA] rounded-lg flex items-center justify-center flex-shrink-0">
-                <i className={`ti ${openFolder === folder.storage_key ? 'ti-folder-open' : 'ti-folder'} text-[#CC1010]`} style={{fontSize:18}}/>
+              <div className="w-9 h-9 bg-[#E6F7F7] rounded-lg flex items-center justify-center flex-shrink-0">
+                <i className={`ti ${openFolder === folder.storage_key ? 'ti-folder-open' : 'ti-folder'} text-[#1ABBB4]`} style={{fontSize:18}}/>
               </div>
               <div className="flex-1 text-right">
                 <div className="text-[13px] font-semibold text-gray-800">{folder.name}</div>
@@ -974,7 +974,7 @@ function ShowFoldersMode() {
                     </div>
                     <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
                       <button onClick={() => openFile(folder.storage_key, f.name)}
-                        className="text-[12px] text-[#CC1010] border border-[#CC1010] px-2 py-1 rounded-lg flex items-center gap-1">
+                        className="text-[12px] text-[#1ABBB4] border border-[#1ABBB4] px-2 py-1 rounded-lg flex items-center gap-1">
                         <i className="ti ti-eye" style={{fontSize:12}}/> פתח
                       </button>
                       <button onClick={() => { if(window.confirm('למחוק?')) deleteFile(folder.storage_key, f.name) }}
@@ -984,7 +984,7 @@ function ShowFoldersMode() {
                     </div>
                   </div>
                 ))}
-                <label className="w-full py-3 text-[13px] text-gray-400 hover:text-[#CC1010] hover:bg-[#FDEAEA] transition-colors flex items-center justify-center gap-1 cursor-pointer">
+                <label className="w-full py-3 text-[13px] text-gray-400 hover:text-[#1ABBB4] hover:bg-[#E6F7F7] transition-colors flex items-center justify-center gap-1 cursor-pointer">
                   {uploading ? <><i className="ti ti-loader-2 animate-spin" style={{fontSize:13}}/> מעלה...</> : <><i className="ti ti-upload" style={{fontSize:13}}/> העלה קובץ</>}
                   <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls" className="hidden"
                     onChange={e => uploadFiles(e, folder)} disabled={uploading}/>

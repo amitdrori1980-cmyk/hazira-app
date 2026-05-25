@@ -5,8 +5,8 @@ import { supabase } from '@/lib/supabase'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const TYPE_LABEL = { rehearsal:'חזרה', show:'הצגה', crew:'צוות', technical:'טכני' }
-const TYPE_COLOR = { rehearsal:'bg-[#FDEAEA] text-[#8B0000]', show:'bg-[#E1F5EE] text-[#085041]', crew:'bg-[#FAEEDA] text-[#633806]', technical:'bg-[#FAECE7] text-[#4A1B0C]' }
-const PRI_COLOR  = { 'דחוף':'bg-[#FAECE7] text-[#4A1B0C]', 'גבוהה':'bg-[#FAEEDA] text-[#633806]', 'רגיל':'bg-[#E3F0FF] text-[#1A4A8A]', 'היום':'bg-[#FAECE7] text-[#4A1B0C]', 'מחר':'bg-[#FDEAEA] text-[#8B0000]', 'השבוע':'bg-[#FAEEDA] text-[#633806]' }
+const TYPE_COLOR = { rehearsal:'bg-[#E6F7F7] text-[#0D7A76]', show:'bg-[#E1F5EE] text-[#085041]', crew:'bg-[#FAEEDA] text-[#633806]', technical:'bg-[#FAECE7] text-[#4A1B0C]' }
+const PRI_COLOR  = { 'דחוף':'bg-[#FAECE7] text-[#4A1B0C]', 'גבוהה':'bg-[#FAEEDA] text-[#633806]', 'רגיל':'bg-[#E3F0FF] text-[#1A4A8A]', 'היום':'bg-[#FAECE7] text-[#4A1B0C]', 'מחר':'bg-[#E6F7F7] text-[#0D7A76]', 'השבוע':'bg-[#FAEEDA] text-[#633806]' }
 
 function Badge({ text, color }) {
   return <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${color}`}>{text}</span>
@@ -16,10 +16,10 @@ function Card({ title, icon, href, children }) {
   const router = useRouter()
   return (
     <div onClick={() => href && router.push(href)}
-      className={`bg-white border border-gray-100 rounded-xl p-4 mb-3 transition-all ${href ? 'cursor-pointer hover:border-[#CC1010] hover:shadow-sm' : ''}`}>
+      className={`bg-white border border-gray-100 rounded-xl p-4 mb-3 transition-all ${href ? 'cursor-pointer hover:border-[#1ABBB4] hover:shadow-sm' : ''}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <i className={`ti ${icon} text-[#CC1010]`} style={{ fontSize: 15 }}/>
+          <i className={`ti ${icon} text-[#1ABBB4]`} style={{ fontSize: 15 }}/>
           <span className="text-[13px] font-medium text-gray-800">{title}</span>
         </div>
         {href && <i className="ti ti-chevron-left text-gray-300" style={{ fontSize: 13 }}/>}
@@ -140,7 +140,7 @@ export default function DashboardPage() {
   return (
     <div className="max-w-2xl">
       {/* Search bar */}
-      <div className="flex items-center gap-3 bg-white border-2 border-gray-200 rounded-xl px-4 py-2.5 mb-4 focus-within:border-[#CC1010] transition-colors">
+      <div className="flex items-center gap-3 bg-white border-2 border-gray-200 rounded-xl px-4 py-2.5 mb-4 focus-within:border-[#1ABBB4] transition-colors">
         <i className="ti ti-search text-gray-400" style={{fontSize:16}}/>
         <input
           value={query}
@@ -168,7 +168,7 @@ export default function DashboardPage() {
               {searchResults.events?.map(ev => (
                 <div key={ev.id} onClick={()=>router.push('/dashboard/calendar')}
                   className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse cursor-pointer hover:bg-gray-50 rounded-lg px-2">
-                  <i className="ti ti-calendar-month text-[#CC1010]" style={{fontSize:13}}/>
+                  <i className="ti ti-calendar-month text-[#1ABBB4]" style={{fontSize:13}}/>
                   <span className="flex-1 text-[13px] text-right text-gray-800">{ev.title}</span>
                   <span className="text-[11px] text-gray-400">{fmtDate(ev.date)}</span>
                 </div>
@@ -176,7 +176,7 @@ export default function DashboardPage() {
               {searchResults.crew?.map(c => (
                 <div key={c.id}
                   className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse px-2">
-                  <i className="ti ti-user text-[#CC1010]" style={{fontSize:13}}/>
+                  <i className="ti ti-user text-[#1ABBB4]" style={{fontSize:13}}/>
                   <span className="flex-1 text-[13px] text-right">{c.full_name}</span>
                   <span className="text-[11px] text-gray-400">{c.role}</span>
                 </div>
@@ -184,7 +184,7 @@ export default function DashboardPage() {
               {searchResults.equipment?.map(item => (
                 <div key={item.id}
                   className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse px-2">
-                  <i className="ti ti-tool text-[#CC1010]" style={{fontSize:13}}/>
+                  <i className="ti ti-tool text-[#1ABBB4]" style={{fontSize:13}}/>
                   <span className="flex-1 text-[13px] text-right" dir="ltr">{item.name}</span>
                   {item.units && <span className="text-[11px] text-gray-400">×{item.units}</span>}
                 </div>
@@ -192,7 +192,7 @@ export default function DashboardPage() {
               {searchResults.tasks?.map(t => (
                 <div key={t.id}
                   className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse px-2">
-                  <i className="ti ti-checkbox text-[#CC1010]" style={{fontSize:13}}/>
+                  <i className="ti ti-checkbox text-[#1ABBB4]" style={{fontSize:13}}/>
                   <span className={`flex-1 text-[13px] text-right ${t.done?'line-through text-gray-400':''}`}>{t.title}</span>
                   <Badge text={t.priority} color={PRI_COLOR[t.priority]||'bg-gray-100 text-gray-500'}/>
                 </div>
@@ -200,13 +200,13 @@ export default function DashboardPage() {
               {searchResults.storage?.map(s => (
                 <div key={s.id}
                   className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse px-2">
-                  <i className="ti ti-map-pin text-[#CC1010]" style={{fontSize:13}}/>
+                  <i className="ti ti-map-pin text-[#1ABBB4]" style={{fontSize:13}}/>
                   <span className="flex-1 text-[13px] text-right">{s.name}</span>
                   {s.location && <span className="text-[11px] text-gray-400">{s.location}</span>}
                 </div>
               ))}
               <button onClick={()=>router.push('/dashboard/assistant')}
-                className="w-full text-center text-[11px] text-[#CC1010] mt-2 hover:underline">
+                className="w-full text-center text-[11px] text-[#1ABBB4] mt-2 hover:underline">
                 חיפוש מורחב →
               </button>
             </>
@@ -224,10 +224,10 @@ export default function DashboardPage() {
               { label: 'הודעות',         value: messages.length, href: '/dashboard/messages' },
             ].map(s => (
               <div key={s.label} onClick={() => router.push(s.href)}
-                className="bg-white border border-gray-100 rounded-xl p-3 cursor-pointer hover:border-[#CC1010] hover:shadow-sm transition-all"
-                style={{ borderTop: '2px solid #CC1010' }}>
+                className="bg-white border border-gray-100 rounded-xl p-3 cursor-pointer hover:border-[#1ABBB4] hover:shadow-sm transition-all"
+                style={{ borderTop: '2px solid #1ABBB4' }}>
                 <div className="text-[11px] text-gray-400 mb-1">{s.label}</div>
-                <div className="text-xl font-medium text-[#CC1010]">{s.value}</div>
+                <div className="text-xl font-medium text-[#1ABBB4]">{s.value}</div>
               </div>
             ))}
           </div>
@@ -261,7 +261,7 @@ export default function DashboardPage() {
           {messages.length > 0 && (
             <Card title="הודעות אחרונות" icon="ti-message" href="/dashboard/messages">
               {messages.map(m => (
-                <div key={m.id} className="p-2.5 bg-gray-50 rounded-lg mb-2 last:mb-0 border-r-2 border-[#CC1010]">
+                <div key={m.id} className="p-2.5 bg-gray-50 rounded-lg mb-2 last:mb-0 border-r-2 border-[#1ABBB4]">
                   <div className="text-[11px] text-gray-400 mb-1">{m.sender?.full_name || 'מנהל הפקה'}</div>
                   <div className="text-[13px] text-gray-800 text-right">{m.body}</div>
                 </div>
