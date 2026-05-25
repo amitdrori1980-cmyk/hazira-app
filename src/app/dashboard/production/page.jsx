@@ -675,7 +675,7 @@ function ProductionSchedule({ profile }) {
                   )}
                 </div>
               </div>
-              <div className={`grid gap-0 bg-[#E0197D] text-white text-[12px] font-semibold no-print ${isManager?'grid-cols-[80px_2fr_1fr_1fr_40px]':'grid-cols-[80px_2fr_1fr_1fr]'}`}>
+              <div className={`grid gap-0 bg-[#E0197D] text-white text-[12px] font-semibold no-print ${isManager?'grid-cols-[120px_2fr_1.5fr_1fr_40px]':'grid-cols-[120px_2fr_1.5fr_1fr]'}`}>
                 <div className="px-3 py-2.5 text-right">שעה</div>
                 <div className="px-3 py-2.5 text-right border-r border-red-700">מה</div>
                 <div className="px-3 py-2.5 text-right border-r border-red-700">מי</div>
@@ -689,7 +689,7 @@ function ProductionSchedule({ profile }) {
               )}
               {rows.map((row, index) => (
                 <div key={row.id}
-                  className={`grid gap-0 border-b border-gray-50 group ${isManager?'grid-cols-[80px_2fr_1fr_1fr_40px]':'grid-cols-[80px_2fr_1fr_1fr]'} ${index%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
+                  className={`grid gap-0 border-b border-gray-50 group ${isManager?'grid-cols-[120px_2fr_1.5fr_1fr_40px]':'grid-cols-[120px_2fr_1.5fr_1fr]'} ${index%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
                   {isManager ? (
                     <>
                       <input value={row.time||''} onChange={e=>updateRow(row.id,'time',e.target.value)} placeholder="00:00"
