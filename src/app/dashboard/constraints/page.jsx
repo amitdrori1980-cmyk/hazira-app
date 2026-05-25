@@ -371,11 +371,11 @@ export default function ConstraintsPage() {
 
           {selectedData.dayEvents.length > 0 && (
             <div className="mb-3">
-              <div className="text-[11px] font-semibold text-gray-500 mb-2">אירועים</div>
+              <div className="text-[11px] font-semibold text-gray-700 mb-2">אירועים</div>
               {selectedData.dayEvents.map(e=>(
                 <div key={e.id} className="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0 flex-row-reverse">
                   <span className="flex-1 text-[13px] text-right">{e.title}</span>
-                  <span className="text-[11px] text-gray-400">{e.time?.slice(0,5)}</span>
+                  <span className="text-[11px] text-gray-700">{e.time?.slice(0,5)}</span>
                 </div>
               ))}
             </div>
@@ -383,7 +383,7 @@ export default function ConstraintsPage() {
 
           {selectedData.dayConstraints.length > 0 && (
             <div>
-              <div className="text-[11px] font-semibold text-gray-500 mb-2">אילוצי צוות</div>
+              <div className="text-[11px] font-semibold text-gray-700 mb-2">אילוצי צוות</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {selectedData.dayConstraints.map(c=>(
                   <div key={c.id} className="flex items-center gap-2 py-2 bg-[#EEF2FF] rounded-lg px-3 flex-row-reverse group">
@@ -391,8 +391,8 @@ export default function ConstraintsPage() {
                       <div className="text-[13px] font-medium text-[#4338ca]">{c.crew_name}</div>
                       {c.hours && <div className="text-[11px] text-[#6366f1]">🕐 {c.hours}</div>}
                       {(c.time_from || c.time_to) && <div className="text-[11px] text-[#6366f1]">🕐 {c.time_from?.slice(0,5)}{c.time_to ? ` - ${c.time_to.slice(0,5)}` : ''}</div>}
-                      {c.date_to && <div className="text-[11px] text-gray-400">עד {c.date_to}</div>}
-                      {c.notes && <div className="text-[11px] text-gray-500">{c.notes}</div>}
+                      {c.date_to && <div className="text-[11px] text-gray-800">עד {c.date_to}</div>}
+                      {c.notes && <div className="text-[11px] text-gray-800">{c.notes}</div>}
                     </div>
                     <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-all">
                       <button onClick={()=>openEdit(c)}
@@ -411,7 +411,7 @@ export default function ConstraintsPage() {
           )}
 
           {selectedData.dayEvents.length===0 && selectedData.dayConstraints.length===0 && (
-            <div className="text-[13px] text-gray-400 text-center py-4">אין נתונים ליום זה</div>
+            <div className="text-[13px] text-gray-600 text-center py-4">אין נתונים ליום זה</div>
           )}
         </div>
       )}
@@ -482,7 +482,7 @@ export default function ConstraintsPage() {
             </div>
             <div className="text-center mb-4">
               <div className="text-[16px] font-semibold text-gray-900 mb-1">מחיקת אילוץ</div>
-              <div className="text-[13px] text-gray-500">האם למחוק את האילוץ? לא ניתן לבטל פעולה זו.</div>
+              <div className="text-[13px] text-gray-800">האם למחוק את האילוץ? לא ניתן לבטל פעולה זו.</div>
             </div>
             <div className="flex gap-2">
               <button onClick={() => setConfirmId(null)}
