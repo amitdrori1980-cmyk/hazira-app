@@ -16,7 +16,7 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) { router.push('/'); return }
+      if (!data.user) { router.push('/login'); return }
       setUser(data.user)
 
       const { data: p } = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
@@ -40,7 +40,7 @@ export default function DashboardLayout({ children }) {
 
   async function logout() {
     await supabase.auth.signOut()
-    router.push('/')
+    router.push('/login')
   }
 
   const initials = profile?.full_name
