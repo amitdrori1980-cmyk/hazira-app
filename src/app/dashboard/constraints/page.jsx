@@ -39,11 +39,11 @@ export default function ConstraintsPage() {
 
   const [showAdd, setShowAdd] = useState(false)
   const [crewOpen, setCrewOpen] = useState(false)
-  const [form, setForm]       = useState({ crew_name:'', date:'', hours:'', notes:'' })
+  const [form, setForm]       = useState({ crew_name:'', date:'', date_to:'', time_from:'', time_to:'', hours:'', notes:'' })
   const [adding, setAdding]   = useState(false)
   const [confirmId, setConfirmId] = useState(null)
   const [editItem, setEditItem] = useState(null) // constraint being edited
-  const [editForm, setEditForm] = useState({ crew_name:'', date:'', hours:'', notes:'' })
+  const [editForm, setEditForm] = useState({ crew_name:'', date:'', date_to:'', time_from:'', time_to:'', hours:'', notes:'' })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => { load() }, [])
@@ -132,11 +132,14 @@ export default function ConstraintsPage() {
       crew_member_id: member?.id || null,
       crew_name: form.crew_name,
       date: form.date,
+      date_to: form.date_to || null,
+      time_from: form.time_from || null,
+      time_to: form.time_to || null,
       hours: form.hours,
       notes: form.notes,
       available: false,
     })
-    setForm({ crew_name:'', date:'', hours:'', notes:'' })
+    setForm({ crew_name:'', date:'', date_to:'', time_from:'', time_to:'', hours:'', notes:'' })
     setShowAdd(false)
     setAdding(false)
     await load()
@@ -154,7 +157,7 @@ export default function ConstraintsPage() {
 
   function openEdit(c) {
     setEditItem(c)
-    setEditForm({ crew_name: c.crew_name, date: c.date, hours: c.hours || '', notes: c.notes || '' })
+    setEditForm({ crew_name: c.crew_name, date: c.date, date_to: c.date_to || '', time_from: c.time_from || '', time_to: c.time_to || '', hours: c.hours || '', notes: c.notes || '' })
   }
 
   async function saveEdit() {
@@ -165,6 +168,9 @@ export default function ConstraintsPage() {
       crew_member_id: member?.id || null,
       crew_name: editForm.crew_name,
       date: editForm.date,
+      date_to: editForm.date_to || null,
+      time_from: editForm.time_from || null,
+      time_to: editForm.time_to || null,
       hours: editForm.hours,
       notes: editForm.notes,
     }).eq('id', editItem.id)
@@ -231,10 +237,26 @@ export default function ConstraintsPage() {
                   </div>
                 )}
               </div>
-              <input value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}
-                type="date" required className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
-              <input value={form.hours} onChange={e=>setForm(f=>({...f,hours:e.target.value}))}
-                placeholder="שעות (09:00-13:00)" className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-gray-400 flex-shrink-0">מתאריך</span>
+                <input value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}
+                  type="date" required className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-gray-400 flex-shrink-0">עד תאריך</span>
+                <input value={form.date_to} onChange={e=>setForm(f=>({...f,date_to:e.target.value}))}
+                  type="date" className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-gray-400 flex-shrink-0">משעה</span>
+                <input value={form.time_from} onChange={e=>setForm(f=>({...f,time_from:e.target.value}))}
+                  type="time" className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-gray-400 flex-shrink-0">עד שעה</span>
+                <input value={form.time_to} onChange={e=>setForm(f=>({...f,time_to:e.target.value}))}
+                  type="time" className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
+              </div>
               <input value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}
                 placeholder="הערה" className="col-span-2 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#CC1010]"/>
             </div>
