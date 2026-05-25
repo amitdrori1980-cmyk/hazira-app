@@ -675,7 +675,7 @@ function ProductionSchedule({ profile }) {
                   )}
                 </div>
               </div>
-              <div className={`grid gap-0 bg-[#E0197D] text-white text-[12px] font-semibold no-print ${isManager?'grid-cols-[80px_1fr_1fr_1fr_40px]':'grid-cols-[80px_1fr_1fr_1fr]'}`}>
+              <div className={`grid gap-0 bg-[#E0197D] text-white text-[12px] font-semibold no-print ${isManager?'grid-cols-[80px_2fr_1fr_1fr_40px]':'grid-cols-[80px_2fr_1fr_1fr]'}`}>
                 <div className="px-3 py-2.5 text-right">שעה</div>
                 <div className="px-3 py-2.5 text-right border-r border-red-700">מה</div>
                 <div className="px-3 py-2.5 text-right border-r border-red-700">מי</div>
@@ -689,7 +689,7 @@ function ProductionSchedule({ profile }) {
               )}
               {rows.map((row, index) => (
                 <div key={row.id}
-                  className={`grid gap-0 border-b border-gray-50 group ${isManager?'grid-cols-[80px_1fr_1fr_1fr_40px]':'grid-cols-[80px_1fr_1fr_1fr]'} ${index%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
+                  className={`grid gap-0 border-b border-gray-50 group ${isManager?'grid-cols-[80px_2fr_1fr_1fr_40px]':'grid-cols-[80px_2fr_1fr_1fr]'} ${index%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
                   {isManager ? (
                     <>
                       <input value={row.time||''} onChange={e=>updateRow(row.id,'time',e.target.value)} placeholder="00:00"
@@ -715,9 +715,9 @@ function ProductionSchedule({ profile }) {
                   ) : (
                     <>
                       <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 font-mono text-[#E0197D] font-medium">{row.time}</div>
-                      <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100">{row.what}</div>
-                      <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 text-gray-600">{row.who}</div>
-                      <div className="px-3 py-2.5 text-[13px] text-right text-gray-400">{row.notes}</div>
+                      <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 break-words">{row.what}</div>
+                      <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 text-gray-600 break-words">{row.who}</div>
+                      <div className="px-3 py-2.5 text-[13px] text-right text-gray-400 break-words">{row.notes}</div>
                     </>
                   )}
                 </div>
