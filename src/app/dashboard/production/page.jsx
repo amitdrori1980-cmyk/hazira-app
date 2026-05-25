@@ -693,13 +693,13 @@ function ProductionSchedule({ profile }) {
                   {isManager ? (
                     <>
                       <input value={row.time||''} onChange={e=>updateRow(row.id,'time',e.target.value)} placeholder=""
-                        className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 font-mono"/>
+                        className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 font-mono placeholder-transparent"/>
                       <input value={row.what||''} onChange={e=>updateRow(row.id,'what',e.target.value)} placeholder=""
-                        className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100"/>
+                        className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 placeholder-transparent"/>
                       <input value={row.who||''} onChange={e=>updateRow(row.id,'who',e.target.value)} placeholder=""
-                        className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100"/>
+                        className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 placeholder-transparent"/>
                       <input value={row.notes||''} onChange={e=>updateRow(row.id,'notes',e.target.value)} placeholder=""
-                        className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 text-gray-500"/>
+                        className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 text-gray-500 placeholder-transparent"/>
                       <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => moveRow(index,-1)} disabled={index===0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5">
                           <i className="ti ti-chevron-up" style={{fontSize:11}}/>
