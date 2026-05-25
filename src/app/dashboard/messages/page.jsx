@@ -140,13 +140,15 @@ export default function MessagesPage() {
   async function confirmDateCheck(msg) {
     const { data: { user } } = await supabase.auth.getUser()
     const member = crew.find(c => c.user_id === user.id)
-    await supabase.from('crew_constraints').insert({
+    const crewName = member?.full_name || profile?.full_name || ''
+    const { error } = await supabase.from('crew_constraints').insert({
       crew_member_id: member?.id || null,
-      crew_name: member?.full_name || '',
+      crew_name: crewName,
       date: msg.event_data?.event_date,
       notes: `אישור בדיקת תאריך: ${msg.event_data?.event_title}`,
       available: true,
     })
+    if (error) { alert('שגיאה בשמירת האילוץ: ' + error.message); return }
     await supabase.from('messages').delete().eq('id', msg.id)
     setMessages(prev => prev.filter(m => m.id !== msg.id))
   }
