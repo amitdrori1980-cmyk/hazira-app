@@ -16,6 +16,10 @@ export default function MessagesPage() {
   const [loading, setLoading]   = useState(true)
   const [sending, setSending]   = useState(false)
   const [form, setForm] = useState({ body:'', target_type:'all', to_dept:'', to_crew_id:'', priority:'רגיל' })
+  const [showDateCheck, setShowDateCheck] = useState(false)
+  const [dateCheckForm, setDateCheckForm] = useState({ to_crew_id:'', event_id:'', notes:'' })
+  const [events, setEvents] = useState([])
+  const [sendingDateCheck, setSendingDateCheck] = useState(false)
   const [openReplies, setOpenReplies] = useState({})
   const [replies, setReplies]         = useState({})
   const [replyText, setReplyText]     = useState({})
@@ -45,6 +49,9 @@ export default function MessagesPage() {
     }
     const { data: msgs } = await q
     setMessages(msgs || [])
+    const today = new Date().toISOString().slice(0,10)
+    const { data: evs } = await supabase.from('events').select('id,title,date,time').gte('date', today).order('date').limit(50)
+    setEvents(evs || [])
     setLoading(false)
   }
 
@@ -108,6 +115,42 @@ export default function MessagesPage() {
     setSendingReply(null)
   }
 
+  async function sendDateCheck(e) {
+    e.preventDefault()
+    if (!dateCheckForm.to_crew_id || !dateCheckForm.event_id) return
+    setSendingDateCheck(true)
+    const member = crew.find(c => c.id === dateCheckForm.to_crew_id)
+    const event = events.find(ev => ev.id === dateCheckForm.event_id)
+    await supabase.from('messages').insert({
+      sender_id: profile.uid,
+      to_crew_id: dateCheckForm.to_crew_id,
+      to_user: member?.user_id || null,
+      body: `בדיקת תאריך: ${event?.title} — ${event?.date}`,
+      topic: 'date_check',
+      event_data: { event_id: event?.id, event_title: event?.title, event_date: event?.date, event_time: event?.time, notes: dateCheckForm.notes },
+      read: false,
+      priority: 'רגיל',
+    })
+    setDateCheckForm({ to_crew_id:'', event_id:'', notes:'' })
+    setShowDateCheck(false)
+    setSendingDateCheck(false)
+    await load()
+  }
+
+  async function confirmDateCheck(msg) {
+    const { data: { user } } = await supabase.auth.getUser()
+    const member = crew.find(c => c.user_id === user.id)
+    await supabase.from('crew_constraints').insert({
+      crew_member_id: member?.id || null,
+      crew_name: member?.full_name || '',
+      date: msg.event_data?.event_date,
+      notes: `אישור בדיקת תאריך: ${msg.event_data?.event_title}`,
+      available: true,
+    })
+    await supabase.from('messages').delete().eq('id', msg.id)
+    setMessages(prev => prev.filter(m => m.id !== msg.id))
+  }
+
   function canDelete(msg) {
     if (!profile) return false
     return msg.sender_id === profile.uid || msg.to_user === profile.uid || profile.is_manager
@@ -141,6 +184,38 @@ export default function MessagesPage() {
                 ביטול
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* בדיקת תאריך */}
+      {profile?.is_manager && showDateCheck && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-5 w-full max-w-sm shadow-xl" dir="rtl">
+            <div className="text-[14px] font-semibold text-gray-800 mb-4">בדיקת תאריך</div>
+            <form onSubmit={sendDateCheck} className="flex flex-col gap-3">
+              <select value={dateCheckForm.to_crew_id} onChange={e=>setDateCheckForm(p=>({...p,to_crew_id:e.target.value}))}
+                required className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#CC1010]">
+                <option value="">בחר עובד...</option>
+                {crew.map(m=><option key={m.id} value={m.id}>{m.full_name}</option>)}
+              </select>
+              <select value={dateCheckForm.event_id} onChange={e=>setDateCheckForm(p=>({...p,event_id:e.target.value}))}
+                required className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#CC1010]">
+                <option value="">בחר אירוע...</option>
+                {events.map(ev=><option key={ev.id} value={ev.id}>{ev.date} — {ev.title}</option>)}
+              </select>
+              <textarea value={dateCheckForm.notes} onChange={e=>setDateCheckForm(p=>({...p,notes:e.target.value}))}
+                placeholder="הערות (אופציונלי)" rows={3}
+                className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#CC1010] resize-none"/>
+              <div className="flex gap-2">
+                <button type="submit" disabled={sendingDateCheck}
+                  className="flex-1 bg-[#CC1010] text-white text-sm py-2.5 rounded-xl font-medium disabled:opacity-50">
+                  {sendingDateCheck ? 'שולח...' : 'שלח בדיקת תאריך'}
+                </button>
+                <button type="button" onClick={()=>setShowDateCheck(false)}
+                  className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl">ביטול</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -180,10 +255,13 @@ export default function MessagesPage() {
                 className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
                 <option>רגיל</option><option>גבוהה</option><option>דחוף</option>
               </select>
+              <button type="button" onClick={()=>setShowDateCheck(true)}
+                className="border border-[#6366f1] text-[#6366f1] text-sm px-3 py-2 rounded-lg hover:bg-[#EEF2FF] flex items-center gap-1">
+                <i className="ti ti-calendar-check"/> בדיקת תאריך
+              </button>
               <button type="submit" disabled={sending}
                 className="flex-1 bg-[#CC1010] hover:bg-[#a00c0c] text-white text-sm px-4 py-2 rounded-lg disabled:opacity-50 flex items-center justify-center gap-1">
-                <i className="ti ti-send"/> שלח
-              </button>
+                tton>
             </div>
           </form>
         </div>
@@ -200,6 +278,32 @@ export default function MessagesPage() {
           <div className="text-center text-sm text-gray-400 py-6">אין הודעות</div>
         ) : messages.map(m => (
           <div key={m.id} className="mb-3 last:mb-0">
+            {m.topic === 'date_check' ? (
+              <div className="p-4 bg-[#EEF2FF] rounded-xl border-r-2 border-[#6366f1]" dir="rtl">
+                <div className="flex items-center gap-2 mb-2">
+                  <i className="ti ti-calendar-check text-[#6366f1]" style={{fontSize:15}}/>
+                  <span className="text-[13px] font-semibold text-[#4338ca]">בדיקת תאריך</span>
+                  <span className="text-[11px] text-gray-400 mr-auto">{m.sender?.full_name || 'מנהל'}</span>
+                </div>
+                <div className="bg-white rounded-lg p-3 mb-3">
+                  <div className="text-[13px] font-medium text-gray-800">{m.event_data?.event_title}</div>
+                  <div className="text-[12px] text-gray-600">{m.event_data?.event_date} {m.event_data?.event_time?.slice(0,5)}</div>
+                  {m.event_data?.notes && <div className="text-[12px] text-gray-600 mt-1">{m.event_data.notes}</div>}
+                </div>
+                {!profile?.is_manager && (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" onChange={e=>{if(e.target.checked && window.confirm('לאשר נוכחות ולרשום כאילוץ?'))confirmDateCheck(m)}}
+                      style={{accentColor:'#6366f1'}} className="w-4 h-4"/>
+                    <span className="text-[13px] text-[#4338ca] font-medium">אני מאשר/ת נוכחות</span>
+                  </label>
+                )}
+                {profile?.is_manager && (
+                  <button onClick={()=>setConfirmDelete(m.id)} className="text-gray-300 hover:text-red-500">
+                    <i className="ti ti-trash" style={{fontSize:13}}/>
+                  </button>
+                )}
+              </div>
+            ) : (
             <div className="p-3 bg-gray-50 rounded-lg border-r-2 border-[#CC1010]">
               <div className="flex items-center justify-between mb-1 flex-row-reverse">
                 <div className="flex items-center gap-2">
