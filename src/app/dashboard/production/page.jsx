@@ -692,13 +692,13 @@ function ProductionSchedule({ profile }) {
                   className={`grid gap-0 border-b border-gray-50 group ${isManager?'grid-cols-[120px_2fr_1.5fr_1fr_40px]':'grid-cols-[120px_2fr_1.5fr_1fr]'} ${index%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
                   {isManager ? (
                     <>
-                      <input value={row.time||''} onChange={e=>updateRow(row.id,'time',e.target.value)} placeholder="00:00"
+                      <input value={row.time||''} onChange={e=>updateRow(row.id,'time',e.target.value)} placeholder=""
                         className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 font-mono"/>
-                      <input value={row.what||''} onChange={e=>updateRow(row.id,'what',e.target.value)} placeholder="תיאור..."
+                      <input value={row.what||''} onChange={e=>updateRow(row.id,'what',e.target.value)} placeholder=""
                         className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100"/>
-                      <input value={row.who||''} onChange={e=>updateRow(row.id,'who',e.target.value)} placeholder="שם / תפקיד..."
+                      <input value={row.who||''} onChange={e=>updateRow(row.id,'who',e.target.value)} placeholder=""
                         className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100"/>
-                      <input value={row.notes||''} onChange={e=>updateRow(row.id,'notes',e.target.value)} placeholder="הערות..."
+                      <input value={row.notes||''} onChange={e=>updateRow(row.id,'notes',e.target.value)} placeholder=""
                         className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 text-gray-500"/>
                       <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => moveRow(index,-1)} disabled={index===0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5">
