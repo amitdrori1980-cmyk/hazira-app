@@ -39,6 +39,8 @@ export default function ConstraintsPage() {
 
   const [showAdd, setShowAdd] = useState(false)
   const [crewOpen, setCrewOpen] = useState(false)
+  const [hiddenCrew, setHiddenCrew] = useState(new Set())
+  const [showCrewFilter, setShowCrewFilter] = useState(false)
   const [form, setForm]       = useState({ crew_name:'', date:'', date_to:'', time_from:'', time_to:'', hours:'', notes:'' })
   const [adding, setAdding]   = useState(false)
   const [confirmId, setConfirmId] = useState(null)
@@ -77,7 +79,7 @@ export default function ConstraintsPage() {
 
   function getDayData(ds) {
     const dayEvents      = showEvents      ? events.filter(e => e.date === ds) : []
-    const dayConstraints = showConstraints ? constraints.filter(c => c.date === ds || (c.date_to && ds >= c.date && ds <= c.date_to)) : []
+    const dayConstraints = showConstraints ? constraints.filter(c => !hiddenCrew.has(c.crew_name) && (c.date === ds || (c.date_to && ds >= c.date && ds <= c.date_to))) : []
     return { dayEvents, dayConstraints }
   }
 
@@ -197,6 +199,32 @@ export default function ConstraintsPage() {
               <span className="w-3 h-3 rounded-sm bg-[#EEF2FF] inline-block"/>
               הצג אילוצי צוות
             </label>
+            {showConstraints && (
+              <div className="relative">
+                <button onClick={()=>setShowCrewFilter(p=>!p)}
+                  className="text-[12px] text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:border-[#6366f1] flex items-center gap-1">
+                  <i className="ti ti-users" style={{fontSize:13}}/>
+                  סינון עובדים
+                  {hiddenCrew.size > 0 && <span className="bg-[#6366f1] text-white text-[10px] px-1.5 rounded-full">{hiddenCrew.size}</span>}
+                </button>
+                {showCrewFilter && (
+                  <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-3 min-w-[180px]">
+                    <div className="flex justify-between items-center mb-2">
+                      <button onClick={()=>setHiddenCrew(new Set())} className="text-[11px] text-[#6366f1]">הצג הכל</button>
+                      <button onClick={()=>setHiddenCrew(new Set([...new Set(constraints.map(c=>c.crew_name))]))} className="text-[11px] text-gray-400">הסתר הכל</button>
+                    </div>
+                    {[...new Set(constraints.map(c=>c.crew_name))].sort().map(name=>(
+                      <label key={name} className="flex items-center gap-2 py-1 cursor-pointer">
+                        <input type="checkbox" checked={!hiddenCrew.has(name)}
+                          onChange={()=>setHiddenCrew(prev=>{const n=new Set(prev);n.has(name)?n.delete(name):n.add(name);return n})}
+                          style={{accentColor:'#6366f1'}} className="w-3.5 h-3.5"/>
+                        <span className="text-[13px] text-gray-700">{name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex gap-2">
             <button onClick={() => setShowAdd(!showAdd)}
