@@ -152,7 +152,11 @@ function ProductionInquiries() {
           <div className="grid grid-cols-2 gap-2 mb-3">
             <input value={newEvent.event_name} onChange={e=>setNewEvent(p=>({...p,event_name:e.target.value}))}
               placeholder="שם האירוע *" className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right col-span-2"/>
-            <input type="date" value={newEvent.date} onChange={e=>setNewEvent(p=>({...p,date:e.target.value}))}
+            <input type="date" value={newEvent.date} onChange={e=>{
+              const d=e.target.value
+              const day=d?['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(d).getDay()]:''
+              setNewEvent(p=>({...p,date:d,day}))
+            }}
               className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
             <select value={newEvent.day} onChange={e=>setNewEvent(p=>({...p,day:e.target.value}))}
               className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]">
