@@ -9,7 +9,7 @@ export default function HaziraLogo({ size = 40 }) {
       width={size}
       height={h}
       alt="הזירה"
-      style={{ objectFit: 'contain' }}
+      style={{ objectFit: 'contain', filter: 'hue-rotate(300deg) saturate(2)' }}
     />
   )
 }
