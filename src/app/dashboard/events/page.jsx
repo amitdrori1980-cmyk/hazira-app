@@ -25,6 +25,9 @@ function EventsPageInner() {
   const [editVal, setEditVal]       = useState({})
   const [openPanel, setOpenPanel]   = useState(null)
   const [equipQty, setEquipQty]     = useState({})
+  const [duplicating, setDuplicating] = useState(null)
+  const [dupForm, setDupForm]         = useState({})
+  const [savingDup, setSavingDup]     = useState(false)
 
   useEffect(() => {
     load()
@@ -116,6 +119,25 @@ function EventsPageInner() {
     await supabase.from('events').update(editVal).eq('id',id)
     setEvents(prev=>prev.map(e=>e.id===id?{...e,...editVal}:e))
     setEditing(null)
+  }
+
+  function startDuplicate(ev) {
+    setDuplicating(ev)
+    setDupForm({ title: ev.title + ' (עותק)', date: '', end_date: ev.end_date||'', time: ev.time||'', type: ev.type, description: ev.description||'', crew_notes: ev.crew_notes||'', venue: ev.venue||'', depts: ev.depts||[] })
+  }
+
+  async function saveDuplicate(e) {
+    e.preventDefault()
+    if (!dupForm.date) return
+    setSavingDup(true)
+    const { data, error } = await supabase.from('events').insert({ ...dupForm, end_date: dupForm.end_date||null, time: dupForm.time||null }).select().single()
+    if (!error) {
+      setEvents(prev => [...prev, data].sort((a,b) => a.date.localeCompare(b.date)))
+      setEventCrew(prev => ({ ...prev, [data.id]: [] }))
+      setEventEquip(prev => ({ ...prev, [data.id]: [] }))
+    }
+    setDuplicating(null)
+    setSavingDup(false)
   }
 
   async function toggleCrewMember(eventId, memberId) {
@@ -262,6 +284,9 @@ function EventsPageInner() {
                       className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition-colors flex-shrink-0 ${isOpen(ev.id,PANEL_EQUIP)?'bg-[#FF3EB5] text-white border-[#FF3EB5]':'border-gray-200 text-gray-500 hover:border-[#FF3EB5]'}`}>
                       <i className="ti ti-tool" style={{fontSize:11}}/>
                       {assignedEquip.length}
+                    </button>
+                    <button onClick={()=>startDuplicate(ev)} className="text-gray-200 hover:text-[#FF3EB5] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                      <i className="ti ti-copy" style={{fontSize:13}}/>
                     </button>
                     <button onClick={()=>startEdit(ev)} className="text-gray-200 hover:text-[#FF3EB5] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
                       <i className="ti ti-pencil" style={{fontSize:13}}/>
