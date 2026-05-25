@@ -331,7 +331,7 @@ function EventsPageInner() {
                       <i className="ti ti-tool" style={{fontSize:11}}/>
                       {assignedEquip.length}
                     </button>
-                    <button onClick={()=>startDuplicate(ev)} className="text-gray-200 hover:text-[#FF3EB5] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                    <button onClick={()=>startDuplicate(ev)} className="text-gray-400 hover:text-[#FF3EB5] flex-shrink-0" title="שכפל אירוע">
                       <i className="ti ti-copy" style={{fontSize:13}}/>
                     </button>
                     <button onClick={()=>startEdit(ev)} className="text-gray-200 hover:text-[#FF3EB5] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
