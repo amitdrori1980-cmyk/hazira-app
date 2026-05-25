@@ -335,6 +335,7 @@ export default function MessagesPage() {
                 </span>
               </div>
             </div>
+            )}
 
             {openReplies[m.id] && (
               <div className="mr-4 mt-1 border-r border-gray-200 pr-3">
