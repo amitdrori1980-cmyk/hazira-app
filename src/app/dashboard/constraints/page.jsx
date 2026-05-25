@@ -362,6 +362,8 @@ export default function ConstraintsPage() {
                     <div className="flex-1 text-right">
                       <div className="text-[13px] font-medium text-[#4338ca]">{c.crew_name}</div>
                       {c.hours && <div className="text-[11px] text-[#6366f1]">🕐 {c.hours}</div>}
+                      {(c.time_from || c.time_to) && <div className="text-[11px] text-[#6366f1]">🕐 {c.time_from?.slice(0,5)}{c.time_to ? ` - ${c.time_to.slice(0,5)}` : ''}</div>}
+                      {c.date_to && <div className="text-[11px] text-gray-400">עד {c.date_to}</div>}
                       {c.notes && <div className="text-[11px] text-gray-500">{c.notes}</div>}
                     </div>
                     <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-all">
