@@ -266,7 +266,7 @@ function EventsPageInner() {
                     <button onClick={()=>startEdit(ev)} className="text-gray-200 hover:text-[#CC1010] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
                       <i className="ti ti-pencil" style={{fontSize:13}}/>
                     </button>
-                    <button onClick={()=>deleteEvent(ev.id)} className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                    <button onClick={()=>{if(window.confirm('למחוק את האירוע "' + ev.title + '"?'))deleteEvent(ev.id)}} className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
                       <i className="ti ti-trash" style={{fontSize:13}}/>
                     </button>
                   </div>
