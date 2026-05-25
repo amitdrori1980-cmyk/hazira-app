@@ -403,8 +403,26 @@ export default function ConstraintsPage() {
                 <option value="">בחר איש צוות...</option>
                 {crew.map(m=><option key={m.id} value={m.full_name}>{m.full_name}</option>)}
               </select>
-              <input value={editForm.date} onChange={e=>setEditForm(f=>({...f,date:e.target.value}))}
-                type="date" className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1]"/>
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-gray-400 flex-shrink-0">מתאריך</span>
+                <input value={editForm.date} onChange={e=>setEditForm(f=>({...f,date:e.target.value}))}
+                  type="date" required className="flex-1 text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1]"/>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-gray-400 flex-shrink-0">עד תאריך</span>
+                <input value={editForm.date_to} onChange={e=>setEditForm(f=>({...f,date_to:e.target.value}))}
+                  type="date" className="flex-1 text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1]"/>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-gray-400 flex-shrink-0">משעה</span>
+                <input value={editForm.time_from} onChange={e=>setEditForm(f=>({...f,time_from:e.target.value}))}
+                  type="time" className="flex-1 text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1]"/>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-gray-400 flex-shrink-0">עד שעה</span>
+                <input value={editForm.time_to} onChange={e=>setEditForm(f=>({...f,time_to:e.target.value}))}
+                  type="time" className="flex-1 text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1]"/>
+              </div>
               <input value={editForm.hours} onChange={e=>setEditForm(f=>({...f,hours:e.target.value}))}
                 placeholder="שעות (09:00-13:00)" className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1] text-right"/>
               <input value={editForm.notes} onChange={e=>setEditForm(f=>({...f,notes:e.target.value}))}
