@@ -73,10 +73,10 @@ export default function CrewPage() {
             <div className="grid grid-cols-2 gap-2">
               <input value={form.full_name} onChange={e=>setForm(f=>({...f,full_name:e.target.value}))}
                 placeholder="שם מלא *" required
-                className="col-span-2 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                className="col-span-2 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
               <input value={form.role} onChange={e=>setForm(f=>({...f,role:e.target.value}))}
                 placeholder="תפקיד"
-                className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
               <select value={form.dept} onChange={e=>setForm(f=>({...f,dept:e.target.value}))}
                 className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
                 <option value="">מחלקה...</option>
@@ -84,16 +84,16 @@ export default function CrewPage() {
               </select>
               <input value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))}
                 placeholder="טלפון"
-                className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
               <input value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))}
                 placeholder="אימייל" type="email"
-                className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
             </div>
             <input value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}
               placeholder="הערות"
-              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
             <button type="submit" disabled={adding}
-              className="bg-[#FF3EB5] text-white text-sm py-2 rounded-lg hover:bg-[#CC0090] transition-colors disabled:opacity-50">
+              className="bg-[#E0197D] text-white text-sm py-2 rounded-lg hover:bg-[#A0106A] transition-colors disabled:opacity-50">
               {adding ? 'מוסיף...' : 'הוסף לצוות'}
             </button>
           </form>
@@ -104,7 +104,7 @@ export default function CrewPage() {
       <div className="bg-white border border-gray-100 rounded-xl p-4">
         <div className="flex items-center justify-between mb-3">
           <span className="text-[13px] font-medium text-gray-800">אנשי הצוות</span>
-          <span className="text-[11px] bg-[#FFE6F5] text-[#CC0090] px-2 py-0.5 rounded-full">{filtered.length}</span>
+          <span className="text-[11px] bg-[#FCE4F3] text-[#A0106A] px-2 py-0.5 rounded-full">{filtered.length}</span>
         </div>
 
         {loading ? (
@@ -117,29 +117,29 @@ export default function CrewPage() {
               <div className="py-3 flex flex-col gap-2">
                 <div className="grid grid-cols-2 gap-2">
                   <input value={editVal.full_name} onChange={e=>setEditVal(v=>({...v,full_name:e.target.value}))}
-                    placeholder="שם מלא" className="col-span-2 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                    placeholder="שם מלא" className="col-span-2 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
                   <input value={editVal.role||''} onChange={e=>setEditVal(v=>({...v,role:e.target.value}))}
-                    placeholder="תפקיד" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                    placeholder="תפקיד" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
                   <select value={editVal.dept||''} onChange={e=>setEditVal(v=>({...v,dept:e.target.value}))}
                     className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
                     <option value="">מחלקה...</option>
                     {depts.map(d => <option key={d}>{d}</option>)}
                   </select>
                   <input value={editVal.phone||''} onChange={e=>setEditVal(v=>({...v,phone:e.target.value}))}
-                    placeholder="טלפון" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                    placeholder="טלפון" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
                   <input value={editVal.email||''} onChange={e=>setEditVal(v=>({...v,email:e.target.value}))}
-                    placeholder="אימייל" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                    placeholder="אימייל" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
                 </div>
                 <input value={editVal.notes||''} onChange={e=>setEditVal(v=>({...v,notes:e.target.value}))}
-                  placeholder="הערות" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                  placeholder="הערות" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
                 <div className="flex gap-2">
-                  <button onClick={() => saveEdit(member.id)} className="flex-1 bg-[#FF3EB5] text-white text-sm py-1.5 rounded-lg">שמור</button>
+                  <button onClick={() => saveEdit(member.id)} className="flex-1 bg-[#E0197D] text-white text-sm py-1.5 rounded-lg">שמור</button>
                   <button onClick={() => setEditing(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm py-1.5 rounded-lg">ביטול</button>
                 </div>
               </div>
             ) : (
               <div className="flex items-center gap-3 py-2.5 flex-row-reverse group">
-                <div className="w-8 h-8 rounded-full bg-[#FFE6F5] text-[#FF3EB5] text-[11px] font-semibold flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-[#FCE4F3] text-[#E0197D] text-[11px] font-semibold flex items-center justify-center flex-shrink-0">
                   {initials(member.full_name)}
                 </div>
                 <div className="flex-1 text-right min-w-0">
@@ -152,7 +152,7 @@ export default function CrewPage() {
                 {isManager && (
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                     <button onClick={() => { setEditing(member.id); setEditVal({...member}) }}
-                      className="text-gray-300 hover:text-[#FF3EB5]">
+                      className="text-gray-300 hover:text-[#E0197D]">
                       <i className="ti ti-pencil" style={{fontSize:13}}/>
                     </button>
                     <button onClick={() => deactivate(member.id)}

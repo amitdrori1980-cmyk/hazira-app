@@ -179,35 +179,35 @@ function EventsPageInner() {
               <div>
                 <label className="text-[12px] text-gray-500 mb-1 block">שם האירוע</label>
                 <input value={dupForm.title||""} onChange={e=>setDupForm(f=>({...f,title:e.target.value}))}
-                  className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5]" required/>
+                  className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]" required/>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[12px] text-gray-500 mb-1 block">תאריך חדש *</label>
                   <input type="date" value={dupForm.date||""} onChange={e=>setDupForm(f=>({...f,date:e.target.value}))}
-                    className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5]" required/>
+                    className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]" required/>
                 </div>
                 <div>
                   <label className="text-[12px] text-gray-500 mb-1 block">שעה</label>
                   <input type="time" value={dupForm.time||""} onChange={e=>setDupForm(f=>({...f,time:e.target.value}))}
-                    className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                    className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]"/>
                 </div>
               </div>
               <div>
                 <label className="text-[12px] text-gray-500 mb-1 block">סוג</label>
                 <select value={dupForm.type||""} onChange={e=>setDupForm(f=>({...f,type:e.target.value}))}
-                  className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5]">
+                  className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]">
                   {eventTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-[12px] text-gray-500 mb-1 block">תיאור</label>
                 <textarea value={dupForm.description||""} onChange={e=>setDupForm(f=>({...f,description:e.target.value}))}
-                  rows={2} className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5] resize-none"/>
+                  rows={2} className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D] resize-none"/>
               </div>
               <div className="flex gap-2 mt-1">
                 <button type="submit" disabled={savingDup}
-                  className="flex-1 bg-[#FF3EB5] text-white text-sm py-2.5 rounded-xl font-medium disabled:opacity-50">
+                  className="flex-1 bg-[#E0197D] text-white text-sm py-2.5 rounded-xl font-medium disabled:opacity-50">
                   {savingDup ? "שומר..." : "שכפל אירוע"}
                 </button>
                 <button type="button" onClick={()=>setDuplicating(null)}
@@ -222,35 +222,35 @@ function EventsPageInner() {
         <div className="text-[13px] font-medium text-gray-800 mb-3">הוסף אירוע חדש</div>
         <form onSubmit={addEvent} className="flex flex-col gap-2">
           <input value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} placeholder="שם האירוע *"
-            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
           <div className="grid grid-cols-2 gap-2">
             <input value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} type="date"
-              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
             <input value={form.time} onChange={e=>setForm(f=>({...f,time:e.target.value}))} type="time"
-              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-gray-400 whitespace-nowrap">עד תאריך:</span>
             <input value={form.end_date} onChange={e=>setForm(f=>({...f,end_date:e.target.value}))} type="date"
-              className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+              className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
           </div>
           <select value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}
             className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
             {eventTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
           <input value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="תיאור"
-            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
           <select value={form.venue} onChange={e=>setForm(f=>({...f,venue:e.target.value}))}
-            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]">
+            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]">
             <option value="">בחר אולם...</option>
             {venues.map(v=><option key={v} value={v}>{v}</option>)}
           </select>
           <textarea value={form.crew_notes} onChange={e=>setForm(f=>({...f,crew_notes:e.target.value}))}
             placeholder="הערות לצוות..." rows={2}
-            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5] resize-none"/>
+            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-none"/>
 
           <button type="submit" disabled={adding}
-            className="bg-[#FF3EB5] text-white text-sm py-2 rounded-lg hover:bg-[#CC0090] disabled:opacity-50">
+            className="bg-[#E0197D] text-white text-sm py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
             {adding?'מוסיף...':'הוסף אירוע'}
           </button>
         </form>
@@ -271,32 +271,32 @@ function EventsPageInner() {
               {editing===ev.id ? (
                 <div className="py-2 flex flex-col gap-2">
                   <input value={editVal.title} onChange={e=>setEditVal(v=>({...v,title:e.target.value}))}
-                    className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                    className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
                   <div className="grid grid-cols-2 gap-2">
                     <input value={editVal.date} onChange={e=>setEditVal(v=>({...v,date:e.target.value}))} type="date"
-                      className="text-sm px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                      className="text-sm px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
                     <input value={editVal.end_date||''} onChange={e=>setEditVal(v=>({...v,end_date:e.target.value}))} type="date" placeholder="עד תאריך"
 
-                      className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                      className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
                     <input value={editVal.time} onChange={e=>setEditVal(v=>({...v,time:e.target.value}))} type="time"
-                      className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                      className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
                   </div>
                   <select value={editVal.type} onChange={e=>setEditVal(v=>({...v,type:e.target.value}))}
                     className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
                     {eventTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                   <input value={editVal.description} onChange={e=>setEditVal(v=>({...v,description:e.target.value}))}
-                    placeholder="תיאור" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
+                    placeholder="תיאור" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
                   <select value={editVal.venue||''} onChange={e=>setEditVal(v=>({...v,venue:e.target.value}))}
-                    className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]">
+                    className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]">
                     <option value="">בחר אולם...</option>
                     {venues.map(v=><option key={v} value={v}>{v}</option>)}
                   </select>
                   <textarea value={editVal.crew_notes||''} onChange={e=>setEditVal(v=>({...v,crew_notes:e.target.value}))}
                     placeholder="הערות לצוות..." rows={2}
-                    className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5] resize-none"/>
+                    className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-none"/>
                   <div className="flex gap-2">
-                    <button onClick={()=>saveEdit(ev.id)} className="flex-1 bg-[#FF3EB5] text-white text-sm py-1.5 rounded-lg">שמור</button>
+                    <button onClick={()=>saveEdit(ev.id)} className="flex-1 bg-[#E0197D] text-white text-sm py-1.5 rounded-lg">שמור</button>
                     <button onClick={()=>setEditing(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm py-1.5 rounded-lg">ביטול</button>
                   </div>
                 </div>
@@ -309,9 +309,9 @@ function EventsPageInner() {
                     <div className="flex-1 text-right min-w-0">
                       <div className="text-[13px] text-gray-800">{ev.title}</div>
                       {ev.description&&<div className="text-[11px] text-gray-400">{ev.description}</div>}
-                      {ev.venue&&<div className="text-[11px] text-gray-500 flex items-center gap-1 flex-row-reverse justify-end"><i className="ti ti-map-pin" style={{fontSize:10,color:'#FF3EB5'}}/>{ev.venue}</div>}
+                      {ev.venue&&<div className="text-[11px] text-gray-500 flex items-center gap-1 flex-row-reverse justify-end"><i className="ti ti-map-pin" style={{fontSize:10,color:'#E0197D'}}/>{ev.venue}</div>}
                       {ev.crew_notes&&(
-                        <div className="text-[11px] text-[#CC0090] bg-[#FFE6F5] rounded px-1.5 py-0.5 mt-0.5 inline-block">
+                        <div className="text-[11px] text-[#A0106A] bg-[#FCE4F3] rounded px-1.5 py-0.5 mt-0.5 inline-block">
                           📝 {ev.crew_notes}
                         </div>
                       )}
@@ -321,20 +321,20 @@ function EventsPageInner() {
                     </span>
                     <button onClick={()=>togglePanel(ev.id,PANEL_CREW)}
                       title="צוות"
-                      className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition-colors flex-shrink-0 ${isOpen(ev.id,PANEL_CREW)?'bg-[#FF3EB5] text-white border-[#FF3EB5]':'border-gray-200 text-gray-500 hover:border-[#FF3EB5]'}`}>
+                      className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition-colors flex-shrink-0 ${isOpen(ev.id,PANEL_CREW)?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
                       <i className="ti ti-users" style={{fontSize:11}}/>
                       {assignedCrew.length}
                     </button>
                     <button onClick={()=>togglePanel(ev.id,PANEL_EQUIP)}
                       title="ציוד"
-                      className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition-colors flex-shrink-0 ${isOpen(ev.id,PANEL_EQUIP)?'bg-[#FF3EB5] text-white border-[#FF3EB5]':'border-gray-200 text-gray-500 hover:border-[#FF3EB5]'}`}>
+                      className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition-colors flex-shrink-0 ${isOpen(ev.id,PANEL_EQUIP)?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
                       <i className="ti ti-tool" style={{fontSize:11}}/>
                       {assignedEquip.length}
                     </button>
-                    <button onClick={()=>startDuplicate(ev)} className="text-gray-200 hover:text-[#FF3EB5] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                    <button onClick={()=>startDuplicate(ev)} className="text-gray-200 hover:text-[#E0197D] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
                       <i className="ti ti-copy" style={{fontSize:13}}/>
                     </button>
-                    <button onClick={()=>startEdit(ev)} className="text-gray-200 hover:text-[#FF3EB5] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                    <button onClick={()=>startEdit(ev)} className="text-gray-200 hover:text-[#E0197D] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
                       <i className="ti ti-pencil" style={{fontSize:13}}/>
                     </button>
                     <button onClick={()=>{if(window.confirm('למחוק את האירוע "' + ev.title + '"?'))deleteEvent(ev.id)}} className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
@@ -353,7 +353,7 @@ function EventsPageInner() {
                             const assigned=(eventCrew[ev.id]||[]).includes(member.id)
                             return (
                               <button key={member.id} onClick={()=>toggleCrewMember(ev.id,member.id)}
-                                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${assigned?'bg-[#FF3EB5] text-white border-[#FF3EB5]':'border-gray-200 text-gray-600 hover:border-[#FF3EB5] bg-white'}`}>
+                                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${assigned?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-600 hover:border-[#E0197D] bg-white'}`}>
                                 {member.full_name}{member.role?` · ${member.role}`:''}
                               </button>
                             )
@@ -376,7 +376,7 @@ function EventsPageInner() {
                             return (
                               <div key={item.id} className="flex items-center gap-2 flex-row-reverse">
                                 <button onClick={()=>toggleEquipItem(ev.id,item.id)}
-                                  className={`flex-1 text-right text-[12px] px-2.5 py-1.5 rounded-lg border transition-colors ${assigned?'bg-[#FFE6F5] border-[#FF3EB5] text-[#CC0090] font-medium':'border-gray-200 text-gray-600 hover:border-[#FF3EB5] bg-white'}`}>
+                                  className={`flex-1 text-right text-[12px] px-2.5 py-1.5 rounded-lg border transition-colors ${assigned?'bg-[#FCE4F3] border-[#E0197D] text-[#A0106A] font-medium':'border-gray-200 text-gray-600 hover:border-[#E0197D] bg-white'}`}>
                                   <div>{item.name}</div>
                                   {item.location&&<div className="text-[10px] text-gray-400">{item.location}</div>}
                                 </button>
@@ -385,7 +385,7 @@ function EventsPageInner() {
                                     value={row.quantity_needed||''}
                                     onChange={e=>updateEquipQty(ev.id,item.id,e.target.value)}
                                     placeholder="כמות"
-                                    className="w-16 text-[11px] px-2 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#FF3EB5] text-center"
+                                    className="w-16 text-[11px] px-2 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#E0197D] text-center"
                                   />
                                 )}
                               </div>
@@ -402,7 +402,7 @@ function EventsPageInner() {
                               return item?(
                                 <div key={row.id} className="flex items-center gap-2 flex-row-reverse text-[11px]">
                                   <span className="flex-1 text-right text-gray-700">{item.name}</span>
-                                  {row.quantity_needed&&<span className="text-[#FF3EB5] font-medium">{row.quantity_needed}</span>}
+                                  {row.quantity_needed&&<span className="text-[#E0197D] font-medium">{row.quantity_needed}</span>}
                                   {item.location&&<span className="text-gray-400">{item.location}</span>}
                                 </div>
                               ):null

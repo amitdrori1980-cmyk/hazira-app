@@ -244,12 +244,12 @@ export default function ProductionsPage() {
       {isManager && (
         <div className="flex justify-end gap-2 mb-4">
           <button onClick={() => fileInputRef.current.click()} disabled={importing}
-            className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:border-[#FF3EB5] bg-white disabled:opacity-50">
+            className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:border-[#E0197D] bg-white disabled:opacity-50">
             <i className="ti ti-file-import"/>
             {importing ? 'מייבא...' : 'ייבא מאקסל'}
           </button>
           <button onClick={() => setShowNewProd(v => !v)}
-            className="bg-[#FF3EB5] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#CC0090] flex items-center gap-1">
+            className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1">
             <i className="ti ti-plus"/> הפקה חדשה
           </button>
         </div>
@@ -262,10 +262,10 @@ export default function ProductionsPage() {
           <input value={newProdName} onChange={e => setNewProdName(e.target.value)}
             onKeyDown={e => e.key==='Enter' && addProduction()}
             placeholder="למשל: מחזמר הקיץ 2026"
-            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5] text-right mb-3"/>
+            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-3"/>
           <div className="flex gap-2">
             <button onClick={addProduction} disabled={savingProd || !newProdName.trim()}
-              className="flex-1 bg-[#FF3EB5] text-white text-sm py-2 rounded-lg hover:bg-[#CC0090] disabled:opacity-50">
+              className="flex-1 bg-[#E0197D] text-white text-sm py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
               {savingProd ? 'שומר...' : 'צור הפקה'}
             </button>
             <button onClick={() => { setShowNewProd(false); setNewProdName('') }}
@@ -298,8 +298,8 @@ export default function ProductionsPage() {
                   <div className="flex gap-2 flex-row-reverse" onClick={e => e.stopPropagation()}>
                     <input value={editProdName} onChange={e => setEditProdName(e.target.value)}
                       onKeyDown={e => e.key==='Enter' && saveEditProd(prod.id)}
-                      className="flex-1 text-[15px] font-semibold px-2 py-1 border border-[#FF3EB5] rounded-lg outline-none text-right"/>
-                    <button onClick={() => saveEditProd(prod.id)} className="text-[#FF3EB5] text-sm font-medium">שמור</button>
+                      className="flex-1 text-[15px] font-semibold px-2 py-1 border border-[#E0197D] rounded-lg outline-none text-right"/>
+                    <button onClick={() => saveEditProd(prod.id)} className="text-[#E0197D] text-sm font-medium">שמור</button>
                     <button onClick={() => setEditingProd(null)} className="text-gray-400 text-sm">ביטול</button>
                   </div>
                 ) : (
@@ -333,13 +333,13 @@ export default function ProductionsPage() {
                 {prodContacts.filter(c => c.email).length > 0 && (
                   <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex-row-reverse">
                     <button onClick={() => selectAll(prodContacts)}
-                      className="text-[11px] text-gray-500 hover:text-[#FF3EB5] transition-colors">
+                      className="text-[11px] text-gray-500 hover:text-[#E0197D] transition-colors">
                       {prodContacts.filter(c => c.email).every(c => selectedContacts[c.id]) ? 'בטל הכל' : 'בחר הכל'}
                     </button>
                     <div className="flex-1"/>
                     {Object.values(selectedContacts).some(Boolean) && (
                       <button onClick={() => sendEmailToSelected(prodContacts)}
-                        className="flex items-center gap-1.5 text-[12px] bg-[#FF3EB5] text-white px-3 py-1.5 rounded-lg hover:bg-[#CC0090]">
+                        className="flex items-center gap-1.5 text-[12px] bg-[#E0197D] text-white px-3 py-1.5 rounded-lg hover:bg-[#A0106A]">
                         <i className="ti ti-mail" style={{fontSize:13}}/>
                         שלח מייל לנבחרים ({prodContacts.filter(c => selectedContacts[c.id] && c.email).length})
                       </button>
@@ -359,17 +359,17 @@ export default function ProductionsPage() {
                       <div className="flex-1" onClick={e => e.stopPropagation()}>
                         <div className="grid grid-cols-2 gap-2 mb-2">
                           <input value={editContact.full_name||''} onChange={e => setEditContact(p=>({...p,full_name:e.target.value}))}
-                            placeholder="שם מלא" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#FF3EB5] text-right"/>
+                            placeholder="שם מלא" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] text-right"/>
                           <input value={editContact.role||''} onChange={e => setEditContact(p=>({...p,role:e.target.value}))}
-                            placeholder="תפקיד" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#FF3EB5] text-right"/>
+                            placeholder="תפקיד" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] text-right"/>
                           <input value={editContact.phone||''} onChange={e => setEditContact(p=>({...p,phone:e.target.value}))}
-                            placeholder="טלפון" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#FF3EB5] text-right" dir="ltr"/>
+                            placeholder="טלפון" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] text-right" dir="ltr"/>
                           <input value={editContact.email||''} onChange={e => setEditContact(p=>({...p,email:e.target.value}))}
-                            placeholder="אימייל" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#FF3EB5] text-right" dir="ltr"/>
+                            placeholder="אימייל" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] text-right" dir="ltr"/>
                         </div>
                         <div className="flex gap-2">
                           <button onClick={() => saveEditContact(c.id, prod.id)}
-                            className="flex-1 bg-[#FF3EB5] text-white text-sm py-1.5 rounded-lg hover:bg-[#CC0090]">שמור</button>
+                            className="flex-1 bg-[#E0197D] text-white text-sm py-1.5 rounded-lg hover:bg-[#A0106A]">שמור</button>
                           <button onClick={() => setEditingContact(null)}
                             className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-500">ביטול</button>
                         </div>
@@ -380,7 +380,7 @@ export default function ProductionsPage() {
                           <input type="checkbox"
                             checked={!!selectedContacts[c.id]}
                             onChange={() => toggleSelect(c.id)}
-                            className="w-4 h-4 accent-[#FF3EB5] flex-shrink-0 cursor-pointer"
+                            className="w-4 h-4 accent-[#E0197D] flex-shrink-0 cursor-pointer"
                           />
                         )}
                         <div className="flex-1 text-right">
@@ -390,7 +390,7 @@ export default function ProductionsPage() {
                           </div>
                           <div className="flex gap-3 justify-end mt-1 flex-wrap">
                             {c.phone && (
-                              <a href={`tel:${c.phone}`} className="flex items-center gap-1 text-[12px] text-[#FF3EB5] hover:underline" dir="ltr">
+                              <a href={`tel:${c.phone}`} className="flex items-center gap-1 text-[12px] text-[#E0197D] hover:underline" dir="ltr">
                                 <i className="ti ti-phone" style={{fontSize:12}}/> {c.phone}
                               </a>
                             )}
@@ -423,17 +423,17 @@ export default function ProductionsPage() {
                   <div className="px-4 py-3 border-t border-gray-50 bg-gray-50">
                     <div className="grid grid-cols-2 gap-2 mb-2">
                       <input value={newContact.full_name} onChange={e => setNewContact(p=>({...p,full_name:e.target.value}))}
-                        placeholder="שם מלא *" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#FF3EB5] text-right bg-white"/>
+                        placeholder="שם מלא *" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] text-right bg-white"/>
                       <input value={newContact.role} onChange={e => setNewContact(p=>({...p,role:e.target.value}))}
-                        placeholder="תפקיד" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#FF3EB5] text-right bg-white"/>
+                        placeholder="תפקיד" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] text-right bg-white"/>
                       <input value={newContact.phone} onChange={e => setNewContact(p=>({...p,phone:e.target.value}))}
-                        placeholder="טלפון" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#FF3EB5] bg-white" dir="ltr"/>
+                        placeholder="טלפון" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] bg-white" dir="ltr"/>
                       <input value={newContact.email} onChange={e => setNewContact(p=>({...p,email:e.target.value}))}
-                        placeholder="אימייל" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#FF3EB5] bg-white" dir="ltr"/>
+                        placeholder="אימייל" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] bg-white" dir="ltr"/>
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => addContact(prod.id)} disabled={savingContact}
-                        className="flex-1 bg-[#FF3EB5] text-white text-sm py-1.5 rounded-lg hover:bg-[#CC0090] disabled:opacity-50">
+                        className="flex-1 bg-[#E0197D] text-white text-sm py-1.5 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
                         {savingContact ? 'שומר...' : 'הוסף'}
                       </button>
                       <button onClick={() => { setAddingContact(null); setNewContact({ full_name:'', phone:'', email:'', role:'' }) }}
@@ -443,7 +443,7 @@ export default function ProductionsPage() {
                 ) : isManager && (
                   <div className="flex border-t border-gray-50">
                     <button onClick={() => setAddingContact(prod.id)}
-                      className="flex-1 py-3 text-[13px] text-gray-400 hover:text-[#FF3EB5] hover:bg-[#FFE6F5] transition-colors flex items-center justify-center gap-1">
+                      className="flex-1 py-3 text-[13px] text-gray-400 hover:text-[#E0197D] hover:bg-[#FCE4F3] transition-colors flex items-center justify-center gap-1">
                       <i className="ti ti-plus" style={{fontSize:13}}/> הוסף איש קשר
                     </button>
                     <div className="w-px bg-gray-100"/>

@@ -99,7 +99,7 @@ export default function NotesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <button onClick={createNote}
-          className="bg-[#FF3EB5] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#CC0090] flex items-center gap-1.5">
+          className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1.5">
           <i className="ti ti-plus" style={{fontSize:14}}/> פתקייה חדשה
         </button>
         <div className="text-[12px] text-gray-400">{notes.length} פתקיות</div>
@@ -144,7 +144,7 @@ export default function NotesPage() {
           <div className="bg-white rounded-2xl w-full max-w-lg flex flex-col" style={{maxHeight:'85vh'}}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-row-reverse">
               <button onClick={saveNote} disabled={saving}
-                className="bg-[#FF3EB5] text-white text-[13px] px-4 py-1.5 rounded-lg hover:bg-[#CC0090] disabled:opacity-50">
+                className="bg-[#E0197D] text-white text-[13px] px-4 py-1.5 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
                 {saving ? 'שומר...' : 'שמור'}
               </button>
               <button onClick={() => setOpenNote(null)}
@@ -178,7 +178,7 @@ export default function NotesPage() {
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0" style={{background:'rgba(0,0,0,0.4)'}}>
           <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
             <div className="flex items-center justify-center w-12 h-12 bg-red-50 rounded-full mx-auto mb-3">
-              <i className="ti ti-trash text-[#FF3EB5]" style={{fontSize:22}}/>
+              <i className="ti ti-trash text-[#E0197D]" style={{fontSize:22}}/>
             </div>
             <div className="text-center mb-4">
               <div className="text-[16px] font-semibold text-gray-900 mb-1">מחיקת פתקייה</div>
@@ -188,7 +188,7 @@ export default function NotesPage() {
               <button onClick={() => setConfirmDelete(null)}
                 className="flex-1 py-2.5 rounded-xl border border-gray-200 text-[14px] text-gray-600">ביטול</button>
               <button onClick={() => deleteNote(confirmDelete)}
-                className="flex-1 py-2.5 rounded-xl bg-[#FF3EB5] text-white text-[14px]">מחק</button>
+                className="flex-1 py-2.5 rounded-xl bg-[#E0197D] text-white text-[14px]">מחק</button>
             </div>
           </div>
         </div>

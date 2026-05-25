@@ -51,12 +51,12 @@ export default function DepartmentsPage() {
               value={newDept}
               onChange={e => setNewDept(e.target.value)}
               placeholder="שם מחלקה חדשה..."
-              className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"
+              className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"
             />
             <button
               type="submit"
               disabled={adding}
-              className="bg-[#FF3EB5] hover:bg-[#CC0090] text-white text-sm px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+              className="bg-[#E0197D] hover:bg-[#A0106A] text-white text-sm px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
             >
               <i className="ti ti-plus" />
             </button>
@@ -72,14 +72,14 @@ export default function DepartmentsPage() {
           depts.map((d, i) => (
             <div key={d.id}
               className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0 flex-row-reverse">
-              <div className="w-7 h-7 rounded-full bg-[#FFE6F5] text-[#FF3EB5] text-[11px] font-semibold flex items-center justify-center flex-shrink-0">
+              <div className="w-7 h-7 rounded-full bg-[#FCE4F3] text-[#E0197D] text-[11px] font-semibold flex items-center justify-center flex-shrink-0">
                 {i + 1}
               </div>
               <span className="flex-1 text-[13px] text-right text-gray-800">{d.name}</span>
               {isManager && (
                 <button
                   onClick={() => deleteDept(d.id)}
-                  className="text-gray-300 hover:text-[#FF3EB5] transition-colors"
+                  className="text-gray-300 hover:text-[#E0197D] transition-colors"
                   title="מחק מחלקה"
                 >
                   <i className="ti ti-trash" style={{ fontSize: 14 }} />
@@ -91,7 +91,7 @@ export default function DepartmentsPage() {
       </div>
 
       {isManager && (
-        <div className="bg-[#FFE6F5] border border-[#f5c6c6] rounded-xl p-3 text-[12px] text-[#CC0090]">
+        <div className="bg-[#FCE4F3] border border-[#f5c6c6] rounded-xl p-3 text-[12px] text-[#A0106A]">
           <strong>שים לב:</strong> מחיקת מחלקה לא תמחק את העובדים שבה — רק את שם המחלקה מהרשימה.
         </div>
       )}
