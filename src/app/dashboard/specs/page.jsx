@@ -400,7 +400,7 @@ function GeneralFilesMode() {
       const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${f.name}`)
       return `${f.name}: ${data.publicUrl}`
     }).join('%0D%0A')
-    window.location.href = `mailto:?subject=${encodeURIComponent('מפרטים כללי')}&body=${links}`
+    window.location.href = `mailto:?subject=${encodeURIComponent('מפרטים כלליים')}&body=${encodeURIComponent(selected.map(f => { const { data } = supabase.storage.from('venues').getPublicUrl(FOLDER + '/' + f.name); return f.name + ': ' + data.publicUrl }).join('\n'))}`
   }
 
   const anySelected = files.some(f => selectedFiles[f.name])
