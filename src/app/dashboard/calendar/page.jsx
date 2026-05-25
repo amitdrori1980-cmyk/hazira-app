@@ -187,6 +187,12 @@ export default function CalendarPage() {
                       <i className="ti ti-trash" style={{fontSize:13}}/>
                     </button>
                   )}
+                  {profile?.is_manager && (
+                    <button onClick={async()=>{if(window.confirm('למחוק את "'+e.title+'"?'))await supabase.from('events').delete().eq('id',e.id).then(()=>setEvents(prev=>prev.filter(ev=>ev.id!==e.id)))}}
+                      className="text-gray-300 hover:text-red-500 p-1 flex-shrink-0">
+                      <i className="ti ti-trash" style={{fontSize:13}}/>
+                    </button>
+                  )}
                   <button onClick={() => router.push(`/dashboard/events?edit=${e.id}`)}
                     className="text-gray-300 hover:text-[#FF3EB5] p-1 flex-shrink-0">
                     <i className="ti ti-pencil" style={{fontSize:13}}/>
