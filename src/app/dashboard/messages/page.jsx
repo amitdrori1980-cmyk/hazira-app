@@ -261,7 +261,8 @@ export default function MessagesPage() {
               </button>
               <button type="submit" disabled={sending}
                 className="flex-1 bg-[#CC1010] hover:bg-[#a00c0c] text-white text-sm px-4 py-2 rounded-lg disabled:opacity-50 flex items-center justify-center gap-1">
-                tton>
+                <i className="ti ti-send"/> שלח
+              </button>
             </div>
           </form>
         </div>
