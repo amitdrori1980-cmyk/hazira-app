@@ -38,6 +38,7 @@ export default function ConstraintsPage() {
   const [importResult, setImportResult] = useState(null)
 
   const [showAdd, setShowAdd] = useState(false)
+  const [crewOpen, setCrewOpen] = useState(false)
   const [form, setForm]       = useState({ crew_name:'', date:'', hours:'', notes:'' })
   const [adding, setAdding]   = useState(false)
   const [confirmId, setConfirmId] = useState(null)
