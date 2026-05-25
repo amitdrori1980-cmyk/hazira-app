@@ -714,10 +714,10 @@ function ProductionSchedule({ profile }) {
                     </>
                   ) : (
                     <>
-                      <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 font-mono text-[#E0197D] font-medium">{row.time}</div>
-                      <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 break-words">{row.what}</div>
-                      <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 text-gray-600 break-words">{row.who}</div>
-                      <div className="px-3 py-2.5 text-[13px] text-right text-gray-400 break-words">{row.notes}</div>
+                      <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 font-mono text-[#E0197D] font-medium">{row.time && row.time !== "00:00" ? row.time : ""}</div>
+                      <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 break-words">{row.what || ""}</div>
+                      <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 text-gray-600 break-words">{row.who || ""}</div>
+                      <div className="px-3 py-2.5 text-[13px] text-right text-gray-400 break-words">{row.notes || ""}</div>
                     </>
                   )}
                 </div>
