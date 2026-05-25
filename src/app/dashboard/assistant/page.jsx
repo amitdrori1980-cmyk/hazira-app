@@ -68,7 +68,7 @@ export default function SearchPage() {
     return (
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-2 flex-row-reverse justify-end">
-          <i className={`ti ${cat.icon} text-[#1ABBB4]`} style={{fontSize:13}}/>
+          <i className={`ti ${cat.icon} text-[#FF3EB5]`} style={{fontSize:13}}/>
           <span className="text-[12px] font-semibold text-gray-500">{cat.label} ({items.length})</span>
         </div>
         <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
@@ -83,8 +83,8 @@ export default function SearchPage() {
   return (
     <div className="max-w-2xl">
       {/* Search box */}
-      <div className="flex items-center gap-3 bg-white border-2 border-[#1ABBB4] rounded-xl px-4 py-3 mb-4">
-        <i className="ti ti-search text-[#1ABBB4]" style={{fontSize:18}}/>
+      <div className="flex items-center gap-3 bg-white border-2 border-[#FF3EB5] rounded-xl px-4 py-3 mb-4">
+        <i className="ti ti-search text-[#FF3EB5]" style={{fontSize:18}}/>
         <input
           value={query}
           onChange={handleInput}
@@ -106,7 +106,7 @@ export default function SearchPage() {
         <div className="flex gap-2 mb-4 flex-wrap justify-end">
           {tabs.map(t => (
             <button key={t.id} onClick={()=>setActiveTab(t.id)}
-              className={`text-[12px] px-3 py-1.5 rounded-full border transition-colors ${activeTab===t.id?'bg-[#1ABBB4] text-white border-[#1ABBB4]':'border-gray-200 text-gray-600 hover:border-[#1ABBB4]'}`}>
+              className={`text-[12px] px-3 py-1.5 rounded-full border transition-colors ${activeTab===t.id?'bg-[#FF3EB5] text-white border-[#FF3EB5]':'border-gray-200 text-gray-600 hover:border-[#FF3EB5]'}`}>
               {t.label} {t.count > 0 && <span className="opacity-70">({t.count})</span>}
             </button>
           ))}
@@ -146,7 +146,7 @@ export default function SearchPage() {
           <ResultSection id="crew" items={results.crew} renderItem={c => (
             <div key={c.id}
               className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 flex-row-reverse hover:bg-gray-50">
-              <div className="w-8 h-8 rounded-full bg-[#E6F7F7] text-[#1ABBB4] text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-[#FFE6F5] text-[#FF3EB5] text-[11px] font-bold flex items-center justify-center flex-shrink-0">
                 {c.full_name?.split(' ').map(w=>w[0]).join('').slice(0,2)}
               </div>
               <div className="flex-1 text-right">
@@ -187,7 +187,7 @@ export default function SearchPage() {
                 <div className="text-[13px] font-medium text-gray-800">{s.name}</div>
                 {s.location && <div className="text-[11px] text-gray-400 flex items-center gap-1 justify-end">
                   <span>{s.location}</span>
-                  <i className="ti ti-map-pin text-[#1ABBB4]" style={{fontSize:10}}/>
+                  <i className="ti ti-map-pin text-[#FF3EB5]" style={{fontSize:10}}/>
                 </div>}
               </div>
               {s.notes && <span className="text-[11px] text-gray-400">{s.notes}</span>}

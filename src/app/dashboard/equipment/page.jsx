@@ -112,7 +112,7 @@ export default function EquipmentPage() {
   const [searchResults, setSearchResults] = useState([])
 
   function ParamFields({ paramType, val, setVal, compact=false }) {
-    const cls = `text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4] ${compact ? 'text-[12px]' : ''}`
+    const cls = `text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5] ${compact ? 'text-[12px]' : ''}`
     return (
       <div className="flex gap-2 flex-row-reverse flex-wrap">
         {(paramType === 'units' || paramType === 'both') && (
@@ -172,8 +172,8 @@ export default function EquipmentPage() {
             <button onClick={() => toggleCat(cat)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all flex-row-reverse text-right ${
                 openCat === cat.id
-                  ? 'bg-[#1ABBB4] text-white border-[#1ABBB4]'
-                  : 'bg-white border-gray-100 hover:border-[#1ABBB4] text-gray-800'
+                  ? 'bg-[#FF3EB5] text-white border-[#FF3EB5]'
+                  : 'bg-white border-gray-100 hover:border-[#FF3EB5] text-gray-800'
               }`}>
               <span className="flex-1 font-semibold text-[14px]">{cat.name}</span>
               <i className={`ti ${openCat === cat.id ? 'ti-chevron-up' : 'ti-chevron-down'}`} style={{fontSize:14}}/>
@@ -181,14 +181,14 @@ export default function EquipmentPage() {
 
             {/* Subcategories */}
             {openCat === cat.id && (
-              <div className="mt-1 mr-3 border-r-2 border-[#1ABBB4] pr-3">
+              <div className="mt-1 mr-3 border-r-2 border-[#FF3EB5] pr-3">
                 {(subcats[cat.id] || []).map(sub => (
                   <div key={sub.id} className="mb-2">
                     {/* Subcategory header */}
                     <button onClick={() => toggleSub(sub)}
                       className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border transition-all flex-row-reverse text-right ${
                         openSub === sub.id
-                          ? 'bg-[#E6F7F7] border-[#1ABBB4] text-[#1ABBB4]'
+                          ? 'bg-[#FFE6F5] border-[#FF3EB5] text-[#FF3EB5]'
                           : 'bg-gray-50 border-gray-100 hover:border-gray-300 text-gray-700'
                       }`}>
                       <span className="flex-1 text-[13px] font-medium">{sub.name}</span>
@@ -215,10 +215,10 @@ export default function EquipmentPage() {
                             {editing === item.id ? (
                               <div className="p-2 flex flex-col gap-1.5">
                                 <input value={editVal.name} onChange={e=>setEditVal(v=>({...v,name:e.target.value}))}
-                                  className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]" dir="ltr"/>
+                                  className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]" dir="ltr"/>
                                 <ParamFields paramType={sub.param_type} val={editVal} setVal={setEditVal} compact/>
                                 <div className="flex gap-2">
-                                  <button onClick={() => saveEdit(item.id, sub.id)} className="flex-1 bg-[#1ABBB4] text-white text-xs py-1.5 rounded-lg">Save</button>
+                                  <button onClick={() => saveEdit(item.id, sub.id)} className="flex-1 bg-[#FF3EB5] text-white text-xs py-1.5 rounded-lg">Save</button>
                                   <button onClick={() => setEditing(null)} className="flex-1 border border-gray-200 text-gray-500 text-xs py-1.5 rounded-lg">Cancel</button>
                                 </div>
                               </div>
@@ -234,7 +234,7 @@ export default function EquipmentPage() {
                                 {isManager && (
                                   <div className="w-12 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                                     <button onClick={() => { setEditing(item.id); setEditVal({name:item.name,units:item.units||'',details:item.details||''}) }}
-                                      className="text-gray-300 hover:text-[#1ABBB4]"><i className="ti ti-pencil" style={{fontSize:12}}/></button>
+                                      className="text-gray-300 hover:text-[#FF3EB5]"><i className="ti ti-pencil" style={{fontSize:12}}/></button>
                                     <button onClick={() => deleteItem(item.id, sub.id)}
                                       className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:12}}/></button>
                                   </div>
@@ -247,14 +247,14 @@ export default function EquipmentPage() {
                         {/* Add item */}
                         {isManager && (
                           addingTo === sub.id ? (
-                            <div className="p-2 border-t border-gray-100 bg-[#E6F7F7] flex flex-col gap-1.5">
+                            <div className="p-2 border-t border-gray-100 bg-[#FFE6F5] flex flex-col gap-1.5">
                               <input value={newItem.name} onChange={e=>setNewItem(v=>({...v,name:e.target.value}))}
                                 placeholder="Item name" dir="ltr"
-                                className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#1ABBB4]"/>
+                                className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#FF3EB5]"/>
                               <ParamFields paramType={sub.param_type} val={newItem} setVal={setNewItem} compact/>
                               <div className="flex gap-2">
                                 <button onClick={() => addItem(sub.id, sub.param_type)} disabled={saving}
-                                  className="flex-1 bg-[#1ABBB4] text-white text-xs py-1.5 rounded-lg disabled:opacity-50">
+                                  className="flex-1 bg-[#FF3EB5] text-white text-xs py-1.5 rounded-lg disabled:opacity-50">
                                   {saving ? 'Saving...' : 'Add'}
                                 </button>
                                 <button onClick={() => setAddingTo(null)}
@@ -263,7 +263,7 @@ export default function EquipmentPage() {
                             </div>
                           ) : (
                             <button onClick={() => { setAddingTo(sub.id); setNewItem({name:'',units:'',details:''}) }}
-                              className="w-full py-2 text-[12px] text-gray-400 hover:text-[#1ABBB4] hover:bg-[#E6F7F7] transition-colors border-t border-gray-50 flex items-center justify-center gap-1">
+                              className="w-full py-2 text-[12px] text-gray-400 hover:text-[#FF3EB5] hover:bg-[#FFE6F5] transition-colors border-t border-gray-50 flex items-center justify-center gap-1">
                               <i className="ti ti-plus" style={{fontSize:12}}/> Add item
                             </button>
                           )

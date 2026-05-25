@@ -27,7 +27,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#F8F5F0] flex items-center justify-center px-4" dir="rtl">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="text-2xl font-bold text-[#1ABBB4]">הזירה</div>
+          <div className="text-2xl font-bold text-[#FF3EB5]">הזירה</div>
           <div className="text-sm text-gray-400">מערכת ניהול הפקה</div>
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
@@ -35,13 +35,13 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
             <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
               placeholder="אימייל" required
-              className="text-sm px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#1ABBB4] text-right"/>
+              className="text-sm px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5] text-right"/>
             <input type="password" value={password} onChange={e=>setPassword(e.target.value)}
               placeholder="סיסמה" required
-              className="text-sm px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#1ABBB4] text-right"/>
-            {error && <p className="text-[13px] text-[#1ABBB4] text-center">{error}</p>}
+              className="text-sm px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5] text-right"/>
+            {error && <p className="text-[13px] text-[#FF3EB5] text-center">{error}</p>}
             <button type="submit" disabled={loading}
-              className="bg-[#1ABBB4] text-white text-sm py-3 rounded-xl font-medium hover:bg-[#0D7A76] disabled:opacity-50 mt-2">
+              className="bg-[#FF3EB5] text-white text-sm py-3 rounded-xl font-medium hover:bg-[#CC0090] disabled:opacity-50 mt-2">
               {loading ? 'נכנס...' : 'כניסה'}
             </button>
           </form>

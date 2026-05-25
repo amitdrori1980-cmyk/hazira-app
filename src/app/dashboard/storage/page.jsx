@@ -68,15 +68,15 @@ export default function StoragePage() {
           <form onSubmit={addItem} className="flex flex-col gap-2">
             <input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}
               placeholder="פריט *" required
-              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
             <input value={form.location} onChange={e=>setForm(f=>({...f,location:e.target.value}))}
               placeholder="מיקום"
-              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
             <input value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}
               placeholder="הערות"
-              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"/>
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"/>
             <button type="submit" disabled={adding}
-              className="bg-[#1ABBB4] text-white text-sm py-2 rounded-lg hover:bg-[#0D7A76] disabled:opacity-50">
+              className="bg-[#FF3EB5] text-white text-sm py-2 rounded-lg hover:bg-[#CC0090] disabled:opacity-50">
               {adding ? 'מוסיף...' : 'הוסף'}
             </button>
           </form>
@@ -100,20 +100,20 @@ export default function StoragePage() {
         ) : filtered.map(item => (
           <div key={item.id} className="border-b border-gray-50 last:border-0">
             {editing === item.id ? (
-              <div className="p-3 flex flex-col gap-2 bg-[#E6F7F7]">
+              <div className="p-3 flex flex-col gap-2 bg-[#FFE6F5]">
                 <input value={editVal.name} onChange={e=>setEditVal(v=>({...v,name:e.target.value}))}
                   placeholder="פריט"
-                  className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#1ABBB4]"/>
+                  className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#FF3EB5]"/>
                 <div className="grid grid-cols-2 gap-2">
                   <input value={editVal.location||''} onChange={e=>setEditVal(v=>({...v,location:e.target.value}))}
                     placeholder="מיקום"
-                    className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#1ABBB4]"/>
+                    className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#FF3EB5]"/>
                   <input value={editVal.notes||''} onChange={e=>setEditVal(v=>({...v,notes:e.target.value}))}
                     placeholder="הערות"
-                    className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#1ABBB4]"/>
+                    className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#FF3EB5]"/>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => saveEdit(item.id)} className="flex-1 bg-[#1ABBB4] text-white text-sm py-1.5 rounded-lg">שמור</button>
+                  <button onClick={() => saveEdit(item.id)} className="flex-1 bg-[#FF3EB5] text-white text-sm py-1.5 rounded-lg">שמור</button>
                   <button onClick={() => setEditing(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm py-1.5 rounded-lg bg-white">ביטול</button>
                 </div>
               </div>
@@ -121,13 +121,13 @@ export default function StoragePage() {
               <div className="grid grid-cols-12 gap-2 px-4 py-2.5 items-center group hover:bg-gray-50">
                 <div className="col-span-4 text-[13px] font-medium text-gray-800 text-right">{item.name}</div>
                 <div className="col-span-4 text-[12px] text-gray-500 text-right flex items-center gap-1 justify-end">
-                  {item.location && <><i className="ti ti-map-pin text-[#1ABBB4]" style={{fontSize:10}}/>{item.location}</>}
+                  {item.location && <><i className="ti ti-map-pin text-[#FF3EB5]" style={{fontSize:10}}/>{item.location}</>}
                 </div>
                 <div className="col-span-3 text-[12px] text-gray-400 text-right truncate">{item.notes}</div>
                 {isManager && (
                   <div className="col-span-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-all justify-end">
                     <button onClick={() => { setEditing(item.id); setEditVal({name:item.name,location:item.location||'',notes:item.notes||''}) }}
-                      className="text-gray-300 hover:text-[#1ABBB4]">
+                      className="text-gray-300 hover:text-[#FF3EB5]">
                       <i className="ti ti-pencil" style={{fontSize:12}}/>
                     </button>
                     <button onClick={() => deleteItem(item.id)}

@@ -228,14 +228,14 @@ export default function ImportPage() {
 
           {/* Show recognized types */}
           {eventTypes.length > 0 && (
-            <div className="bg-[#E6F7F7] rounded-lg p-3 mb-5 text-[12px] text-[#0D7A76]">
+            <div className="bg-[#FFE6F5] rounded-lg p-3 mb-5 text-[12px] text-[#CC0090]">
               <strong>סוגי אירוע מוכרים:</strong>{' '}
               {eventTypes.map(t => t.label).join(' / ')}
             </div>
           )}
 
-          <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-[#1ABBB4] hover:bg-[#E6F7F7] transition-colors">
-            <i className="ti ti-file-spreadsheet text-[#1ABBB4]" style={{fontSize:36}}/>
+          <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-[#FF3EB5] hover:bg-[#FFE6F5] transition-colors">
+            <i className="ti ti-file-spreadsheet text-[#FF3EB5]" style={{fontSize:36}}/>
             <span className="text-[13px] text-gray-500 mt-2">לחץ לבחירת קובץ Excel</span>
             <span className="text-[11px] text-gray-400">.xlsx / .xls</span>
             <input type="file" accept=".xlsx,.xls" onChange={handleFile} className="hidden"/>
@@ -252,7 +252,7 @@ export default function ImportPage() {
                 📄 {fileName} — {preview.length} אירועים תקינים
               </div>
               <button onClick={()=>{setStep(1);setRows([]);setPreview([])}}
-                className="text-[12px] text-gray-400 hover:text-[#1ABBB4]">
+                className="text-[12px] text-gray-400 hover:text-[#FF3EB5]">
                 החלף קובץ
               </button>
             </div>
@@ -311,7 +311,7 @@ export default function ImportPage() {
           </div>
 
           <button onClick={importEvents} disabled={importing || preview.length===0}
-            className="w-full bg-[#1ABBB4] text-white text-sm py-3 rounded-xl hover:bg-[#0D7A76] disabled:opacity-50 font-medium flex items-center justify-center gap-2">
+            className="w-full bg-[#FF3EB5] text-white text-sm py-3 rounded-xl hover:bg-[#CC0090] disabled:opacity-50 font-medium flex items-center justify-center gap-2">
             {importing
               ? <><i className="ti ti-loader-2 animate-spin"/> מייבא...</>
               : <><i className="ti ti-database-import"/> ייבא {preview.length} אירועים ליומן</>
@@ -330,7 +330,7 @@ export default function ImportPage() {
           <div className="text-[13px] text-gray-500 mb-6">
             {result.success > 0 && <div className="text-[#085041]">✅ {result.success} אירועים נוספו ליומן</div>}
             {result.skipped > 0 && <div className="text-[#633806]">⏭ {result.skipped} אירועים דולגו (כבר קיימים)</div>}
-            {result.failed > 0  && <div className="text-[#1ABBB4]">❌ {result.failed} אירועים נכשלו</div>}
+            {result.failed > 0  && <div className="text-[#FF3EB5]">❌ {result.failed} אירועים נכשלו</div>}
           </div>
           <div className="flex gap-3 justify-center">
             <button onClick={()=>{setStep(1);setRows([]);setPreview([]);setResult(null)}}
@@ -338,7 +338,7 @@ export default function ImportPage() {
               ייבא קובץ נוסף
             </button>
             <a href="/dashboard/calendar"
-              className="px-5 py-2 bg-[#1ABBB4] text-white rounded-lg text-sm hover:bg-[#0D7A76]">
+              className="px-5 py-2 bg-[#FF3EB5] text-white rounded-lg text-sm hover:bg-[#CC0090]">
               עבור ליומן
             </a>
           </div>

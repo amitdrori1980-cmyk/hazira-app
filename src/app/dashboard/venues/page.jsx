@@ -124,7 +124,7 @@ export default function VenuesPage() {
             </button>
             <span className="text-[13px] font-medium text-gray-800 truncate max-w-[45%] text-center">{viewing.name}</span>
             <a href={viewing.url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-[13px] text-[#1ABBB4] hover:underline">
+              className="flex items-center gap-1 text-[13px] text-[#FF3EB5] hover:underline">
               <i className="ti ti-external-link" style={{fontSize:14}}/>
               פתח בדפדפן
             </a>
@@ -141,15 +141,15 @@ export default function VenuesPage() {
 
           {/* Mobile: open in browser */}
           <div className="flex-1 flex flex-col items-center justify-center gap-5 bg-gray-50 md:hidden px-6 text-center">
-            <div className="w-16 h-16 bg-[#E6F7F7] rounded-2xl flex items-center justify-center">
-              <i className="ti ti-file-type-pdf text-[#1ABBB4]" style={{fontSize:32}}/>
+            <div className="w-16 h-16 bg-[#FFE6F5] rounded-2xl flex items-center justify-center">
+              <i className="ti ti-file-type-pdf text-[#FF3EB5]" style={{fontSize:32}}/>
             </div>
             <div>
               <div className="text-[15px] font-semibold text-gray-800 mb-1">{viewing.name}</div>
               <div className="text-[13px] text-gray-400">לצפייה בקובץ PDF פתח אותו בדפדפן</div>
             </div>
             <a href={viewing.url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 text-[14px] bg-[#1ABBB4] text-white px-6 py-3 rounded-xl font-medium active:bg-[#0D7A76]">
+              className="flex items-center gap-2 text-[14px] bg-[#FF3EB5] text-white px-6 py-3 rounded-xl font-medium active:bg-[#CC0090]">
               <i className="ti ti-external-link" style={{fontSize:15}}/>
               פתח PDF
             </a>
@@ -188,7 +188,7 @@ export default function VenuesPage() {
                 {venueFiles.length > 0 && (
                   <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex-row-reverse">
                     <button onClick={() => selectAllVenue(venue)}
-                      className="text-[11px] text-gray-500 hover:text-[#1ABBB4]">
+                      className="text-[11px] text-gray-500 hover:text-[#FF3EB5]">
                       {venueFiles.every(f => selectedFiles[`${venue}/${f.name}`]) ? 'בטל הכל' : 'בחר הכל'}
                     </button>
                     <div className="flex-1"/>
@@ -206,7 +206,7 @@ export default function VenuesPage() {
                     )}
                     {venueFiles.some(f => selectedFiles[`${venue}/${f.name}`]) && (
                       <button onClick={() => sendSelectedByEmail(venue)}
-                        className="flex items-center gap-1.5 text-[12px] bg-[#1ABBB4] text-white px-3 py-1.5 rounded-lg hover:bg-[#0D7A76]">
+                        className="flex items-center gap-1.5 text-[12px] bg-[#FF3EB5] text-white px-3 py-1.5 rounded-lg hover:bg-[#CC0090]">
                         <i className="ti ti-mail" style={{fontSize:13}}/>
                         שלח במייל ({venueFiles.filter(f => selectedFiles[`${venue}/${f.name}`]).length})
                       </button>
@@ -224,11 +224,11 @@ export default function VenuesPage() {
                     <input type="checkbox"
                       checked={!!selectedFiles[`${venue}/${f.name}`]}
                       onChange={() => toggleFileSelect(venue, f.name)}
-                      className="w-4 h-4 accent-[#1ABBB4] flex-shrink-0 cursor-pointer"
+                      className="w-4 h-4 accent-[#FF3EB5] flex-shrink-0 cursor-pointer"
                     />
                     {/* PDF icon - fixed */}
-                    <div className="w-9 h-9 bg-[#E6F7F7] rounded-lg flex items-center justify-center flex-shrink-0">
-                      <i className="ti ti-file-type-pdf text-[#1ABBB4]" style={{fontSize:18}}/>
+                    <div className="w-9 h-9 bg-[#FFE6F5] rounded-lg flex items-center justify-center flex-shrink-0">
+                      <i className="ti ti-file-type-pdf text-[#FF3EB5]" style={{fontSize:18}}/>
                     </div>
                     {/* Name - shrinks to fit */}
                     <div className="flex-1 text-right min-w-0 overflow-hidden">
@@ -239,7 +239,7 @@ export default function VenuesPage() {
                     </div>
                     {/* View button - always fixed width, never pushed out */}
                     <button onClick={() => openFile(venue, f.name)}
-                      className="text-[#1ABBB4] hover:text-[#0D7A76] text-[12px] flex items-center gap-1 px-2 py-1.5 border border-[#1ABBB4] rounded-lg flex-shrink-0 whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+                      className="text-[#FF3EB5] hover:text-[#CC0090] text-[12px] flex items-center gap-1 px-2 py-1.5 border border-[#FF3EB5] rounded-lg flex-shrink-0 whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
                       <i className="ti ti-eye" style={{fontSize:13}}/> צפה
                     </button>
                   </div>
@@ -249,7 +249,7 @@ export default function VenuesPage() {
                 <button
                   onClick={() => { setUploadTarget(venue); fileInputRef.current.click() }}
                   disabled={uploading === venue}
-                  className="w-full py-3 text-[13px] text-gray-400 hover:text-[#1ABBB4] hover:bg-[#E6F7F7] transition-colors flex items-center justify-center gap-1">
+                  className="w-full py-3 text-[13px] text-gray-400 hover:text-[#FF3EB5] hover:bg-[#FFE6F5] transition-colors flex items-center justify-center gap-1">
                   {uploading === venue ? (
                     <><i className="ti ti-loader-2 animate-spin" style={{fontSize:13}}/> מעלה...</>
                   ) : (

@@ -178,7 +178,7 @@ export default function MessagesPage() {
             <div className="text-[13px] text-gray-500 mb-4 text-right">האם למחוק את ההודעה? פעולה זו אינה ניתנת לביטול.</div>
             <div className="flex gap-2">
               <button onClick={() => deleteMessage(confirmDelete)}
-                className="flex-1 bg-[#1ABBB4] text-white text-sm py-2 rounded-lg hover:bg-[#0D7A76]">
+                className="flex-1 bg-[#FF3EB5] text-white text-sm py-2 rounded-lg hover:bg-[#CC0090]">
                 מחק
               </button>
               <button onClick={() => setConfirmDelete(null)}
@@ -197,21 +197,21 @@ export default function MessagesPage() {
             <div className="text-[14px] font-semibold text-gray-800 mb-4">בדיקת תאריך</div>
             <form onSubmit={sendDateCheck} className="flex flex-col gap-3">
               <select value={dateCheckForm.to_crew_id} onChange={e=>setDateCheckForm(p=>({...p,to_crew_id:e.target.value}))}
-                required className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#1ABBB4]">
+                required className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5]">
                 <option value="">בחר עובד...</option>
                 {crew.map(m=><option key={m.id} value={m.id}>{m.full_name}</option>)}
               </select>
               <select value={dateCheckForm.event_id} onChange={e=>setDateCheckForm(p=>({...p,event_id:e.target.value}))}
-                required className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#1ABBB4]">
+                required className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5]">
                 <option value="">בחר אירוע...</option>
                 {events.map(ev=><option key={ev.id} value={ev.id}>{ev.date} — {ev.title}</option>)}
               </select>
               <textarea value={dateCheckForm.notes} onChange={e=>setDateCheckForm(p=>({...p,notes:e.target.value}))}
                 placeholder="הערות (אופציונלי)" rows={3}
-                className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#1ABBB4] resize-none"/>
+                className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#FF3EB5] resize-none"/>
               <div className="flex gap-2">
                 <button type="submit" disabled={sendingDateCheck}
-                  className="flex-1 bg-[#1ABBB4] text-white text-sm py-2.5 rounded-xl font-medium disabled:opacity-50">
+                  className="flex-1 bg-[#FF3EB5] text-white text-sm py-2.5 rounded-xl font-medium disabled:opacity-50">
                   {sendingDateCheck ? 'שולח...' : 'שלח בדיקת תאריך'}
                 </button>
                 <button type="button" onClick={()=>setShowDateCheck(false)}
@@ -229,12 +229,12 @@ export default function MessagesPage() {
           <form onSubmit={sendMessage} className="flex flex-col gap-2">
             <textarea value={form.body} onChange={e=>setForm(f=>({...f,body:e.target.value}))}
               placeholder="תוכן ההודעה..." rows={2}
-              className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4] resize-none"/>
+              className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5] resize-none"/>
             <div className="flex gap-1.5 flex-wrap">
               {[{val:'all',label:'🌐 כולם'},{val:'dept',label:'📂 מחלקה'},{val:'person',label:'👤 אדם ספציפי'}].map(opt=>(
                 <button key={opt.val} type="button"
                   onClick={()=>setForm(f=>({...f,target_type:opt.val}))}
-                  className={`text-[12px] px-3 py-1.5 rounded-full border transition-colors ${form.target_type===opt.val?'bg-[#1ABBB4] text-white border-[#1ABBB4]':'border-gray-200 text-gray-500 hover:border-[#1ABBB4]'}`}>
+                  className={`text-[12px] px-3 py-1.5 rounded-full border transition-colors ${form.target_type===opt.val?'bg-[#FF3EB5] text-white border-[#FF3EB5]':'border-gray-200 text-gray-500 hover:border-[#FF3EB5]'}`}>
                   {opt.label}
                 </button>
               ))}
@@ -262,7 +262,7 @@ export default function MessagesPage() {
                 <i className="ti ti-calendar-check"/> בדיקת תאריך
               </button>
               <button type="submit" disabled={sending}
-                className="flex-1 bg-[#1ABBB4] hover:bg-[#0D7A76] text-white text-sm px-4 py-2 rounded-lg disabled:opacity-50 flex items-center justify-center gap-1">
+                className="flex-1 bg-[#FF3EB5] hover:bg-[#CC0090] text-white text-sm px-4 py-2 rounded-lg disabled:opacity-50 flex items-center justify-center gap-1">
                 <i className="ti ti-send"/> שלח
               </button>
             </div>
@@ -307,13 +307,13 @@ export default function MessagesPage() {
                 )}
               </div>
             ) : (
-            <div className="p-3 bg-gray-50 rounded-lg border-r-2 border-[#1ABBB4]">
+            <div className="p-3 bg-gray-50 rounded-lg border-r-2 border-[#FF3EB5]">
               <div className="flex items-center justify-between mb-1 flex-row-reverse">
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] text-gray-400">{m.sender?.full_name || 'מנהל'}</span>
                   {canDelete(m) && (
                     <button onClick={() => setConfirmDelete(m.id)}
-                      className="text-gray-300 hover:text-[#1ABBB4] transition-colors">
+                      className="text-gray-300 hover:text-[#FF3EB5] transition-colors">
                       <i className="ti ti-trash" style={{fontSize:13}}/>
                     </button>
                   )}
@@ -328,7 +328,7 @@ export default function MessagesPage() {
               <div className="text-[13px] text-gray-800 text-right mb-2">{m.body}</div>
               <div className="flex items-center justify-between">
                 <button onClick={() => toggleReplies(m.id)}
-                  className="text-[11px] text-gray-400 hover:text-[#1ABBB4] flex items-center gap-1 transition-colors">
+                  className="text-[11px] text-gray-400 hover:text-[#FF3EB5] flex items-center gap-1 transition-colors">
                   <i className="ti ti-message-2" style={{fontSize:12}}/>
                   {openReplies[m.id] ? 'סגור תגובות' : `תגובות${replies[m.id]?.length ? ` (${replies[m.id].length})` : ''}`}
                 </button>
@@ -358,12 +358,12 @@ export default function MessagesPage() {
                     onChange={e => setReplyText(prev=>({...prev,[m.id]:e.target.value}))}
                     onKeyDown={e => e.key==='Enter' && !e.shiftKey && sendReply(m.id)}
                     placeholder="כתוב תגובה..."
-                    className="flex-1 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#1ABBB4]"
+                    className="flex-1 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#FF3EB5]"
                   />
                   <button
                     onClick={() => sendReply(m.id)}
                     disabled={sendingReply === m.id || !replyText[m.id]?.trim()}
-                    className="bg-[#1ABBB4] text-white text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#0D7A76] disabled:opacity-40 flex items-center gap-1">
+                    className="bg-[#FF3EB5] text-white text-[11px] px-3 py-1.5 rounded-lg hover:bg-[#CC0090] disabled:opacity-40 flex items-center gap-1">
                     <i className="ti ti-send" style={{fontSize:11}}/>
                   </button>
                 </div>
