@@ -168,10 +168,6 @@ function EventsPageInner() {
     await supabase.from('event_equipment').update({quantity_needed:qty}).eq('event_id',eventId).eq('equipment_id',equipId)
     setEventEquip(prev=>({...prev,[eventId]:prev[eventId].map(r=>r.equipment_id===equipId?{...r,quantity_needed:qty}:r)}))
   }
-ient'
-import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 
