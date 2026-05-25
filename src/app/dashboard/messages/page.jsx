@@ -291,7 +291,7 @@ export default function MessagesPage() {
                   <div className="text-[12px] text-gray-600">{m.event_data?.event_date} {m.event_data?.event_time?.slice(0,5)}</div>
                   {m.event_data?.notes && <div className="text-[12px] text-gray-600 mt-1">{m.event_data.notes}</div>}
                 </div>
-                {!profile?.is_manager && (
+                {(
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" onChange={e=>{if(e.target.checked && window.confirm('לאשר נוכחות ולרשום כאילוץ?'))confirmDateCheck(m)}}
                       style={{accentColor:'#6366f1'}} className="w-4 h-4"/>
