@@ -1,4 +1,5 @@
 'use client'
+import * as XLSX from 'xlsx'
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -340,6 +341,7 @@ function GeneralFilesMode() {
   const [uploading, setUploading] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState({})
   const [viewing, setViewing] = useState(null)
+  const [xlsxPreview, setXlsxPreview] = useState(null)
   const fileInputRef = useRef(null)
   const FOLDER = 'general'
 
@@ -379,7 +381,31 @@ function GeneralFilesMode() {
     if (isMobile && !isXlsx) {
       window.open(data.publicUrl, '_blank')
     } else if (isXlsx) {
-      window.open(`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(data.publicUrl)}`, '_blank')
+      fetch(data.publicUrl)
+        .then(r => r.arrayBuffer())
+        .then(buf => {
+          const wb = XLSX.read(buf, { type: 'array' })
+          const ws = wb.Sheets[wb.SheetNames[0]]
+          const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+          const title = rows[1]?.[0] || fileName
+          const crew = rows[2]?.[0] || ''
+          const headerIdx = rows.findIndex(r => String(r[0]).includes('שעה'))
+          const dataRows = headerIdx >= 0 ? rows.slice(headerIdx + 1) : rows.slice(4)
+          const parsed = dataRows
+            .filter(r => r.some(c => String(c).trim() !== ''))
+            .map(r => {
+              let time = r[0]
+              if (typeof time === 'number') {
+                const totalMins = Math.round(time * 24 * 60)
+                const h = Math.floor(totalMins / 60) % 24
+                const m = totalMins % 60
+                time = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0')
+              } else { time = String(time || '') }
+              return { time, what: String(r[1]||''), who: String(r[2]||''), notes: String(r[3]||'') }
+            })
+          setXlsxPreview({ title, crew, rows: parsed, name: fileName })
+        })
+        .catch(() => window.open(data.publicUrl, '_blank'))
     } else {
       setViewing({ url: data.publicUrl, name: fileName })
     }
@@ -414,6 +440,35 @@ function GeneralFilesMode() {
   return (
     <div className="max-w-2xl">
       {/* PDF Viewer Modal - Desktop */}
+      {xlsxPreview && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex flex-col" dir="rtl">
+          <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+            <div>
+              <div className="font-semibold text-gray-800 text-[15px]">{xlsxPreview.title}</div>
+              {xlsxPreview.crew && <div className="text-[12px] text-gray-500 mt-0.5">{xlsxPreview.crew}</div>}
+            </div>
+            <button onClick={()=>setXlsxPreview(null)} className="text-gray-400 hover:text-gray-700 p-2">
+              <i className="ti ti-x" style={{fontSize:18}}/>
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <div className="grid grid-cols-[120px_2fr_1.5fr_1fr] bg-[#E0197D] text-white text-[12px] font-semibold sticky top-0">
+              <div className="px-3 py-2.5">שעה</div>
+              <div className="px-3 py-2.5 border-r border-red-700">מה</div>
+              <div className="px-3 py-2.5 border-r border-red-700">מי</div>
+              <div className="px-3 py-2.5 border-r border-red-700">הערות</div>
+            </div>
+            {xlsxPreview.rows.map((row, i) => (
+              <div key={i} className={`grid grid-cols-[120px_2fr_1.5fr_1fr] border-b border-gray-100 ${i%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
+                <div className="px-3 py-2.5 text-[13px] font-mono text-[#E0197D] font-medium border-l border-gray-100">{row.time}</div>
+                <div className="px-3 py-2.5 text-[13px] border-l border-gray-100 break-words">{row.what}</div>
+                <div className="px-3 py-2.5 text-[13px] text-gray-600 border-l border-gray-100 break-words">{row.who}</div>
+                <div className="px-3 py-2.5 text-[13px] text-gray-400 break-words">{row.notes}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {viewing && (
         <div className="fixed inset-0 z-50 bg-black/70 flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 flex-row-reverse">
@@ -878,7 +933,33 @@ function ShowFoldersMode() {
     const isPdf = /\.pdf$/i.test(fileName)
     const isXlsx = /\.(xlsx|xls)$/i.test(fileName)
     if (isPdf || isImage) { setViewing({ url: data.publicUrl, name: fileName, type: isImage ? 'image' : 'pdf' }) }
-    else if (isXlsx) { window.open(`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(data.publicUrl)}`, '_blank') }
+    else if (isXlsx) {
+      fetch(data.publicUrl)
+        .then(r => r.arrayBuffer())
+        .then(buf => {
+          const wb = XLSX.read(buf, { type: 'array' })
+          const ws = wb.Sheets[wb.SheetNames[0]]
+          const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+          const title = rows[1]?.[0] || fileName
+          const crew = rows[2]?.[0] || ''
+          const headerIdx = rows.findIndex(r => String(r[0]).includes('שעה'))
+          const dataRows = headerIdx >= 0 ? rows.slice(headerIdx + 1) : rows.slice(4)
+          const parsed = dataRows
+            .filter(r => r.some(c => String(c).trim() !== ''))
+            .map(r => {
+              let time = r[0]
+              if (typeof time === 'number') {
+                const totalMins = Math.round(time * 24 * 60)
+                const h = Math.floor(totalMins / 60) % 24
+                const m = totalMins % 60
+                time = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0')
+              } else { time = String(time || '') }
+              return { time, what: String(r[1]||''), who: String(r[2]||''), notes: String(r[3]||'') }
+            })
+          setXlsxPreview({ title, crew, rows: parsed, name: fileName })
+        })
+        .catch(() => window.open(data.publicUrl, '_blank'))
+    }
     else { window.open(data.publicUrl, '_blank') }
   }
 
