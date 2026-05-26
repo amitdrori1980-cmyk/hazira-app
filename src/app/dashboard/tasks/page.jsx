@@ -178,7 +178,7 @@ export default function TasksPage() {
                       className="text-gray-200 hover:text-[#E0197D] opacity-0 group-hover:opacity-100 transition-all">
                       <i className="ti ti-pencil" style={{fontSize:13}}/>
                     </button>
-                    <button onClick={() => deleteTask(t.id)}
+                    <button onClick={() => { if(window.confirm('למחוק משימה זו?')) deleteTask(t.id) }}
                       className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
                       <i className="ti ti-trash" style={{fontSize:13}}/>
                     </button>
@@ -205,7 +205,7 @@ export default function TasksPage() {
                       </div>
                     )}
                   </div>
-                  <button onClick={() => deleteTask(t.id)}
+                  <button onClick={() => { if(window.confirm('למחוק משימה זו?')) deleteTask(t.id) }}
                     className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
                     <i className="ti ti-trash" style={{fontSize:13}}/>
                   </button>
