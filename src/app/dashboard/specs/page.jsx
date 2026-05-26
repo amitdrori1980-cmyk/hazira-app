@@ -873,7 +873,9 @@ function ShowFoldersMode() {
     const { data } = supabase.storage.from(BUCKET).getPublicUrl(`${ROOT}/${folderKey}/${fileName}`)
     const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)
     const isPdf = /\.pdf$/i.test(fileName)
+    const isXlsx = /\.(xlsx|xls)$/i.test(fileName)
     if (isPdf || isImage) { setViewing({ url: data.publicUrl, name: fileName, type: isImage ? 'image' : 'pdf' }) }
+    else if (isXlsx) { setViewing({ url: `https://docs.google.com/gview?url=${encodeURIComponent(data.publicUrl)}&embedded=true`, name: fileName, type: 'pdf' }) }
     else { window.open(data.publicUrl, '_blank') }
   }
 
