@@ -878,7 +878,7 @@ function ShowFoldersMode() {
     const isPdf = /\.pdf$/i.test(fileName)
     const isXlsx = /\.(xlsx|xls)$/i.test(fileName)
     if (isPdf || isImage) { setViewing({ url: data.publicUrl, name: fileName, type: isImage ? 'image' : 'pdf' }) }
-    else if (isXlsx) { setViewing({ url: `https://docs.google.com/gview?url=${encodeURIComponent(data.publicUrl)}&embedded=true`, name: fileName, type: 'pdf' }) }
+    else if (isXlsx) { window.open(`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(data.publicUrl)}`, '_blank') }
     else { window.open(data.publicUrl, '_blank') }
   }
 
