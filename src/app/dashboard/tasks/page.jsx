@@ -39,7 +39,9 @@ export default function TasksPage() {
       .from('tasks')
       .select('*, crew:crew_member_id(full_name)')
       .order('created_at', { ascending: false })
-    if (!p?.is_manager) q.or(`assignee_id.eq.${user.id},dept.eq.${p?.dept}`)
+    if (!p?.is_manager) {
+      q.or(`assignee_id.eq.${user.id},and(crew_member_id.not.is.null,dept.eq.${p?.dept})`)
+    }
     const { data } = await q
     setTasks(data || [])
 
