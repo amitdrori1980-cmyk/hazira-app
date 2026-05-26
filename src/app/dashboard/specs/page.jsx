@@ -374,9 +374,12 @@ function GeneralFilesMode() {
 
   function openFile(fileName) {
     const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${fileName}`)
+    const isXlsx = /\.(xlsx|xls)$/i.test(fileName)
     const isMobile = window.innerWidth < 768
-    if (isMobile) {
+    if (isMobile && !isXlsx) {
       window.open(data.publicUrl, '_blank')
+    } else if (isXlsx) {
+      setViewing({ url: `https://docs.google.com/gview?url=${encodeURIComponent(data.publicUrl)}&embedded=true`, name: fileName })
     } else {
       setViewing({ url: data.publicUrl, name: fileName })
     }
