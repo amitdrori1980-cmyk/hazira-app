@@ -379,7 +379,7 @@ function GeneralFilesMode() {
     if (isMobile && !isXlsx) {
       window.open(data.publicUrl, '_blank')
     } else if (isXlsx) {
-      setViewing({ url: `https://docs.google.com/gview?url=${encodeURIComponent(data.publicUrl)}&embedded=true`, name: fileName })
+      setViewing({ url: `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(data.publicUrl)}`, name: fileName })
     } else {
       setViewing({ url: data.publicUrl, name: fileName })
     }
