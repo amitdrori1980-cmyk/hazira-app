@@ -975,17 +975,17 @@ function GeneralSchedulesMode() {
                       <input value={row.time||''} onChange={e => updateRow(sch.id, row.id, 'time', e.target.value)}
                         className="w-full bg-transparent outline-none text-right font-mono"/>
                     </td>
-                    <td className="border-l border-gray-100 px-3 py-2" style={{minWidth:'150px'}}>
-                      <input value={row.what||''} onChange={e => updateRow(sch.id, row.id, 'what', e.target.value)}
-                        className="w-full bg-transparent outline-none text-right text-[12px] break-words"/>
+                    <td className="border-l border-gray-100 px-3 py-1" style={{minWidth:'180px'}}>
+                      <textarea value={row.what||''} onChange={e=>updateRow(sch.id,row.id,'what',e.target.value)}
+                        className="w-full bg-transparent outline-none text-right text-[12px] resize-none leading-5 pt-1.5" rows={Math.max(1,Math.ceil((row.what||'').length/25))}/>
                     </td>
-                    <td className="border-l border-gray-100 px-3 py-2" style={{minWidth:'120px'}}>
-                      <input value={row.who||''} onChange={e => updateRow(sch.id, row.id, 'who', e.target.value)}
-                        className="w-full bg-transparent outline-none text-right text-[12px]"/>
+                    <td className="border-l border-gray-100 px-3 py-1" style={{minWidth:'130px'}}>
+                      <textarea value={row.who||''} onChange={e=>updateRow(sch.id,row.id,'who',e.target.value)}
+                        className="w-full bg-transparent outline-none text-right text-[12px] resize-none leading-5 pt-1.5" rows={Math.max(1,Math.ceil((row.who||'').length/20))}/>
                     </td>
-                    <td className="border-l border-gray-100 px-3 py-2" style={{minWidth:'120px'}}>
-                      <input value={row.notes||''} onChange={e => updateRow(sch.id, row.id, 'notes', e.target.value)}
-                        className="w-full bg-transparent outline-none text-right text-[12px] text-gray-500"/>
+                    <td className="border-l border-gray-100 px-3 py-1" style={{minWidth:'130px'}}>
+                      <textarea value={row.notes||''} onChange={e=>updateRow(sch.id,row.id,'notes',e.target.value)}
+                        className="w-full bg-transparent outline-none text-right text-[12px] text-gray-500 resize-none leading-5 pt-1.5" rows={Math.max(1,Math.ceil((row.notes||'').length/20))}/>
                     </td>
                     <td style={{width:"36px"}} className="align-middle">
                       <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
