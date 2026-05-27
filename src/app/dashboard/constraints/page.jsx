@@ -85,6 +85,22 @@ export default function ConstraintsPage() {
 
   const selectedData = selectedDay ? getDayData(selectedDay) : null
 
+  async function exportExcel() {
+    const XLSX = await import('xlsx-js-style')
+    const monthStr = String(calMonth + 1).padStart(2, '0')
+    const prefix = `${calYear}-${monthStr}`
+    const filtered = constraints.filter(c =>
+      !hiddenCrew.has(c.crew_name) &&
+      (c.date?.startsWith(prefix) || (c.date_to && c.date_to >= prefix + '-01' && c.date <= prefix + '-31'))
+    ).sort((a, b) => a.date > b.date ? 1 : -1)
+    const rows = [['תאריך', 'שם', 'שעות', 'הערות']]
+    filtered.forEach(c => rows.push([c.date, c.crew_name, c.hours || '', c.notes || '']))
+    const ws = XLSX.utils.aoa_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'אילוצים')
+    XLSX.writeFile(wb, `constraints_${prefix}.xlsx`)
+  }
+
   function handleFile(e) {
     const file = e.target.files[0]
     if (!file) return
@@ -222,6 +238,11 @@ export default function ConstraintsPage() {
             </label>
             {showConstraints && (
               <div className="relative">
+                <button onClick={exportExcel}
+                  className="text-[12px] text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:border-green-500 flex items-center gap-1">
+                  <i className="ti ti-table-export" style={{fontSize:13}}/>
+                  ייצוא Excel
+                </button>
                 <button onClick={()=>setShowCrewFilter(p=>!p)}
                   className="text-[12px] text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:border-[#6366f1] flex items-center gap-1">
                   <i className="ti ti-users" style={{fontSize:13}}/>
