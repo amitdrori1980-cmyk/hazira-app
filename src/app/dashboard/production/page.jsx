@@ -855,22 +855,7 @@ function GeneralSchedulesMode() {
     const buf = await file.arrayBuffer()
     const wb = XLSX.read(buf, { type: 'array' })
     const ws = wb.Sheets[wb.SheetNames[0]]
-    const techRow = json[2] || []
-    const castRow = json[3] || []
-    const techNames = techRow.map(c => String(c||'').trim()).filter(c => c && c !== 'טכנאים' && c.length > 1)
-    const castNames = castRow.map(c => String(c||'').trim()).filter(c => c && c !== 'קאסט' && c.length > 1)
-    const allParticipants = [...new Set([...techNames, ...castNames])].join(', ')
     const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
-    const techRow = json[2] || []
-    const castRow = json[3] || []
-    const techNames = techRow.map(c => String(c||"").trim()).filter(c => c && c.length > 1)
-    const castNames = castRow.map(c => String(c||"").trim()).filter(c => c && c.length > 1)
-    const allParticipants = [...new Set([...techNames, ...castNames])].join(", ")
-    const techRow = json[2] || []
-    const castRow = json[3] || []
-    const techNames = techRow.map(c => String(c||'').trim()).filter(c => c && c !== 'טכנאים' && c.length > 1)
-    const castNames = castRow.map(c => String(c||'').trim()).filter(c => c && c !== 'קאסט' && c.length > 1)
-    const allParticipants = [...new Set([...techNames, ...castNames])].join(', ')
     const techRow = json[2] || []
     const castRow = json[3] || []
     const techNames = techRow.map(c => String(c||'').trim()).filter(c => c && c !== 'טכנאים' && c.length > 1)
