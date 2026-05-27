@@ -57,6 +57,22 @@ export default function CalendarPage() {
     ? filteredEvents.filter(e => e.date === selectedDay)
     : []
 
+  async function exportExcel() {
+    const XLSX = await import('xlsx-js-style')
+    const monthStr = String(calMonth + 1).padStart(2, '0')
+    const prefix = `${calYear}-${monthStr}`
+    const toExport = filteredEvents
+      .filter(e => e.date?.startsWith(prefix))
+      .sort((a, b) => a.date > b.date ? 1 : -1)
+    const rows = [['תאריך', 'שעה', 'שם האירוע', 'סוג', 'אולם', 'תיאור']]
+    toExport.forEach(e => rows.push([e.date, e.time || '', e.title, e.type || '', e.venue || '', e.description || '']))
+    const ws = XLSX.utils.aoa_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'יומן')
+    const venueSuffix = selectedVenue === 'all' ? 'all' : selectedVenue
+    XLSX.writeFile(wb, `calendar_${prefix}_${venueSuffix}.xlsx`)
+  }
+
   return (
     <div className="w-full">
       <div className="bg-white border border-gray-100 rounded-xl p-5 mb-3">
@@ -70,6 +86,9 @@ export default function CalendarPage() {
           </span>
           <button onClick={() => changeMonth(1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">
             הבא ›
+          </button>
+          <button onClick={exportExcel} className="text-sm text-gray-500 hover:text-green-600 px-3 py-1 border border-gray-200 rounded-lg flex items-center gap-1">
+            <i className="ti ti-table-export" style={{fontSize:13}}/> ייצוא
           </button>
         </div>
 
