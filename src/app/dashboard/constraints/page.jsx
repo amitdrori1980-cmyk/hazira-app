@@ -110,7 +110,9 @@ export default function ConstraintsPage() {
         const hours = row[hoursIdx]?.toString().trim() || ''
         const notes = row[notesIdx]?.toString().trim() || ''
         const member = crew.find(c => c.full_name.trim() === name)
-        const { error } = await supabase.from('crew_constraints').insert({
+        const existing = await supabase.from("crew_constraints").select("id").eq("crew_name", name).eq("date", date).maybeSingle()
+        if (existing.data) { success++; continue }
+        const { error } = await supabase.from("crew_constraints").insert({
           crew_member_id: member?.id || null,
           crew_name: name,
           date, hours, notes, available: false,
