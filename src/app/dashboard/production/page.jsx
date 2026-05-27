@@ -948,7 +948,7 @@ function GeneralSchedulesMode() {
                     <i className="ti ti-loader-2 animate-spin"/> מייבא שורות...
                   </div>
                 )}
-                <div className="grid grid-cols-[100px_2fr_1.5fr_1.5fr_36px] bg-[#E0197D] text-white text-[11px] font-semibold">
+                <div className="grid grid-cols-[90px_auto_auto_auto_36px] bg-[#E0197D] text-white text-[11px] font-semibold">
                   <div className="px-3 py-2 text-right">שעה</div>
                   <div className="px-3 py-2 text-right border-r border-red-700">מה</div>
                   <div className="px-3 py-2 text-right border-r border-red-700">מי</div>
@@ -959,9 +959,9 @@ function GeneralSchedulesMode() {
                   <div className="text-center text-[12px] text-gray-400 py-6">אין שורות — הוסף שורה או ייבא מאקסל</div>
                 )}
                 {schRows.map((row, idx) => (
-                  <div key={row.id} className={`grid grid-cols-[100px_2fr_1.5fr_1.5fr_36px] border-b border-gray-50 group ${idx%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
+                  <div key={row.id} className={`grid grid-cols-[90px_auto_auto_auto_36px] border-b border-gray-50 group ${idx%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
                     <input value={row.time||''} onChange={e => updateRow(sch.id, row.id, 'time', e.target.value)}
-                      className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100 font-mono min-w-0"/>
+                      className="w-full min-w-0 px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100 font-mono"/>
                     <input value={row.what||''} onChange={e => updateRow(sch.id, row.id, 'what', e.target.value)}
                       className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100"/>
                     <input value={row.who||''} onChange={e => updateRow(sch.id, row.id, 'who', e.target.value)}
