@@ -217,6 +217,7 @@ function EventsPageInner() {
           </div>
         </div>
       )}
+      <div className="flex justify-end mb-2"><a href="/dashboard/import" className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#E0197D] text-gray-600 bg-white"><i className="ti ti-database-import" style={{fontSize:14}}/> ייבא אירועים מאקסל</a></div>
       {/* Add form */}
       <div id="add-event-form" className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
         <div className="text-[13px] font-medium text-gray-800 mb-3">הוסף אירוע חדש</div>
