@@ -950,7 +950,7 @@ function GeneralSchedulesMode() {
                 )}
                 <div className="overflow-x-auto"><table className="w-full border-collapse" style={{tableLayout:"auto"}}>
                   <colgroup>
-                    <col style={{width:'90px'}}/>
+                    <col style={{width:'110px',minWidth:'110px'}}/>
                     <col/>
                     <col/>
                     <col/>
@@ -971,7 +971,7 @@ function GeneralSchedulesMode() {
                 )}
                 {schRows.map((row, idx) => (
                   <tr key={row.id} className={`border-b border-gray-50 group ${idx%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
-                    <td className="border-l border-gray-100 px-3 py-2 whitespace-nowrap text-[12px] font-mono text-right" style={{width:'90px'}}>
+                    <td className="border-l border-gray-100 px-3 py-2 whitespace-nowrap text-[12px] font-mono text-right" style={{width:'110px',minWidth:'110px'}}>
                       <input value={row.time||''} onChange={e => updateRow(sch.id, row.id, 'time', e.target.value)}
                         className="w-full bg-transparent outline-none text-right font-mono"/>
                     </td>
