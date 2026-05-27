@@ -125,7 +125,8 @@ export default function ConstraintsPage() {
         const name = nameIdx >= 0 ? row[nameIdx]?.toString().trim() : null
         if (!name || DAYS_HE.includes(name)) continue
         if (!lastDate) { failed++; continue }
-        const hours = hoursIdx >= 0 ? row[hoursIdx]?.toString().trim() || '' : ''
+        const rawHours = hoursIdx >= 0 ? row[hoursIdx] : ''
+        const hours = typeof rawHours === 'number' ? (() => { const t = Math.round(rawHours * 24 * 60); const h = Math.floor(t/60); const m = t%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0') })() : (rawHours?.toString().trim() || '')
         const notes = notesIdx >= 0 ? row[notesIdx]?.toString().trim() || '' : ''
         const member = crew.find(c => c.full_name.trim() === name)
         const existing = await supabase.from('crew_constraints').select('id').eq('crew_name', name).eq('date', lastDate).maybeSingle()
