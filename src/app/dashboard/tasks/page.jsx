@@ -218,7 +218,7 @@ export default function TasksPage() {
                   </div>
                 )}
               </div>
-              {openComments[t.id] && (<>
+              {openComments[t.id] ? (<>
                 <div className="mt-2 pr-7 border-t border-gray-100 pt-2">
                   {(comments[t.id] || []).map(c => (
                     <div key={c.id} className="text-[12px] text-gray-600 mb-1">
@@ -232,7 +232,7 @@ export default function TasksPage() {
                     <button onClick={()=>addComment(t.id)} className="text-[12px] px-2 py-1 bg-[#E0197D] text-white rounded-lg">שלח</button>
                   </div>
                 </div>
-              )}
+              ) : null}
             </>
             ))}
           </div>
