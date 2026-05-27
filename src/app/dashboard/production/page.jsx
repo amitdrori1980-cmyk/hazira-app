@@ -140,6 +140,28 @@ function ProductionInquiries() {
 
   return (
     <div className="max-w-3xl">
+      {showTemplates && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-xl" dir="rtl">
+            <div className="text-[15px] font-semibold text-gray-800 mb-4">בחר תבנית לוז</div>
+            {templates.length === 0 ? (
+              <div className="text-center text-gray-400 py-6 text-sm">אין תבניות שמורות</div>
+            ) : (
+              <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
+                {templates.map(t => (
+                  <button key={t.id} onClick={()=>loadTemplate(t)}
+                    className="text-right px-4 py-3 border border-gray-200 rounded-xl hover:border-[#E0197D] hover:bg-[#FCE4F3] transition-colors">
+                    <div className="text-[14px] font-medium text-gray-800">{t.name}</div>
+                    <div className="text-[12px] text-gray-400 mt-0.5">{t.rows?.length || 0} שורות</div>
+                  </button>
+                ))}
+              </div>
+            )}
+            <button onClick={()=>setShowTemplates(false)}
+              className="mt-4 w-full border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl">ביטול</button>
+          </div>
+        </div>
+      )}
       <div className="flex justify-end mb-4">
         <button onClick={() => setShowNewEvent(v => !v)}
           className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1">
@@ -292,29 +314,6 @@ function ProductionInquiries() {
         )
       })}
     </div>
-
-      {showTemplates && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-xl" dir="rtl">
-            <div className="text-[15px] font-semibold text-gray-800 mb-4">בחר תבנית לוז</div>
-            {templates.length === 0 ? (
-              <div className="text-center text-gray-400 py-6 text-sm">אין תבניות שמורות</div>
-            ) : (
-              <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
-                {templates.map(t => (
-                  <button key={t.id} onClick={()=>loadTemplate(t)}
-                    className="text-right px-4 py-3 border border-gray-200 rounded-xl hover:border-[#E0197D] hover:bg-[#FCE4F3] transition-colors">
-                    <div className="text-[14px] font-medium text-gray-800">{t.name}</div>
-                    <div className="text-[12px] text-gray-400 mt-0.5">{t.rows?.length || 0} שורות</div>
-                  </button>
-                ))}
-              </div>
-            )}
-            <button onClick={()=>setShowTemplates(false)}
-              className="mt-4 w-full border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl">ביטול</button>
-          </div>
-        </div>
-      )}
   )
 }
 
