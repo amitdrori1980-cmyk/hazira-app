@@ -757,165 +757,225 @@ function ProductionSchedule({ profile }) {
 }
 
 function GeneralSchedulesMode() {
-  const [files, setFiles] = useState([])
+  const [schedules, setSchedules] = useState([])
   const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState(false)
-  const [selectedFiles, setSelectedFiles] = useState({})
-  const [viewing, setViewing] = useState(null)
-  const [confirmId, setConfirmId] = useState(null)
-  const fileInputRef = useRef(null)
-  const FOLDER = 'schedules-general'
+  const [openId, setOpenId] = useState(null)
+  const [rows, setRows] = useState({})
+  const [showNew, setShowNew] = useState(false)
+  const [newTitle, setNewTitle] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [importingId, setImportingId] = useState(null)
 
-  useEffect(() => { loadFiles() }, [])
+  useEffect(() => { load() }, [])
 
-  async function loadFiles() {
+  async function load() {
     setLoading(true)
-    const { data } = await supabase.storage.from('venues').list(FOLDER, { sortBy: { column: 'name', order: 'asc' } })
-    setFiles((data || []).filter(f => f.name !== '.emptydir'))
+    const { data } = await supabase.from('general_schedules').select('*').order('created_at', { ascending: false })
+    setSchedules(data || [])
     setLoading(false)
   }
 
-  const isExcel = name => /\.(xlsx|xls)$/i.test(name)
+  async function loadRows(scheduleId) {
+    const { data } = await supabase.from('general_schedule_rows').select('*').eq('schedule_id', scheduleId).order('sort_order')
+    setRows(prev => ({ ...prev, [scheduleId]: data || [] }))
+  }
 
-  async function handleUpload(e) {
-    const fileList = Array.from(e.target.files)
-    if (!fileList.length) return
-    setUploading(true)
-    for (const file of fileList) {
-      const safeName = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9.\-_\u0590-\u05FF]/g, '_')
-      await supabase.storage.from('venues').upload(`${FOLDER}/${safeName}`, file, { upsert: true })
+  async function createSchedule() {
+    if (!newTitle.trim()) return
+    setSaving(true)
+    const { data } = await supabase.from('general_schedules').insert({ title: newTitle.trim(), participants: '' }).select().single()
+    if (data) {
+      setSchedules(prev => [data, ...prev])
+      setRows(prev => ({ ...prev, [data.id]: [] }))
+      setOpenId(data.id)
+      setNewTitle('')
+      setShowNew(false)
     }
-    await loadFiles()
-    setUploading(false)
-    e.target.value = ''
+    setSaving(false)
   }
 
-  async function deleteFile(fileName) {
-    await supabase.storage.from('venues').remove([`${FOLDER}/${fileName}`])
-    setFiles(prev => prev.filter(f => f.name !== fileName))
-    setSelectedFiles(prev => { const n = {...prev}; delete n[fileName]; return n })
-    setConfirmId(null)
+  async function updateSchedule(id, field, value) {
+    await supabase.from('general_schedules').update({ [field]: value }).eq('id', id)
+    setSchedules(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s))
   }
 
-  function openFile(fileName) {
-    const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${fileName}`)
-    const isMobile = window.innerWidth < 768
-    if (isMobile) { window.open(data.publicUrl, '_blank') }
-    else { setViewing({ url: data.publicUrl, name: fileName }) }
+  async function deleteSchedule(id) {
+    await supabase.from('general_schedules').delete().eq('id', id)
+    setSchedules(prev => prev.filter(s => s.id !== id))
+    if (openId === id) setOpenId(null)
   }
 
-  function toggleSelect(fileName) { setSelectedFiles(prev => ({ ...prev, [fileName]: !prev[fileName] })) }
-
-  function selectAll() {
-    const allSelected = files.every(f => selectedFiles[f.name])
-    const newSel = {}
-    files.forEach(f => { newSel[f.name] = !allSelected })
-    setSelectedFiles(newSel)
+  async function addRow(scheduleId) {
+    const currentRows = rows[scheduleId] || []
+    const { data } = await supabase.from('general_schedule_rows').insert({
+      schedule_id: scheduleId, time: '', what: '', who: '', notes: '', sort_order: currentRows.length
+    }).select().single()
+    if (data) setRows(prev => ({ ...prev, [scheduleId]: [...(prev[scheduleId] || []), data] }))
   }
 
-  function sendByEmail() {
-    const selected = files.filter(f => selectedFiles[f.name])
-    if (!selected.length) return
-    const links = selected.map(f => {
-      const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${f.name}`)
-      return `${f.name}: ${data.publicUrl}`
-    }).join('%0D%0A')
-    window.location.href = `mailto:?subject=${encodeURIComponent('לוזים כללי')}&body=${links}`
+  async function updateRow(scheduleId, rowId, field, value) {
+    setRows(prev => ({ ...prev, [scheduleId]: prev[scheduleId].map(r => r.id === rowId ? { ...r, [field]: value } : r) }))
+    await supabase.from('general_schedule_rows').update({ [field]: value }).eq('id', rowId)
   }
 
-  const anySelected = files.some(f => selectedFiles[f.name])
-  const selectedCount = files.filter(f => selectedFiles[f.name]).length
+  async function deleteRow(scheduleId, rowId) {
+    await supabase.from('general_schedule_rows').delete().eq('id', rowId)
+    setRows(prev => ({ ...prev, [scheduleId]: prev[scheduleId].filter(r => r.id !== rowId) }))
+  }
+
+  async function moveRow(scheduleId, index, dir) {
+    const curr = [...(rows[scheduleId] || [])]
+    const target = index + dir
+    if (target < 0 || target >= curr.length) return
+    ;[curr[index], curr[target]] = [curr[target], curr[index]]
+    setRows(prev => ({ ...prev, [scheduleId]: curr }))
+    await Promise.all(curr.map((r, i) => supabase.from('general_schedule_rows').update({ sort_order: i }).eq('id', r.id)))
+  }
+
+  async function importExcel(scheduleId, file) {
+    setImportingId(scheduleId)
+    const XLSX = await import('xlsx-js-style')
+    const buf = await file.arrayBuffer()
+    const wb = XLSX.read(buf, { type: 'array' })
+    const ws = wb.Sheets[wb.SheetNames[0]]
+    const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+    const excelRows = json.filter(r => r.some(c => String(c).trim())).map(r => ({
+      time: String(r[0] || '').trim(),
+      what: String(r[1] || '').trim(),
+      who:  String(r[2] || '').trim(),
+      notes: String(r[3] || '').trim(),
+    }))
+    const currentRows = rows[scheduleId] || []
+    const inserted = []
+    for (let i = 0; i < excelRows.length; i++) {
+      const { data } = await supabase.from('general_schedule_rows').insert({
+        schedule_id: scheduleId, ...excelRows[i], sort_order: currentRows.length + i
+      }).select().single()
+      if (data) inserted.push(data)
+    }
+    setRows(prev => ({ ...prev, [scheduleId]: [...(prev[scheduleId] || []), ...inserted] }))
+    setImportingId(null)
+  }
+
+  function toggleOpen(id) {
+    if (openId === id) { setOpenId(null); return }
+    setOpenId(id)
+    if (!rows[id]) loadRows(id)
+  }
 
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
 
   return (
-    <div className="max-w-2xl">
-      {viewing && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 flex-row-reverse">
-            <button onClick={() => setViewing(null)} className="flex items-center gap-1.5 text-gray-600 text-[13px]">
-              <i className="ti ti-x" style={{fontSize:16}}/> סגור
-            </button>
-            <span className="text-[13px] font-medium text-gray-800 truncate max-w-[45%]">{viewing.name}</span>
-            <a href={viewing.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[13px] text-[#E0197D] hover:underline">
-              <i className="ti ti-external-link" style={{fontSize:14}}/> פתח בדפדפן
-            </a>
-          </div>
-          <iframe src={viewing.url} className="flex-1 w-full hidden md:block" title={viewing.name} allow="fullscreen" style={{border:'none'}}/>
-        </div>
-      )}
-      <input ref={fileInputRef} type="file" multiple accept=".pdf,.xlsx,.xls" className="hidden" onChange={handleUpload}/>
-      <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-        {files.length > 0 && (
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex-row-reverse">
-            <button onClick={selectAll} className="text-[11px] text-gray-500 hover:text-[#E0197D]">
-              {files.every(f => selectedFiles[f.name]) ? 'בטל הכל' : 'בחר הכל'}
-            </button>
-            <div className="flex-1"/>
-            {anySelected && (
-              <button onClick={() => setConfirmId('bulk')}
-                className="flex items-center gap-1.5 text-[12px] bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors">
-                <i className="ti ti-trash" style={{fontSize:13}}/> מחק ({selectedCount})
-              </button>
-            )}
-            {anySelected && (
-              <button onClick={sendByEmail}
-                className="flex items-center gap-1.5 text-[12px] bg-[#E0197D] text-white px-3 py-1.5 rounded-lg hover:bg-[#A0106A]">
-                <i className="ti ti-mail" style={{fontSize:13}}/> שלח במייל ({selectedCount})
-              </button>
-            )}
-          </div>
-        )}
-        {files.length === 0 && <div className="text-center text-[13px] text-gray-400 py-8">אין קבצים עדיין</div>}
-        {files.map(f => (
-          <div key={f.name} className="flex items-center gap-2 px-4 py-3 border-b border-gray-50 last:border-0 group hover:bg-gray-50 flex-row-reverse">
-            <input type="checkbox" checked={!!selectedFiles[f.name]} onChange={() => toggleSelect(f.name)}
-              className="w-4 h-4 accent-[#E0197D] flex-shrink-0 cursor-pointer"/>
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isExcel(f.name) ? 'bg-green-50' : 'bg-[#FCE4F3]'}`}>
-              <i className={`ti ${isExcel(f.name) ? 'ti-file-spreadsheet text-green-600' : 'ti-file-type-pdf text-[#E0197D]'}`} style={{fontSize:18}}/>
-            </div>
-            <div className="flex-1 text-right min-w-0 overflow-hidden">
-              <div className="text-[13px] font-medium text-gray-800 truncate">{f.name}</div>
-              <div className="text-[11px] text-gray-400">{f.metadata?.size ? `${Math.round(f.metadata.size / 1024)} KB` : ''}</div>
-            </div>
-            <button onClick={() => openFile(f.name)}
-              className="text-[#E0197D] hover:text-[#A0106A] text-[12px] flex items-center gap-1 px-2 py-1.5 border border-[#E0197D] rounded-lg flex-shrink-0 whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
-              <i className="ti ti-eye" style={{fontSize:13}}/> צפה
-            </button>
-          </div>
-        ))}
-        <button onClick={() => fileInputRef.current.click()} disabled={uploading}
-          className="w-full py-3 text-[13px] text-gray-400 hover:text-[#E0197D] hover:bg-[#FCE4F3] transition-colors flex items-center justify-center gap-1">
-          {uploading ? <><i className="ti ti-loader-2 animate-spin" style={{fontSize:13}}/> מעלה...</> : <><i className="ti ti-upload" style={{fontSize:13}}/> העלה קובץ</>}
+    <div className="max-w-3xl">
+      <div className="flex justify-end mb-4">
+        <button onClick={() => setShowNew(v => !v)}
+          className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1">
+          <i className="ti ti-plus"/> לוז חדש
         </button>
       </div>
-      {confirmId && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0" style={{background:'rgba(0,0,0,0.4)'}}>
-          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
-            <div className="flex items-center justify-center w-12 h-12 bg-red-50 rounded-full mx-auto mb-3">
-              <i className="ti ti-trash text-[#E0197D]" style={{fontSize:22}}/>
-            </div>
-            <div className="text-center mb-4">
-              <div className="text-[16px] font-semibold text-gray-900 mb-1">מחיקת קבצים</div>
-              <div className="text-[13px] text-gray-500">האם למחוק {confirmId === 'bulk' ? selectedCount + ' קבצים' : 'את הקובץ'}?</div>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setConfirmId(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-[14px] text-gray-600">ביטול</button>
-              <button onClick={async () => {
-                if (confirmId === 'bulk') {
-                  const selected = files.filter(f => selectedFiles[f.name])
-                  for (const f of selected) await deleteFile(f.name)
-                  setSelectedFiles({})
-                  setConfirmId(null)
-                } else { deleteFile(confirmId) }
-              }} className="flex-1 py-2.5 rounded-xl bg-[#E0197D] text-white text-[14px]">מחק</button>
-            </div>
+      {showNew && (
+        <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
+          <input value={newTitle} onChange={e => setNewTitle(e.target.value)}
+            placeholder="שם הלוז *"
+            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-3"/>
+          <div className="flex gap-2">
+            <button onClick={createSchedule} disabled={saving || !newTitle.trim()}
+              className="flex-1 bg-[#E0197D] text-white text-sm py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
+              {saving ? 'שומר...' : 'צור לוז'}
+            </button>
+            <button onClick={() => setShowNew(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-500">ביטול</button>
           </div>
         </div>
       )}
+      {schedules.length === 0 && !showNew && (
+        <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">
+          אין לוזים — לחץ על "לוז חדש" להתחלה
+        </div>
+      )}
+      {schedules.map(sch => {
+        const isOpen = openId === sch.id
+        const schRows = rows[sch.id] || []
+        return (
+          <div key={sch.id} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 flex-row-reverse"
+              onClick={() => toggleOpen(sch.id)}>
+              <div className="flex-1 text-right">
+                <div className="text-[13px] font-semibold text-gray-800">{sch.title}</div>
+                {sch.participants && <div className="text-[11px] text-gray-400 mt-0.5">{sch.participants}</div>}
+              </div>
+              <div className="flex items-center gap-1">
+                <input type="file" accept=".xlsx,.xls" className="hidden" id={`xl-${sch.id}`}
+                  onChange={e => { if (e.target.files[0]) importExcel(sch.id, e.target.files[0]); e.target.value = '' }}/>
+                <button onClick={e => { e.stopPropagation(); document.getElementById(`xl-${sch.id}`).click() }}
+                  className="text-gray-300 hover:text-green-600 p-1" title="ייבא מאקסל">
+                  <i className="ti ti-table-import" style={{fontSize:13}}/>
+                </button>
+                <button onClick={e => { e.stopPropagation(); if (window.confirm('למחוק את הלוז?')) deleteSchedule(sch.id) }}
+                  className="text-gray-300 hover:text-red-500 p-1">
+                  <i className="ti ti-trash" style={{fontSize:13}}/>
+                </button>
+                <i className={`ti ${isOpen ? 'ti-chevron-up' : 'ti-chevron-down'} text-gray-300`} style={{fontSize:13}}/>
+              </div>
+            </div>
+            {isOpen && (
+              <div className="border-t border-gray-50">
+                <div className="px-4 py-3 border-b border-gray-50">
+                  <input defaultValue={sch.participants}
+                    onBlur={e => updateSchedule(sch.id, 'participants', e.target.value)}
+                    placeholder="משתתפים..."
+                    className="w-full text-[13px] px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right"/>
+                </div>
+                {importingId === sch.id && (
+                  <div className="px-4 py-2 text-[12px] text-green-600 flex items-center gap-1 flex-row-reverse">
+                    <i className="ti ti-loader-2 animate-spin"/> מייבא שורות...
+                  </div>
+                )}
+                <div className="grid grid-cols-[80px_2fr_1.5fr_1fr_36px] bg-[#E0197D] text-white text-[11px] font-semibold">
+                  <div className="px-3 py-2 text-right">שעה</div>
+                  <div className="px-3 py-2 text-right border-r border-red-700">מה</div>
+                  <div className="px-3 py-2 text-right border-r border-red-700">מי</div>
+                  <div className="px-3 py-2 text-right border-r border-red-700">הערות</div>
+                  <div/>
+                </div>
+                {schRows.length === 0 && (
+                  <div className="text-center text-[12px] text-gray-400 py-6">אין שורות — הוסף שורה או ייבא מאקסל</div>
+                )}
+                {schRows.map((row, idx) => (
+                  <div key={row.id} className={`grid grid-cols-[80px_2fr_1.5fr_1fr_36px] border-b border-gray-50 group ${idx%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
+                    <input value={row.time||''} onChange={e => updateRow(sch.id, row.id, 'time', e.target.value)}
+                      className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100 font-mono"/>
+                    <input value={row.what||''} onChange={e => updateRow(sch.id, row.id, 'what', e.target.value)}
+                      className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100"/>
+                    <input value={row.who||''} onChange={e => updateRow(sch.id, row.id, 'who', e.target.value)}
+                      className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100"/>
+                    <input value={row.notes||''} onChange={e => updateRow(sch.id, row.id, 'notes', e.target.value)}
+                      className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100 text-gray-500"/>
+                    <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => moveRow(sch.id, idx, -1)} disabled={idx===0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5">
+                        <i className="ti ti-chevron-up" style={{fontSize:10}}/>
+                      </button>
+                      <button onClick={() => deleteRow(sch.id, row.id)} className="text-gray-300 hover:text-red-500 p-0.5">
+                        <i className="ti ti-trash" style={{fontSize:10}}/>
+                      </button>
+                      <button onClick={() => moveRow(sch.id, idx, 1)} disabled={idx===schRows.length-1} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5">
+                        <i className="ti ti-chevron-down" style={{fontSize:10}}/>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <button onClick={() => addRow(sch.id)}
+                  className="w-full py-3 text-[12px] text-gray-400 hover:text-[#E0197D] hover:bg-[#FCE4F3] transition-colors flex items-center justify-center gap-1">
+                  <i className="ti ti-plus" style={{fontSize:12}}/> הוסף שורה
+                </button>
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
+
 
 export default function ProductionPage() {
   const [profile, setProfile] = useState(null)
