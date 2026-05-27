@@ -971,21 +971,21 @@ function GeneralSchedulesMode() {
                 )}
                 {schRows.map((row, idx) => (
                   <tr key={row.id} className={`border-b border-gray-50 group ${idx%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
-                    <td className="border-l border-gray-100 p-0">
+                    <td className="border-l border-gray-100 px-3 py-2 whitespace-nowrap text-[12px] font-mono text-right" style={{width:'90px'}}>
                       <input value={row.time||''} onChange={e => updateRow(sch.id, row.id, 'time', e.target.value)}
-                        className="w-full px-3 py-2 text-[12px] bg-transparent outline-none text-right font-mono"/>
+                        className="w-full bg-transparent outline-none text-right font-mono"/>
                     </td>
-                    <td className="border-l border-gray-100 p-0">
+                    <td className="border-l border-gray-100 px-3 py-2" style={{minWidth:'150px'}}>
                       <input value={row.what||''} onChange={e => updateRow(sch.id, row.id, 'what', e.target.value)}
-                        className="w-full px-3 py-2 text-[12px] bg-transparent outline-none text-right"/>
+                        className="w-full bg-transparent outline-none text-right text-[12px] break-words"/>
                     </td>
-                    <td className="border-l border-gray-100 p-0">
+                    <td className="border-l border-gray-100 px-3 py-2" style={{minWidth:'120px'}}>
                       <input value={row.who||''} onChange={e => updateRow(sch.id, row.id, 'who', e.target.value)}
-                        className="w-full px-3 py-2 text-[12px] bg-transparent outline-none text-right"/>
+                        className="w-full bg-transparent outline-none text-right text-[12px]"/>
                     </td>
-                    <td className="border-l border-gray-100 p-0">
+                    <td className="border-l border-gray-100 px-3 py-2" style={{minWidth:'120px'}}>
                       <input value={row.notes||''} onChange={e => updateRow(sch.id, row.id, 'notes', e.target.value)}
-                        className="w-full px-3 py-2 text-[12px] bg-transparent outline-none text-right text-gray-500"/>
+                        className="w-full bg-transparent outline-none text-right text-[12px] text-gray-500"/>
                     </td>
                     <td style={{width:"36px"}} className="align-middle">
                       <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
