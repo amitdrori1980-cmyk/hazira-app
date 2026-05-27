@@ -25,6 +25,10 @@ export default function TasksPage() {
   const [uid, setUid]           = useState(null)
   const [dept, setDept]         = useState(null)
   const [isManager, setIsManager] = useState(false)
+  const [comments, setComments]       = useState({})
+  const [commentText, setCommentText] = useState({})
+  const [openComments, setOpenComments] = useState({})
+  const [authorName, setAuthorName]   = useState('')
 
   useEffect(() => { loadTasks() }, [])
 
@@ -94,6 +98,28 @@ export default function TasksPage() {
       : t
     ))
     setEditing(null)
+  }
+
+  async function loadComments(taskId) {
+    const { data } = await supabase.from('task_comments').select('*').eq('task_id', taskId).order('created_at')
+    setComments(prev => ({ ...prev, [taskId]: data || [] }))
+  }
+
+  async function addComment(taskId) {
+    const text = commentText[taskId]?.trim()
+    if (!text) return
+    const { data } = await supabase.from('task_comments').insert({
+      task_id: taskId, user_id: uid, author_name: authorName || 'משתמש', content: text
+    }).select().single()
+    if (data) {
+      setComments(prev => ({ ...prev, [taskId]: [...(prev[taskId] || []), data] }))
+      setCommentText(prev => ({ ...prev, [taskId]: '' }))
+    }
+  }
+
+  function toggleComments(taskId) {
+    setOpenComments(prev => ({ ...prev, [taskId]: !prev[taskId] }))
+    if (!comments[taskId]) loadComments(taskId)
   }
 
   const open = tasks.filter(t => !t.done)
@@ -184,9 +210,29 @@ export default function TasksPage() {
                       className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
                       <i className="ti ti-trash" style={{fontSize:13}}/>
                     </button>
+                    <button onClick={() => toggleComments(t.id)}
+                      className="text-gray-200 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all">
+                      <i className="ti ti-message" style={{fontSize:13}}/>
+                      {comments[t.id]?.length > 0 && <span className="text-[10px] ml-0.5">{comments[t.id].length}</span>}
+                    </button>
                   </div>
                 )}
               </div>
+              {openComments[t.id] && (
+                <div className="mt-2 pr-7 border-t border-gray-100 pt-2">
+                  {(comments[t.id] || []).map(c => (
+                    <div key={c.id} className="text-[12px] text-gray-600 mb-1">
+                      <span className="font-medium text-gray-800">{c.author_name}: </span>{c.content}
+                    </div>
+                  ))}
+                  <div className="flex gap-1 mt-1">
+                    <input value={commentText[t.id]||''} onChange={e=>setCommentText(prev=>({...prev,[t.id]:e.target.value}))}
+                      onKeyDown={e=>e.key==='Enter'&&addComment(t.id)}
+                      placeholder="הוסף תגובה..." className="flex-1 text-[12px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D]"/>
+                    <button onClick={()=>addComment(t.id)} className="text-[12px] px-2 py-1 bg-[#E0197D] text-white rounded-lg">שלח</button>
+                  </div>
+                </div>
+              )}
             ))}
           </div>
 
