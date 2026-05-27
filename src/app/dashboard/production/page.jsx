@@ -331,7 +331,7 @@ function LoadFromGeneralSchedules({ onLoad, onImportExcel }) {
     const rows = json
       .filter(r => r.some(c => String(c).trim()))
       .map(r => ({
-        time:  String(r[0] || '').trim(),
+        time: (() => { const v = r[0]; if (typeof v === 'number') { const t = Math.round(v*24*60); return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0') } return String(v || '').trim() })(),
         what:  String(r[1] || '').trim(),
         who:   String(r[2] || '').trim(),
         notes: String(r[3] || '').trim(),
@@ -842,7 +842,7 @@ function GeneralSchedulesMode() {
     const ws = wb.Sheets[wb.SheetNames[0]]
     const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
     const excelRows = json.filter(r => r.some(c => String(c).trim())).map(r => ({
-      time: String(r[0] || '').trim(),
+      time: (() => { const v = r[0]; if (typeof v === 'number') { const t = Math.round(v*24*60); return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0') } return String(v || '').trim() })(),
       what: String(r[1] || '').trim(),
       who:  String(r[2] || '').trim(),
       notes: String(r[3] || '').trim(),
