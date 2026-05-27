@@ -91,31 +91,49 @@ export default function ConstraintsPage() {
     setImporting(true)
     const reader = new FileReader()
     reader.onload = async (ev) => {
-      const wb   = XLSX.read(ev.target.result, { type: 'array', raw: true })
-      const ws   = wb.Sheets[wb.SheetNames[0]]
-      const data = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true })
-      if (data.length < 2) { setImporting(false); return }
-
-      const headers = data[0].map(h => h?.toString().toLowerCase().trim())
-      const dateIdx  = headers.findIndex(h => ['תאריך','date'].includes(h))
-      const nameIdx  = headers.findIndex(h => ['שם','name','full_name'].includes(h))
+      const wb = XLSX.read(ev.target.result, { type: 'array', raw: true })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const merges = ws['!merges'] || []
+      const ref = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : null
+      if (!ref) { setImporting(false); return }
+      const matrix = []
+      for (let r = 0; r <= ref.e.r; r++) {
+        matrix[r] = []
+        for (let c = 0; c <= ref.e.c; c++) {
+          const cell = ws[XLSX.utils.encode_cell({r, c})]
+          matrix[r][c] = cell ? cell.v : null
+        }
+      }
+      for (const m of merges) {
+        const val = matrix[m.s.r][m.s.c]
+        for (let r = m.s.r; r <= m.e.r; r++)
+          for (let c = m.s.c; c <= m.e.c; c++)
+            matrix[r][c] = val
+      }
+      if (matrix.length < 2) { setImporting(false); return }
+      const headers = matrix[0].map(h => h?.toString().toLowerCase().trim())
+      const dateIdx = headers.findIndex(h => ['תאריך','date'].includes(h))
+      const nameIdx = headers.findIndex(h => ['שם','name','full_name'].includes(h))
       const hoursIdx = headers.findIndex(h => ['שעות','hours','זמינות'].includes(h))
       const notesIdx = headers.findIndex(h => ['הערה','הערות','notes'].includes(h))
-
-      let success = 0, failed = 0
-      for (const row of data.slice(1)) {
-        const date = parseDate(row[dateIdx])
-        const name = row[nameIdx]?.toString().trim()
-        if (!date || !name) { failed++; continue }
-        const hours = row[hoursIdx]?.toString().trim() || ''
-        const notes = row[notesIdx]?.toString().trim() || ''
+      const DAYS_HE = ['א','ב','ג','ד','ה','ו','ש']
+      let success = 0, failed = 0, lastDate = null
+      for (const row of matrix.slice(1)) {
+        const rawDate = dateIdx >= 0 ? row[dateIdx] : null
+        const parsed = parseDate(rawDate)
+        if (parsed) lastDate = parsed
+        const name = nameIdx >= 0 ? row[nameIdx]?.toString().trim() : null
+        if (!name || DAYS_HE.includes(name)) continue
+        if (!lastDate) { failed++; continue }
+        const hours = hoursIdx >= 0 ? row[hoursIdx]?.toString().trim() || '' : ''
+        const notes = notesIdx >= 0 ? row[notesIdx]?.toString().trim() || '' : ''
         const member = crew.find(c => c.full_name.trim() === name)
-        const existing = await supabase.from("crew_constraints").select("id").eq("crew_name", name).eq("date", date).maybeSingle()
+        const existing = await supabase.from('crew_constraints').select('id').eq('crew_name', name).eq('date', lastDate).maybeSingle()
         if (existing.data) { success++; continue }
-        const { error } = await supabase.from("crew_constraints").insert({
+        const { error } = await supabase.from('crew_constraints').insert({
           crew_member_id: member?.id || null,
           crew_name: name,
-          date, hours, notes, available: false,
+          date: lastDate, hours, notes, available: false,
         })
         if (error) failed++; else success++
       }
@@ -127,7 +145,7 @@ export default function ConstraintsPage() {
     reader.readAsArrayBuffer(file)
   }
 
-  async function addConstraint(ev) {
+    async function addConstraint(ev) {
     ev.preventDefault()
     if (!form.crew_name || !form.date) return
     setAdding(true)
