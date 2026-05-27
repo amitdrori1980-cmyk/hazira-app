@@ -948,39 +948,62 @@ function GeneralSchedulesMode() {
                     <i className="ti ti-loader-2 animate-spin"/> מייבא שורות...
                   </div>
                 )}
-                <div className="grid grid-cols-[90px_auto_auto_auto_36px] bg-[#E0197D] text-white text-[11px] font-semibold">
-                  <div className="px-3 py-2 text-right">שעה</div>
-                  <div className="px-3 py-2 text-right border-r border-red-700">מה</div>
-                  <div className="px-3 py-2 text-right border-r border-red-700">מי</div>
-                  <div className="px-3 py-2 text-right border-r border-red-700">הערות</div>
-                  <div/>
-                </div>
+                <table className="w-full table-fixed border-collapse">
+                  <colgroup>
+                    <col style={{width:'90px'}}/>
+                    <col style={{width:'30%'}}/>
+                    <col style={{width:'25%'}}/>
+                    <col style={{width:'auto'}}/>
+                    <col style={{width:'36px'}}/>
+                  </colgroup>
+                  <thead>
+                    <tr className="bg-[#E0197D] text-white text-[11px] font-semibold">
+                      <th className="px-3 py-2 text-right font-semibold">שעה</th>
+                      <th className="px-3 py-2 text-right font-semibold border-r border-red-700">מה</th>
+                      <th className="px-3 py-2 text-right font-semibold border-r border-red-700">מי</th>
+                      <th className="px-3 py-2 text-right font-semibold border-r border-red-700">הערות</th>
+                      <th/>
+                    </tr>
+                  </thead>
+                  <tbody>
                 {schRows.length === 0 && (
                   <div className="text-center text-[12px] text-gray-400 py-6">אין שורות — הוסף שורה או ייבא מאקסל</div>
                 )}
                 {schRows.map((row, idx) => (
-                  <div key={row.id} className={`grid grid-cols-[90px_auto_auto_auto_36px] border-b border-gray-50 group ${idx%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
-                    <input value={row.time||''} onChange={e => updateRow(sch.id, row.id, 'time', e.target.value)}
-                      className="w-full min-w-0 px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100 font-mono"/>
-                    <input value={row.what||''} onChange={e => updateRow(sch.id, row.id, 'what', e.target.value)}
-                      className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100"/>
-                    <input value={row.who||''} onChange={e => updateRow(sch.id, row.id, 'who', e.target.value)}
-                      className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100"/>
-                    <input value={row.notes||''} onChange={e => updateRow(sch.id, row.id, 'notes', e.target.value)}
-                      className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100 text-gray-500 min-w-0"/>
-                    <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => moveRow(sch.id, idx, -1)} disabled={idx===0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5">
-                        <i className="ti ti-chevron-up" style={{fontSize:10}}/>
-                      </button>
-                      <button onClick={() => deleteRow(sch.id, row.id)} className="text-gray-300 hover:text-red-500 p-0.5">
-                        <i className="ti ti-trash" style={{fontSize:10}}/>
-                      </button>
-                      <button onClick={() => moveRow(sch.id, idx, 1)} disabled={idx===schRows.length-1} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5">
-                        <i className="ti ti-chevron-down" style={{fontSize:10}}/>
-                      </button>
-                    </div>
-                  </div>
+                  <tr key={row.id} className={`border-b border-gray-50 group ${idx%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
+                    <td className="border-l border-gray-100 p-0">
+                      <input value={row.time||''} onChange={e => updateRow(sch.id, row.id, 'time', e.target.value)}
+                        className="w-full px-3 py-2 text-[12px] bg-transparent outline-none text-right font-mono"/>
+                    </td>
+                    <td className="border-l border-gray-100 p-0">
+                      <input value={row.what||''} onChange={e => updateRow(sch.id, row.id, 'what', e.target.value)}
+                        className="w-full px-3 py-2 text-[12px] bg-transparent outline-none text-right"/>
+                    </td>
+                    <td className="border-l border-gray-100 p-0">
+                      <input value={row.who||''} onChange={e => updateRow(sch.id, row.id, 'who', e.target.value)}
+                        className="w-full px-3 py-2 text-[12px] bg-transparent outline-none text-right"/>
+                    </td>
+                    <td className="border-l border-gray-100 p-0">
+                      <input value={row.notes||''} onChange={e => updateRow(sch.id, row.id, 'notes', e.target.value)}
+                        className="w-full px-3 py-2 text-[12px] bg-transparent outline-none text-right text-gray-500"/>
+                    </td>
+                    <td className="w-9">
+                      <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => moveRow(sch.id, idx, -1)} disabled={idx===0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5">
+                          <i className="ti ti-chevron-up" style={{fontSize:10}}/>
+                        </button>
+                        <button onClick={() => deleteRow(sch.id, row.id)} className="text-gray-300 hover:text-red-500 p-0.5">
+                          <i className="ti ti-trash" style={{fontSize:10}}/>
+                        </button>
+                        <button onClick={() => moveRow(sch.id, idx, 1)} disabled={idx===schRows.length-1} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5">
+                          <i className="ti ti-chevron-down" style={{fontSize:10}}/>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
+                  </tbody>
+                </table>
                 <button onClick={() => addRow(sch.id)}
                   className="w-full py-3 text-[12px] text-gray-400 hover:text-[#E0197D] hover:bg-[#FCE4F3] transition-colors flex items-center justify-center gap-1">
                   <i className="ti ti-plus" style={{fontSize:12}}/> הוסף שורה
