@@ -328,6 +328,16 @@ function LoadFromGeneralSchedules({ onLoad, onImportExcel }) {
     const wb = XLSX.read(buf, { type: 'array' })
     const ws = wb.Sheets[wb.SheetNames[0]]
     const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+    const techRow = json[2] || []
+    const castRow = json[3] || []
+    const techNames = techRow.map(c => String(c||'').trim()).filter(c => c && c !== 'טכנאים' && c.length > 1)
+    const castNames = castRow.map(c => String(c||'').trim()).filter(c => c && c !== 'קאסט' && c.length > 1)
+    const allParticipants = [...new Set([...techNames, ...castNames])].join(', ')
+    const techRow = json[2] || []
+    const castRow = json[3] || []
+    const techNames = techRow.map(c => String(c||'').trim()).filter(c => c && c !== 'טכנאים' && c.length > 1)
+    const castNames = castRow.map(c => String(c||'').trim()).filter(c => c && c !== 'קאסט' && c.length > 1)
+    const allParticipants = [...new Set([...techNames, ...castNames])].join(', ')
     const rows = json
       .filter(r => r.some(c => String(c).trim()))
       .map(r => ({
@@ -841,6 +851,16 @@ function GeneralSchedulesMode() {
     const wb = XLSX.read(buf, { type: 'array' })
     const ws = wb.Sheets[wb.SheetNames[0]]
     const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+    const techRow = json[2] || []
+    const castRow = json[3] || []
+    const techNames = techRow.map(c => String(c||'').trim()).filter(c => c && c !== 'טכנאים' && c.length > 1)
+    const castNames = castRow.map(c => String(c||'').trim()).filter(c => c && c !== 'קאסט' && c.length > 1)
+    const allParticipants = [...new Set([...techNames, ...castNames])].join(', ')
+    const techRow = json[2] || []
+    const castRow = json[3] || []
+    const techNames = techRow.map(c => String(c||'').trim()).filter(c => c && c !== 'טכנאים' && c.length > 1)
+    const castNames = castRow.map(c => String(c||'').trim()).filter(c => c && c !== 'קאסט' && c.length > 1)
+    const allParticipants = [...new Set([...techNames, ...castNames])].join(', ')
     const SKIP = ['שעה','מה','מי','הערות','time']
     const excelRows = json
       .filter(r => r.some(c => String(c).trim()))
@@ -858,6 +878,14 @@ function GeneralSchedulesMode() {
         schedule_id: scheduleId, ...excelRows[i], sort_order: currentRows.length + i
       }).select().single()
       if (data) inserted.push(data)
+    }
+    if (allParticipants) {
+      await supabase.from('general_schedules').update({ participants: allParticipants }).eq('id', scheduleId)
+      setSchedules(prev => prev.map(s => s.id === scheduleId ? { ...s, participants: allParticipants } : s))
+    }
+    if (allParticipants) {
+      await supabase.from('general_schedules').update({ participants: allParticipants }).eq('id', scheduleId)
+      setSchedules(prev => prev.map(s => s.id === scheduleId ? { ...s, participants: allParticipants } : s))
     }
     setRows(prev => ({ ...prev, [scheduleId]: [...(prev[scheduleId] || []), ...inserted] }))
     setImportingId(null)
