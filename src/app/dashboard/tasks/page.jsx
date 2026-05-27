@@ -164,7 +164,7 @@ export default function TasksPage() {
               <span className="text-[11px] bg-[#FCE4F3] text-[#A0106A] px-2 py-0.5 rounded-full">{open.length}</span>
             </div>
             {open.length === 0 && <p className="text-[13px] text-gray-400 text-center py-3">כל המשימות הושלמו!</p>}
-            {open.map(t => (
+            {open.map(t => (<>
               <div key={t.id} className="border-b border-gray-50 last:border-0">
                 {editing === t.id ? (
                   <div className="py-2 flex flex-col gap-2">
@@ -218,7 +218,7 @@ export default function TasksPage() {
                   </div>
                 )}
               </div>
-              {openComments[t.id] && (
+              {openComments[t.id] && (<>
                 <div className="mt-2 pr-7 border-t border-gray-100 pt-2">
                   {(comments[t.id] || []).map(c => (
                     <div key={c.id} className="text-[12px] text-gray-600 mb-1">
@@ -233,6 +233,7 @@ export default function TasksPage() {
                   </div>
                 </div>
               )}
+            </>
             ))}
           </div>
 
