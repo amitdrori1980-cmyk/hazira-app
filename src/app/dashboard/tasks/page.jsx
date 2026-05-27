@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 const PRIORITIES = ['דחוף','היום','מחר','השבוע','גבוהה','רגיל']
@@ -164,8 +164,8 @@ export default function TasksPage() {
               <span className="text-[11px] bg-[#FCE4F3] text-[#A0106A] px-2 py-0.5 rounded-full">{open.length}</span>
             </div>
             {open.length === 0 && <p className="text-[13px] text-gray-400 text-center py-3">כל המשימות הושלמו!</p>}
-            {open.map(t => (<>
-              <div key={t.id} className="border-b border-gray-50 last:border-0">
+            {open.map(t => (<React.Fragment key={t.id}>
+              <div className="border-b border-gray-50 last:border-0">
                 {editing === t.id ? (
                   <div className="py-2 flex flex-col gap-2">
                     <input value={editVal.title} onChange={e => setEditVal(v=>({...v,title:e.target.value}))}
@@ -233,7 +233,7 @@ export default function TasksPage() {
                   </div>
                 </div>
               ) : null}
-            </>
+            </React.Fragment>
             ))}
           </div>
 
