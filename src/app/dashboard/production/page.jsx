@@ -948,12 +948,12 @@ function GeneralSchedulesMode() {
                     <i className="ti ti-loader-2 animate-spin"/> מייבא שורות...
                   </div>
                 )}
-                <table className="w-full table-fixed border-collapse">
+                <table className="w-full border-collapse">
                   <colgroup>
                     <col style={{width:'90px'}}/>
-                    <col style={{width:'30%'}}/>
-                    <col style={{width:'25%'}}/>
-                    <col style={{width:'auto'}}/>
+                    <col/>
+                    <col/>
+                    <col/>
                     <col style={{width:'36px'}}/>
                   </colgroup>
                   <thead>
@@ -967,7 +967,7 @@ function GeneralSchedulesMode() {
                   </thead>
                   <tbody>
                 {schRows.length === 0 && (
-                  <div className="text-center text-[12px] text-gray-400 py-6">אין שורות — הוסף שורה או ייבא מאקסל</div>
+                  <tr><td colSpan={5} className="text-center text-[12px] text-gray-400 py-6">אין שורות — הוסף שורה או ייבא מאקסל</td></tr>
                 )}
                 {schRows.map((row, idx) => (
                   <tr key={row.id} className={`border-b border-gray-50 group ${idx%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
