@@ -763,6 +763,7 @@ function GeneralSchedulesMode() {
   const [rows, setRows] = useState({})
   const [showNew, setShowNew] = useState(false)
   const [newTitle, setNewTitle] = useState('')
+  const [newVenue, setNewVenue] = useState('')
   const [saving, setSaving] = useState(false)
   const [importingId, setImportingId] = useState(null)
 
@@ -783,12 +784,13 @@ function GeneralSchedulesMode() {
   async function createSchedule() {
     if (!newTitle.trim()) return
     setSaving(true)
-    const { data } = await supabase.from('general_schedules').insert({ title: newTitle.trim(), participants: '' }).select().single()
+    const { data } = await supabase.from('general_schedules').insert({ title: newTitle.trim(), venue: newVenue || null, participants: '' }).select().single()
     if (data) {
       setSchedules(prev => [data, ...prev])
       setRows(prev => ({ ...prev, [data.id]: [] }))
       setOpenId(data.id)
       setNewTitle('')
+      setNewVenue('')
       setShowNew(false)
     }
     setSaving(false)
@@ -877,7 +879,12 @@ function GeneralSchedulesMode() {
         <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
           <input value={newTitle} onChange={e => setNewTitle(e.target.value)}
             placeholder="שם הלוז *"
-            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-3"/>
+            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2"/>
+          <select value={newVenue} onChange={e => setNewVenue(e.target.value)}
+            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-3">
+            <option value="">בחר אולם</option>
+            {VENUES.map(v => <option key={v} value={v}>{v}</option>)}
+          </select>
           <div className="flex gap-2">
             <button onClick={createSchedule} disabled={saving || !newTitle.trim()}
               className="flex-1 bg-[#E0197D] text-white text-sm py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
@@ -901,7 +908,10 @@ function GeneralSchedulesMode() {
               onClick={() => toggleOpen(sch.id)}>
               <div className="flex-1 text-right">
                 <div className="text-[13px] font-semibold text-gray-800">{sch.title}</div>
-                {sch.participants && <div className="text-[11px] text-gray-400 mt-0.5">{sch.participants}</div>}
+                <div className="text-[11px] text-gray-400 mt-0.5 flex gap-2 justify-end flex-wrap">
+                  {sch.venue && <span>{sch.venue}</span>}
+                  {sch.participants && <span>{sch.participants}</span>}
+                </div>
               </div>
               <div className="flex items-center gap-1">
                 <input type="file" accept=".xlsx,.xls" className="hidden" id={`xl-${sch.id}`}
@@ -920,6 +930,14 @@ function GeneralSchedulesMode() {
             {isOpen && (
               <div className="border-t border-gray-50">
                 <div className="px-4 py-3 border-b border-gray-50">
+                  <div className="flex gap-2 mb-2">
+                    <select defaultValue={sch.venue||''} onBlur={e => updateSchedule(sch.id, 'venue', e.target.value)}
+                      onChange={e => updateSchedule(sch.id, 'venue', e.target.value)}
+                      className="text-[13px] px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right w-40">
+                      <option value="">בחר אולם</option>
+                      {VENUES.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
                   <input defaultValue={sch.participants}
                     onBlur={e => updateSchedule(sch.id, 'participants', e.target.value)}
                     placeholder="משתתפים..."
@@ -930,7 +948,7 @@ function GeneralSchedulesMode() {
                     <i className="ti ti-loader-2 animate-spin"/> מייבא שורות...
                   </div>
                 )}
-                <div className="grid grid-cols-[80px_2fr_1.5fr_1fr_36px] bg-[#E0197D] text-white text-[11px] font-semibold">
+                <div className="grid grid-cols-[100px_2fr_1.5fr_1.5fr_36px] bg-[#E0197D] text-white text-[11px] font-semibold">
                   <div className="px-3 py-2 text-right">שעה</div>
                   <div className="px-3 py-2 text-right border-r border-red-700">מה</div>
                   <div className="px-3 py-2 text-right border-r border-red-700">מי</div>
@@ -941,15 +959,15 @@ function GeneralSchedulesMode() {
                   <div className="text-center text-[12px] text-gray-400 py-6">אין שורות — הוסף שורה או ייבא מאקסל</div>
                 )}
                 {schRows.map((row, idx) => (
-                  <div key={row.id} className={`grid grid-cols-[80px_2fr_1.5fr_1fr_36px] border-b border-gray-50 group ${idx%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
+                  <div key={row.id} className={`grid grid-cols-[100px_2fr_1.5fr_1.5fr_36px] border-b border-gray-50 group ${idx%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
                     <input value={row.time||''} onChange={e => updateRow(sch.id, row.id, 'time', e.target.value)}
-                      className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100 font-mono"/>
+                      className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100 font-mono min-w-0"/>
                     <input value={row.what||''} onChange={e => updateRow(sch.id, row.id, 'what', e.target.value)}
                       className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100"/>
                     <input value={row.who||''} onChange={e => updateRow(sch.id, row.id, 'who', e.target.value)}
                       className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100"/>
                     <input value={row.notes||''} onChange={e => updateRow(sch.id, row.id, 'notes', e.target.value)}
-                      className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100 text-gray-500"/>
+                      className="px-3 py-2 text-[12px] bg-transparent outline-none text-right border-l border-gray-100 text-gray-500 min-w-0"/>
                     <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => moveRow(sch.id, idx, -1)} disabled={idx===0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5">
                         <i className="ti ti-chevron-up" style={{fontSize:10}}/>
