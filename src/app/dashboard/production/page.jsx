@@ -140,29 +140,7 @@ function ProductionInquiries() {
 
   return (
     <div className="max-w-3xl">
-      {showTemplates && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-xl" dir="rtl">
-            <div className="text-[15px] font-semibold text-gray-800 mb-4">בחר תבנית לוז</div>
-            {templates.length === 0 ? (
-              <div className="text-center text-gray-400 py-6 text-sm">אין תבניות שמורות</div>
-            ) : (
-              <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
-                {templates.map(t => (
-                  <button key={t.id} onClick={()=>loadTemplate(t)}
-                    className="text-right px-4 py-3 border border-gray-200 rounded-xl hover:border-[#E0197D] hover:bg-[#FCE4F3] transition-colors">
-                    <div className="text-[14px] font-medium text-gray-800">{t.name}</div>
-                    <div className="text-[12px] text-gray-400 mt-0.5">{t.rows?.length || 0} שורות</div>
-                  </button>
-                ))}
-              </div>
-            )}
-            <button onClick={()=>setShowTemplates(false)}
-              className="mt-4 w-full border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl">ביטול</button>
-          </div>
-        </div>
-      )}
-      <div className="flex justify-end mb-4">
+<div className="flex justify-end mb-4">
         <button onClick={() => setShowNewEvent(v => !v)}
           className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1">
           <i className="ti ti-plus"/> אירוע חדש
@@ -411,6 +389,8 @@ function ProductionSchedule({ profile }) {
   const [exporting, setExporting] = useState(false)
   const [generalFileViewer, setGeneralFileViewer] = useState(null)
   const [importing, setImporting] = useState(false)
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [templates, setTemplates] = useState([])
 
   useEffect(() => {
     supabase.from('events').select('id,title,date,venue').order('date').then(({ data }) => setEvents(data || []))
@@ -469,8 +449,8 @@ function ProductionSchedule({ profile }) {
 
   async function loadTemplate(tmpl) {
     if (!window.confirm('טעינת התבנית תחליף את הלוז הנוכחי. להמשיך?')) return
-    await supabase.from('rundown_rows').delete().eq('event_id', selectedEvent.id)
-    const newRows = tmpl.rows.map((r, i) => ({ event_id: selectedEvent.id, time: r.time, what: r.what, who: r.who, notes: r.notes, sort_order: i }))
+    await supabase.from('schedule_rows').delete().eq('schedule_id', schedule.id)
+    const newRows = tmpl.rows.map((r, i) => ({ schedule_id: schedule.id, time: r.time, what: r.what, who: r.who, notes: r.notes, sort_order: i }))
     const { data } = await supabase.from('rundown_rows').insert(newRows).select()
     setRows(data || [])
     setShowTemplates(false)
