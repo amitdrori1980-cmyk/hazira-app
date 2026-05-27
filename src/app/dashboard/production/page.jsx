@@ -948,7 +948,7 @@ function GeneralSchedulesMode() {
                     <i className="ti ti-loader-2 animate-spin"/> מייבא שורות...
                   </div>
                 )}
-                <table className="w-full border-collapse">
+                <div className="overflow-x-auto"><table className="w-full border-collapse" style={{tableLayout:"auto"}}>
                   <colgroup>
                     <col style={{width:'90px'}}/>
                     <col/>
@@ -958,7 +958,7 @@ function GeneralSchedulesMode() {
                   </colgroup>
                   <thead>
                     <tr className="bg-[#E0197D] text-white text-[11px] font-semibold">
-                      <th className="px-3 py-2 text-right font-semibold">שעה</th>
+                      <th className="px-3 py-2 text-right font-semibold whitespace-nowrap" style={{width:"90px"}}>שעה</th>
                       <th className="px-3 py-2 text-right font-semibold border-r border-red-700">מה</th>
                       <th className="px-3 py-2 text-right font-semibold border-r border-red-700">מי</th>
                       <th className="px-3 py-2 text-right font-semibold border-r border-red-700">הערות</th>
@@ -987,7 +987,7 @@ function GeneralSchedulesMode() {
                       <input value={row.notes||''} onChange={e => updateRow(sch.id, row.id, 'notes', e.target.value)}
                         className="w-full px-3 py-2 text-[12px] bg-transparent outline-none text-right text-gray-500"/>
                     </td>
-                    <td className="w-9">
+                    <td style={{width:"36px"}} className="align-middle">
                       <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => moveRow(sch.id, idx, -1)} disabled={idx===0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5">
                           <i className="ti ti-chevron-up" style={{fontSize:10}}/>
@@ -1003,7 +1003,7 @@ function GeneralSchedulesMode() {
                   </tr>
                 ))}
                   </tbody>
-                </table>
+                </table></div>
                 <button onClick={() => addRow(sch.id)}
                   className="w-full py-3 text-[12px] text-gray-400 hover:text-[#E0197D] hover:bg-[#FCE4F3] transition-colors flex items-center justify-center gap-1">
                   <i className="ti ti-plus" style={{fontSize:12}}/> הוסף שורה
