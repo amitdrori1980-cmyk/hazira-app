@@ -868,7 +868,7 @@ function GeneralSchedulesMode() {
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-5xl">
       <div className="flex justify-end mb-4">
         <button onClick={() => setShowNew(v => !v)}
           className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1">
