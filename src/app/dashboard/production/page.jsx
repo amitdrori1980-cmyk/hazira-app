@@ -703,14 +703,14 @@ function ProductionSchedule({ profile }) {
                   className={`grid gap-0 border-b border-gray-50 group ${isManager?'grid-cols-[120px_2fr_1.5fr_1fr_40px]':'grid-cols-[120px_2fr_1.5fr_1fr]'} ${index%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
                   {isManager ? (
                     <>
-                      <input value={row.time||''} onChange={e=>updateRow(row.id,'time',e.target.value)} placeholder=""
-                        className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 font-mono placeholder-transparent"/>
-                      <input value={row.what||''} onChange={e=>updateRow(row.id,'what',e.target.value)} placeholder=""
-                        className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 placeholder-transparent"/>
-                      <input value={row.who||''} onChange={e=>updateRow(row.id,'who',e.target.value)} placeholder=""
-                        className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 placeholder-transparent"/>
-                      <input value={row.notes||''} onChange={e=>updateRow(row.id,'notes',e.target.value)} placeholder=""
-                        className="px-3 py-2.5 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 text-gray-500 placeholder-transparent"/>
+                      <textarea value={row.time||''} onChange={e=>updateRow(row.id,'time',e.target.value)}
+                        className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 font-mono resize-none w-full leading-5" rows={1}/>
+                      <textarea value={row.what||''} onChange={e=>updateRow(row.id,'what',e.target.value)}
+                        className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 resize-none w-full leading-5" rows={Math.max(1,Math.ceil((row.what||'').length/30))}/>
+                      <textarea value={row.who||''} onChange={e=>updateRow(row.id,'who',e.target.value)}
+                        className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 resize-none w-full leading-5" rows={Math.max(1,Math.ceil((row.who||'').length/20))}/>
+                      <textarea value={row.notes||''} onChange={e=>updateRow(row.id,'notes',e.target.value)}
+                        className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 text-gray-500 resize-none w-full leading-5" rows={Math.max(1,Math.ceil((row.notes||'').length/20))}/>
                       <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => moveRow(index,-1)} disabled={index===0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5">
                           <i className="ti ti-chevron-up" style={{fontSize:11}}/>
