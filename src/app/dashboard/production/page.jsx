@@ -312,7 +312,7 @@ function LoadFromGeneralSchedules({ onLoad, onImportExcel }) {
 
   function handleOpen() {
     setOpen(v => !v)
-    if (!open) loadFiles()
+    loadFiles()
   }
 
   function openFile(fileName) {
