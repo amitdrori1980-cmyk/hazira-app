@@ -1057,7 +1057,6 @@ export default function ProductionPage() {
       <div className="flex gap-2 mb-4">
         {[
           { id: 'inquiries', label: 'בדיקת פניות' },
-          { id: 'schedule',  label: 'לוז הפקה' },
           { id: 'files',     label: 'לוזים כללי' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
@@ -1067,7 +1066,6 @@ export default function ProductionPage() {
         ))}
       </div>
       {tab === 'inquiries' && <ProductionInquiries />}
-      {tab === 'schedule'  && <ProductionSchedule profile={profile} />}
       {tab === 'files'     && <GeneralSchedulesMode />}
     </div>
   )
