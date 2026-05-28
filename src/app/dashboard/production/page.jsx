@@ -803,7 +803,8 @@ function GeneralSchedulesMode() {
   async function duplicateSchedule(sch) {
     const { data: newSch } = await supabase.from('general_schedules').insert({ title: sch.title + ' (עותק)', venue: sch.venue, participants: sch.participants || '' }).select().single()
     if (!newSch) return
-    const srcRows = rows[sch.id] || []
+    const { data: srcRows2 } = await supabase.from('general_schedule_rows').select('*').eq('schedule_id', sch.id).order('sort_order')
+    const srcRows = srcRows2 || []
     if (srcRows.length > 0) {
       await supabase.from('general_schedule_rows').insert(srcRows.map((r,i) => ({ schedule_id: newSch.id, time: r.time, what: r.what, who: r.who, notes: r.notes, sort_order: i })))
     }
