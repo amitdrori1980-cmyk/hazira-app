@@ -736,10 +736,6 @@ function ProductionSchedule({ profile }) {
                     className="flex-1 py-3 text-[13px] text-gray-400 hover:text-[#E0197D] hover:bg-[#FCE4F3] transition-colors flex items-center justify-center gap-1">
                     <i className="ti ti-plus" style={{fontSize:13}}/> הוסף שורה
                   </button>
-                  <button onClick={()=>setShowTemplates(true)}
-                    className="flex-1 py-3 text-[13px] text-gray-400 hover:text-[#E0197D] hover:bg-[#FCE4F3] transition-colors flex items-center justify-center gap-1 border-r border-gray-100">
-                    <i className="ti ti-layout-list" style={{fontSize:13}}/> טען תבנית
-                  </button>
                 </div>
               )}
             </div>
