@@ -520,7 +520,7 @@ function ProductionSchedule({ profile }) {
     ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length+5,c:3}})
     ws['!views'] = [{rightToLeft:true}]
     ws['!cols'] = [{wch:10},{wch:35},{wch:25},{wch:30}]
-    ws['!rows'] = [{hpt:28},{hpt:18},{hpt:18},{hpt:10},{hpt:22},...rows.map(()=>({hpt:20}))]
+    ws['!rows'] = [{hpt:28},{hpt:18},{hpt:18},{hpt:10},{hpt:22},...rows.map(r=>({hpt:Math.max(20,Math.ceil(Math.max((r.what||'').length/35,(r.who||'').length/25,(r.notes||'').length/30))*18)}))]
     ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:3}},{s:{r:1,c:0},e:{r:1,c:3}},{s:{r:2,c:0},e:{r:2,c:3}}]
     XLSX.utils.book_append_sheet(wb, ws, 'לוז')
     XLSX.writeFile(wb, `לוז_${selEv.title}_${selEv.date}.xlsx`)
