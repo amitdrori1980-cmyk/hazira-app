@@ -299,6 +299,45 @@ function LoadFromGeneralSchedules({ onLoad, onImportExcel }) {
   const [files, setFiles] = useState([])
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [dbSchedules, setDbSchedules] = useState([])
+  const [dbLoading, setDbLoading] = useState(false)
+  const [events, setEvents] = useState([])
+  const [selEvent, setSelEvent] = useState('')
+  const [copying, setCopying] = useState(false)
+
+  async function loadDbSchedules() {
+    setDbLoading(true)
+    const [{ data: evs }, { data: schs }] = await Promise.all([
+      supabase.from('events').select('id,title,date').order('date', { ascending: true }),
+      supabase.from('general_schedules').select('*').order('created_at', { ascending: false })
+    ])
+    setEvents(evs || [])
+    setDbSchedules(schs || [])
+    setDbLoading(false)
+  }
+
+  async function copyScheduleToProduction(scheduleId) {
+    if (!selEvent) return
+    setCopying(true)
+    const { data: schRows } = await supabase.from('general_schedule_rows').select('*').eq('schedule_id', scheduleId).order('sort_order')
+    const { data: existing } = await supabase.from('schedules').select('id').eq('event_id', selEvent).maybeSingle()
+    let schedId = existing?.id
+    if (!schedId) {
+      const { data: ns } = await supabase.from('schedules').insert({ event_id: selEvent, status: 'draft', participants: '' }).select().single()
+      schedId = ns?.id
+    }
+    if (schedId && schRows) {
+      const { data: ex } = await supabase.from('schedule_rows').select('id').eq('schedule_id', schedId)
+      const start = ex?.length || 0
+      for (let i = 0; i < schRows.length; i++) {
+        const r = schRows[i]
+        await supabase.from('schedule_rows').insert({ schedule_id: schedId, time: r.time, what: r.what, who: r.who, notes: r.notes, sort_order: start + i })
+      }
+      alert('הועתק בהצלחה')
+    }
+    setCopying(false)
+    setSelEvent('')
+  }
   const FOLDER = 'schedules-general'
 
   const isExcel = name => /\.(xlsx|xls)$/i.test(name)
@@ -375,6 +414,31 @@ function LoadFromGeneralSchedules({ onLoad, onImportExcel }) {
           ))}
         </div>
       )}
+      <div className="mt-3 border-t border-gray-100 pt-3">
+        <button onClick={loadDbSchedules}
+          className="w-full text-right text-[12px] text-[#E0197D] hover:underline mb-2 flex items-center gap-1 flex-row-reverse">
+          <i className="ti ti-reload"/> טען לוזים כללי מהמערכת
+        </button>
+        {dbLoading && <div className="text-[12px] text-gray-400 text-center py-2">טוען...</div>}
+        {dbSchedules.length > 0 && (
+          <div>
+            <select value={selEvent} onChange={e=>setSelEvent(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm mb-2 text-right">
+              <option value=''>בחר אירוע יעד...</option>
+              {events.map(e=><option key={e.id} value={e.id}>{e.title} - {e.date}</option>)}
+            </select>
+            {dbSchedules.map(sch => (
+              <div key={sch.id} className="flex items-center justify-between px-3 py-2 border-b border-gray-50 flex-row-reverse">
+                <span className="text-[13px] text-gray-800">{sch.title}</span>
+                <button onClick={()=>copyScheduleToProduction(sch.id)} disabled={copying||''===selEvent}
+                  className="text-[12px] bg-[#E0197D] text-white px-3 py-1 rounded-lg disabled:opacity-40">
+                  {copying?'מעתיק...':'העתק'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
