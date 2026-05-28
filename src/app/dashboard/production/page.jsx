@@ -800,6 +800,17 @@ function GeneralSchedulesMode() {
     if (openId === id) setOpenId(null)
   }
 
+  async function duplicateSchedule(sch) {
+    const { data: newSch } = await supabase.from('general_schedules').insert({ title: sch.title + ' (עותק)', venue: sch.venue, participants: sch.participants || '' }).select().single()
+    if (!newSch) return
+    const srcRows = rows[sch.id] || []
+    if (srcRows.length > 0) {
+      await supabase.from('general_schedule_rows').insert(srcRows.map((r,i) => ({ schedule_id: newSch.id, time: r.time, what: r.what, who: r.who, notes: r.notes, sort_order: i })))
+    }
+    setSchedules(prev => [newSch, ...prev])
+    setRows(prev => ({ ...prev, [newSch.id]: srcRows.map((r,i) => ({ ...r, id: i, schedule_id: newSch.id })) }))
+  }
+
   async function addRow(scheduleId) {
     const currentRows = rows[scheduleId] || []
     const { data } = await supabase.from('general_schedule_rows').insert({
@@ -925,6 +936,10 @@ function GeneralSchedulesMode() {
                 <button onClick={e => { e.stopPropagation(); document.getElementById(`xl-${sch.id}`).click() }}
                   className="text-gray-300 hover:text-green-600 p-1" title="ייבא מאקסל">
                   <i className="ti ti-table-import" style={{fontSize:13}}/>
+                </button>
+                <button onClick={e => { e.stopPropagation(); if (!rows[sch.id]) loadRows(sch.id).then(()=>duplicateSchedule(sch)); else duplicateSchedule(sch) }}
+                  className="text-gray-300 hover:text-[#E0197D] p-1" title="שכפל לוז">
+                  <i className="ti ti-copy" style={{fontSize:13}}/>
                 </button>
                 <button onClick={e => { e.stopPropagation(); if (window.confirm('למחוק את הלוז?')) deleteSchedule(sch.id) }}
                   className="text-gray-300 hover:text-red-500 p-1">
