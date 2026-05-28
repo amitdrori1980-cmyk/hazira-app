@@ -544,10 +544,6 @@ function ProductionSchedule({ profile }) {
           </select>
         </div>
 
-        <LoadFromGeneralSchedules
-          onLoad={(url, name) => setGeneralFileViewer({url, name})}
-          onImportExcel={importFromExcel}
-        />
         {importing && (
           <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-4 text-[13px] text-green-700 flex items-center gap-2 flex-row-reverse no-print">
             <i className="ti ti-loader-2 animate-spin" style={{fontSize:15}}/>
