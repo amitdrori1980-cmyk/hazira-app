@@ -498,6 +498,7 @@ function ProductionSchedule({ profile }) {
     if (!schedule || !selEv) return
     setExporting(true)
     const wb = XLSX.utils.book_new()
+    wb.Workbook = { Views: [{ RTL: true }] }
     const ws = {}
     const borderThin = { top:{style:'thin',color:{rgb:'999999'}}, bottom:{style:'thin',color:{rgb:'999999'}}, left:{style:'thin',color:{rgb:'999999'}}, right:{style:'thin',color:{rgb:'999999'}} }
     ws['A1'] = { v: `לוז: ${selEv.title}`, t:'s', s:{ font:{bold:true,sz:16,name:'Calibri',color:{rgb:'CC1010'}}, alignment:{horizontal:'right',readingOrder:2} } }
