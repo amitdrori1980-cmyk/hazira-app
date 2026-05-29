@@ -262,7 +262,7 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
             </div>
           ))}
           {checkedIds.length >= 2 && (
-            <button onClick={()=>onCompare && onCompare(checkedIds)}
+            <button onClick={doCompare}
               className="w-full mt-2 py-2 text-[13px] bg-[#E0197D] text-white rounded-lg">
               השואת התנגשויות ({checkedIds.length})
             </button>
