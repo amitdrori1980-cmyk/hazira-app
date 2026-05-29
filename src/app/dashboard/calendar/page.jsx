@@ -64,10 +64,16 @@ export default function CalendarPage() {
     const toExport = filteredEvents
       .filter(e => e.date?.startsWith(prefix))
       .sort((a, b) => a.date > b.date ? 1 : -1)
-    const rows = [['תאריך', 'שעה', 'שם האירוע', 'סוג', 'אולם', 'תיאור']]
-    toExport.forEach(e => rows.push([e.date, e.time || '', e.title, e.type || '', e.venue || '', e.description || '']))
-    const ws = XLSX.utils.aoa_to_sheet(rows)
+    const hStyle = { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 }, fill: { fgColor: { rgb: 'E0197D' } }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2 }, border: { bottom: { style: 'thin', color: { rgb: 'CCCCCC' } } } }
+    const cStyle = { alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2, wrapText: true }, border: { bottom: { style: 'thin', color: { rgb: 'EEEEEE' } } } }
+    const aStyle = { fill: { fgColor: { rgb: 'FCE4F3' } }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2, wrapText: true }, border: { bottom: { style: 'thin', color: { rgb: 'EEEEEE' } } } }
+    const wsData = [['תאריך', 'שעה', 'שם האירוע', 'סוג', 'אולם', 'תיאור'].map(h => ({ v: h, s: hStyle }))]
+    toExport.forEach((e, i) => { const s = i % 2 === 0 ? cStyle : aStyle; wsData.push([{ v: e.date||'', s }, { v: e.time||'', s }, { v: e.title||'', s }, { v: e.type||'', s }, { v: e.venue||'', s }, { v: e.description||'', s }]) })
+    const ws = XLSX.utils.aoa_to_sheet(wsData)
+    ws['!cols'] = [{ wch: 14 }, { wch: 8 }, { wch: 30 }, { wch: 16 }, { wch: 18 }, { wch: 35 }]
+    ws['!rows'] = [{ hpt: 22 }, ...toExport.map(() => ({ hpt: 18 }))]
     const wb = XLSX.utils.book_new()
+    wb.Workbook = { Views: [{ RTL: true }] }
     XLSX.utils.book_append_sheet(wb, ws, 'יומן')
     const venueSuffix = selectedVenue === 'all' ? 'all' : selectedVenue
     XLSX.writeFile(wb, `calendar_${prefix}_${venueSuffix}.xlsx`)
