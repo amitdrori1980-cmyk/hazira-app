@@ -1,4 +1,5 @@
 'use client'
+import VenuesPage from '../venues/page'
 import * as XLSX from 'xlsx'
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -759,6 +760,7 @@ export default function SpecsPage() {
       <div className="flex gap-2 mb-4">
         {[
           {id:'templates', label:'מפרטים כלליים הפקות'},
+          {id:'venues', label:'אולמות'},
           {id:'files', label:'📁 מפרטים כללי'},
           {id:'showfolders', label:'תיקי הצגות'},
         ].map(tab=>(
@@ -893,6 +895,8 @@ export default function SpecsPage() {
         <TemplatesMode allItems={allItems} categories={categories} subcats={subcats} onCompare={ids=>{ setCompareIds(ids); setMode('compare') }} />
       )}
 
+
+      {mode === 'venues' && <VenuesPage embedded={true} />}
 
       {/* FILES MODE */}
       {mode === 'files' && (
