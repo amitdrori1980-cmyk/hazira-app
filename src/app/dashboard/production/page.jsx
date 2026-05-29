@@ -585,7 +585,7 @@ function ProductionSchedule({ profile }) {
         {schedule && (canView() || isManager) && (
           <>
             {isManager && (
-              <div className="bg-white border border-gray-100 rounded-xl p-3 mb-4 flex items-center gap-3 flex-wrap no-print">
+              <div className="bg-white border border-gray-100 rounded-xl p-3 mb-4 flex flex-col gap-2 no-print">
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] text-gray-500">סטטוס:</span>
                   <button onClick={() => updateSchedule('status', schedule.status==='draft'?'final':'draft')}
