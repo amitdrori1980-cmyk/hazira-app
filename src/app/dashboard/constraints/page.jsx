@@ -250,7 +250,7 @@ export default function ConstraintsPage() {
                   {hiddenCrew.size > 0 && <span className="bg-[#6366f1] text-white text-[10px] px-1.5 rounded-full">{hiddenCrew.size}</span>}
                 </button>
                 {showCrewFilter && (
-                  <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-3 min-w-[180px]">
+                  <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-3 w-[200px] max-w-[calc(100vw-2rem)]">
                     <div className="flex justify-between items-center mb-2">
                       <button onClick={()=>setHiddenCrew(new Set())} className="text-[11px] text-[#6366f1]">הצג הכל</button>
                       <button onClick={()=>setHiddenCrew(new Set([...new Set(constraints.map(c=>c.crew_name))]))} className="text-[11px] text-gray-400">הסתר הכל</button>
