@@ -960,7 +960,8 @@ function GeneralSchedulesMode() {
                       {VENUES.map(v => <option key={v} value={v}>{v}</option>)}
                     </select>
                   </div>
-                  <input defaultValue={sch.participants}
+                  <input value={sch.participants || ''}
+                    onChange={e => setSchedules(prev => prev.map(s => s.id === sch.id ? {...s, participants: e.target.value} : s))}
                     onBlur={e => updateSchedule(sch.id, 'participants', e.target.value)}
                     placeholder="משתתפים..."
                     className="w-full text-[13px] px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right"/>
