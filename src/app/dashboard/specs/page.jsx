@@ -128,6 +128,8 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
 function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompare }) {
   const [templates, setTemplates] = useState([])
   const [checkedIds, setCheckedIds] = useState([])
+  const [compareData, setCompareData] = useState(null)
+  const [comparing, setComparing] = useState(false)
   const [selected, setSelected] = useState(null)
   const [templateItems, setTemplateItems] = useState([])
   const [newName, setNewName] = useState('')
@@ -137,6 +139,16 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
   const [openSub, setOpenSub] = useState(null)
 
   useEffect(() => { loadTemplates() }, [])
+
+  async function doCompare() {
+    setComparing(true)
+    const results = await Promise.all(checkedIds.map(id =>
+      supabase.from('spec_items').select('*').eq('template_id', id).is('event_id', null)
+        .then(({ data }) => ({ id, items: data || [] }))
+    ))
+    setCompareData(results)
+    setComparing(false)
+  }
 
   async function loadTemplates() {
     const { data } = await supabase.from('spec_templates').select('*').order('created_at', { ascending: false })
@@ -254,6 +266,34 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
               className="w-full mt-2 py-2 text-[13px] bg-[#E0197D] text-white rounded-lg">
               השואת התנגשויות ({checkedIds.length})
             </button>
+          )}
+          {compareData && (
+            <div className="mt-3 bg-white border border-gray-100 rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 border-b border-gray-100">
+                <button onClick={()=>setCompareData(null)} className="text-gray-400 hover:text-gray-600 text-[11px]">סגור</button>
+                <div className="text-[11px] font-semibold text-gray-500">ציוד משותף בין המפרטים</div>
+              </div>
+              {(() => {
+                const itemCounts = {}
+                compareData.forEach(r => r.items.forEach(s => {
+                  if (!itemCounts[s.equipment_item_id]) itemCounts[s.equipment_item_id] = { count: 0, names: [] }
+                  itemCounts[s.equipment_item_id].count++
+                  const tmpl = templates.find(t => t.id === r.id)
+                  itemCounts[s.equipment_item_id].names.push(tmpl?.name || r.id)
+                }))
+                const shared = Object.entries(itemCounts).filter(([,v]) => v.count > 1)
+                if (!shared.length) return <div className="text-center text-[12px] text-gray-400 py-4">אין ציוד משותף</div>
+                return shared.map(([itemId, v]) => {
+                  const item = allItems.find(i => i.id === itemId)
+                  return (
+                    <div key={itemId} className="flex items-center justify-between px-3 py-2 border-b border-gray-50 flex-row-reverse">
+                      <span className="text-[13px] text-gray-800">{item?.name || itemId}</span>
+                      <span className="text-[11px] text-[#E0197D]">{v.names.join(', ')}</span>
+                    </div>
+                  )
+                })
+              })()}
+            </div>
           )}
         </div>
 
@@ -719,7 +759,6 @@ export default function SpecsPage() {
       <div className="flex gap-2 mb-4">
         {[
           {id:'templates', label:'מפרטים כלליים הפקות'},
-          {id:'compare', label:'השוואת התנגשויות'},
           {id:'files', label:'📁 מפרטים כללי'},
           {id:'showfolders', label:'תיקי הצגות'},
         ].map(tab=>(
@@ -854,10 +893,6 @@ export default function SpecsPage() {
         <TemplatesMode allItems={allItems} categories={categories} subcats={subcats} onCompare={ids=>{ setCompareIds(ids); setMode('compare') }} />
       )}
 
-      {/* COMPARE MODE */}
-      {mode === 'compare' && (
-        <CompareMode events={events} allItems={allItems} selectedEvent={selectedEvent} selectEvent={selectEvent} specItems={specItems} templateIds={compareIds} />
-      )}
 
       {/* FILES MODE */}
       {mode === 'files' && (
