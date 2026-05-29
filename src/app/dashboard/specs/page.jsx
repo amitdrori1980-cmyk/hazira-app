@@ -234,7 +234,7 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
             className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] mb-2 text-right"/>
           <button onClick={createTemplate} disabled={creating || !newName.trim()}
             className="w-full bg-[#E0197D] text-white text-sm py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
-            + צור תבנית
+            + צור מפרט
           </button>
         </div>
 
@@ -346,7 +346,7 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
       <div className="flex-1 min-w-0">
         {!selected ? (
           <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">
-            בחר מפרט או צור חדשה
+            בחר מפרט או צור חדש
           </div>
         ) : (
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
@@ -739,7 +739,7 @@ export default function SpecsPage() {
             <div className="text-[12px] text-gray-400 mb-4 text-right">הפריטים הקיימים יימחקו ויוחלפו בתבנית</div>
             <div className="flex flex-col gap-2 mb-4 max-h-60 overflow-y-auto">
               {templates.length === 0 ? (
-                <div className="text-center text-[13px] text-gray-400 py-4">אין תבניות — צור תבנית בטאב "מפרטים כלליים הפקות"</div>
+                <div className="text-center text-[13px] text-gray-400 py-4">אין מפרטים — צור מפרט בטאב "מפרטים כלליים הפקות"</div>
               ) : templates.map(t => (
                 <button key={t.id} onClick={() => loadTemplate(t.id)} disabled={loadingTemplate}
                   className="text-right px-4 py-3 border border-gray-200 rounded-lg hover:border-[#E0197D] hover:bg-[#FCE4F3] transition-colors disabled:opacity-50">
