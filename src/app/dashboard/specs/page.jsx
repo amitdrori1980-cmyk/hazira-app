@@ -227,8 +227,8 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
       <div className="w-72 flex-shrink-0 flex flex-col gap-3">
         {/* Create new */}
         <div className="bg-white border border-gray-100 rounded-xl p-3">
-          <div className="text-[11px] font-semibold text-gray-500 mb-2">תבנית חדשה</div>
-          <input value={newName} onChange={e=>setNewName(e.target.value)} placeholder="שם התבנית..."
+          <div className="text-[11px] font-semibold text-gray-500 mb-2">מפרט חדש</div>
+          <input value={newName} onChange={e=>setNewName(e.target.value)} placeholder="שם המפרט..."
             className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] mb-2 text-right"/>
           <input value={newDesc} onChange={e=>setNewDesc(e.target.value)} placeholder="תיאור (אופציונלי)..."
             className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] mb-2 text-right"/>
@@ -240,9 +240,9 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
 
         {/* Template list */}
         <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-          <div className="text-[11px] font-semibold text-gray-500 px-3 py-2.5 bg-gray-50 border-b border-gray-100">תבניות קיימות</div>
+          <div className="text-[11px] font-semibold text-gray-500 px-3 py-2.5 bg-gray-50 border-b border-gray-100">מפרטים קיימים</div>
           {templates.length === 0 ? (
-            <div className="text-center text-[12px] text-gray-400 py-4">אין תבניות עדיין</div>
+            <div className="text-center text-[12px] text-gray-400 py-4">אין מפרטים עדיין</div>
           ) : templates.map(t => (
             <div key={t.id}
               onClick={() => selectTemplate(t.id)}
@@ -300,7 +300,7 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
         {/* Equipment browser */}
         {selected && (
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-            <div className="text-[11px] font-semibold text-gray-500 px-3 py-2.5 bg-gray-50 border-b border-gray-100">הוסף ציוד לתבנית</div>
+            <div className="text-[11px] font-semibold text-gray-500 px-3 py-2.5 bg-gray-50 border-b border-gray-100">הוסף ציוד למפרט</div>
             {categories.map(cat => {
               const catSubs = subcats.filter(s => s.category_id === cat.id)
               const isOpen = openCat === cat.id
@@ -346,7 +346,7 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
       <div className="flex-1 min-w-0">
         {!selected ? (
           <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">
-            בחר תבנית או צור חדשה
+            בחר מפרט או צור חדשה
           </div>
         ) : (
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
