@@ -125,8 +125,9 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
   )
 }
 
-function TemplatesMode({ allItems, categories, subcats, onLoadTemplate }) {
+function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompare }) {
   const [templates, setTemplates] = useState([])
+  const [checkedIds, setCheckedIds] = useState([])
   const [selected, setSelected] = useState(null)
   const [templateItems, setTemplateItems] = useState([])
   const [newName, setNewName] = useState('')
@@ -234,6 +235,10 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate }) {
             <div key={t.id}
               onClick={() => selectTemplate(t.id)}
               className={`flex items-center gap-2 px-3 py-2.5 border-b border-gray-50 last:border-0 cursor-pointer flex-row-reverse group ${selected===t.id?'bg-[#FCE4F3] text-[#E0197D]':'hover:bg-gray-50 text-gray-700'}`}>
+              <input type="checkbox" checked={checkedIds.includes(t.id)}
+                onClick={e=>e.stopPropagation()}
+                onChange={e=>setCheckedIds(prev=>e.target.checked?[...prev,t.id]:prev.filter(x=>x!==t.id))}
+                className="accent-[#E0197D] flex-shrink-0"/>
               <div className="flex-1 text-right">
                 <div className="text-[13px] font-medium">{t.name}</div>
                 {t.description && <div className="text-[11px] text-gray-400">{t.description}</div>}
@@ -244,6 +249,12 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate }) {
               </button>
             </div>
           ))}
+          {checkedIds.length >= 2 && (
+            <button onClick={()=>onCompare && onCompare(checkedIds)}
+              className="w-full mt-2 py-2 text-[13px] bg-[#E0197D] text-white rounded-lg">
+              השואת התנגשויות ({checkedIds.length})
+            </button>
+          )}
         </div>
 
         {/* Equipment browser */}
@@ -568,7 +579,8 @@ export default function SpecsPage() {
   const [openCat, setOpenCat]   = useState(null)
   const [openSub, setOpenSub]   = useState(null)
   const [loading, setLoading]   = useState(true)
-  const [mode, setMode]         = useState('spec')
+  const [mode, setMode]         = useState('templates')
+  const [compareIds, setCompareIds] = useState([])
   const [templates, setTemplates] = useState([])
   const [showLoadModal, setShowLoadModal] = useState(false)
   const [loadingTemplate, setLoadingTemplate] = useState(false)
@@ -839,12 +851,12 @@ export default function SpecsPage() {
 
       {/* TEMPLATES MODE */}
       {mode === 'templates' && (
-        <TemplatesMode allItems={allItems} categories={categories} subcats={subcats} />
+        <TemplatesMode allItems={allItems} categories={categories} subcats={subcats} onCompare={ids=>{ setCompareIds(ids); setMode('compare') }} />
       )}
 
       {/* COMPARE MODE */}
       {mode === 'compare' && (
-        <CompareMode events={events} allItems={allItems} selectedEvent={selectedEvent} selectEvent={selectEvent} specItems={specItems} />
+        <CompareMode events={events} allItems={allItems} selectedEvent={selectedEvent} selectEvent={selectEvent} specItems={specItems} templateIds={compareIds} />
       )}
 
       {/* FILES MODE */}
