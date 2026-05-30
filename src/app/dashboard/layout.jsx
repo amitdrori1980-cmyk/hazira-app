@@ -12,6 +12,7 @@ export default function DashboardLayout({ children }) {
   const [profile, setProfile] = useState(null)
   const [navItems, setNavItems] = useState([])
   const [unread, setUnread] = useState(0)
+  const [muted, setMuted] = useState(() => typeof window !== 'undefined' && localStorage.getItem('notif-muted') === 'true')
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
@@ -42,10 +43,35 @@ export default function DashboardLayout({ children }) {
         .select('id', { count: 'exact' })
         .or(`to_user.eq.${data.user.id},to_dept.eq.all`)
         .eq('read', false)
+      const prev = parseInt(localStorage.getItem('notif-count') || '0')
+      if (count > prev && prev >= 0) {
+        if (!localStorage.getItem('notif-muted') || localStorage.getItem('notif-muted') === 'false') {
+          try {
+            const ac = new AudioContext()
+            const freqs = [523, 659, 784]
+            freqs.forEach((f, i) => {
+              const o = ac.createOscillator(), g = ac.createGain()
+              o.connect(g); g.connect(ac.destination)
+              o.type = 'sine'; o.frequency.value = f
+              const t = ac.currentTime + i * 0.15
+              g.gain.setValueAtTime(0.3, t)
+              g.gain.exponentialRampToValueAtTime(0.001, t + 0.6)
+              o.start(t); o.stop(t + 0.6)
+            })
+          } catch(e) {}
+        }
+      }
+      localStorage.setItem('notif-count', count || 0)
       setUnread(count || 0)
     })
     })
   }, [])
+
+  function toggleMute() {
+    const next = !muted
+    setMuted(next)
+    localStorage.setItem('notif-muted', next)
+  }
 
   async function logout() {
     await supabase.auth.signOut()
@@ -80,6 +106,10 @@ export default function DashboardLayout({ children }) {
               </span>
               <button onClick={logout} className="text-[#E0197D] text-xs" title="התנתק">
                 <i className="ti ti-logout" style={{ fontSize: 12 }} />
+              </button>
+              <button onClick={toggleMute} title={muted ? "הפעל צליל" : "השתק צליל"}
+                className="text-gray-400 hover:text-[#E0197D] p-1 rounded transition-colors">
+                <i className={muted ? "ti ti-bell-off" : "ti ti-bell"} style={{ fontSize: 14 }} />
               </button>
             </div>
           )}
