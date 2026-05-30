@@ -223,31 +223,67 @@ export default function OperationsPage() {
 
       {tab === 'messages' && (
         <div className="max-w-xl">
-          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-              <div className="text-[11px] text-gray-400">{inquiries.length} פניות</div>
-              <div className="text-[12px] font-semibold text-gray-700">פניות תפעול</div>
-            </div>
-            {inquiries.length === 0 && (
-              <div className="text-center text-[13px] text-gray-400 py-8">אין פניות עדיין</div>
-            )}
-            {inquiries.map(inq => (
-              <div key={inq.id} className="px-4 py-3 border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50"
-                onClick={() => setOpenInq(inq)}>
-                <div className="flex items-start justify-between flex-row-reverse mb-1">
-                  <div className="text-right">
-                    <div className="text-[13px] font-semibold text-gray-800">{inq.event_title}</div>
-                    <div className="text-[11px] text-gray-400">{fmtDate(inq.event_date)}</div>
-                    {isManager && inq.member && <div className="text-[11px] text-gray-400 mt-0.5">{inq.member.full_name}</div>}
+          {isManager ? (
+            /* מנהל - מקובץ לפי אירוע */
+            (() => {
+              const grouped = {}
+              inquiries.forEach(inq => {
+                const key = inq.event_id + '_' + inq.event_date
+                if (!grouped[key]) grouped[key] = { event_title: inq.event_title, event_date: inq.event_date, sent_at: inq.created_at, items: [] }
+                grouped[key].items.push(inq)
+              })
+              const groups = Object.values(grouped)
+              if (groups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">אין פניות עדיין</div>
+              return groups.map((g, gi) => (
+                <div key={gi} className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-3">
+                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                    <div className="flex items-center justify-between flex-row-reverse">
+                      <div className="text-right">
+                        <div className="text-[13px] font-semibold text-gray-800">{g.event_title}</div>
+                        <div className="text-[11px] text-gray-400">{fmtDate(g.event_date)}</div>
+                      </div>
+                      <div className="text-[10px] text-gray-400 text-left">נשלח {fmtTime(g.sent_at)}</div>
+                    </div>
                   </div>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColor[inq.status]}`}>
-                    {statusLabel[inq.status]}
-                  </span>
+                  {g.items.map(inq => (
+                    <div key={inq.id} className="flex items-center justify-between px-4 py-2.5 border-b border-gray-50 last:border-0 flex-row-reverse cursor-pointer hover:bg-gray-50"
+                      onClick={() => setOpenInq(inq)}>
+                      <div className="text-[12px] text-gray-700">{crew.find(c=>c.id===inq.to_member_id)?.full_name || inq.member?.full_name || '—'}</div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColor[inq.status]}`}>
+                        {statusLabel[inq.status]}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                <div className="text-[10px] text-gray-300 text-left">{fmtTime(inq.created_at)}</div>
+              ))
+            })()
+          ) : (
+            /* איש צוות - רשימה פשוטה */
+            <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <div className="text-[11px] text-gray-400">{inquiries.length} פניות</div>
+                <div className="text-[12px] font-semibold text-gray-700">פניות שלי</div>
               </div>
-            ))}
-          </div>
+              {inquiries.length === 0 && (
+                <div className="text-center text-[13px] text-gray-400 py-8">אין פניות עדיין</div>
+              )}
+              {inquiries.map(inq => (
+                <div key={inq.id} className="px-4 py-3 border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50"
+                  onClick={() => setOpenInq(inq)}>
+                  <div className="flex items-start justify-between flex-row-reverse mb-1">
+                    <div className="text-right">
+                      <div className="text-[13px] font-semibold text-gray-800">{inq.event_title}</div>
+                      <div className="text-[11px] text-gray-400">{fmtDate(inq.event_date)}</div>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColor[inq.status]}`}>
+                      {statusLabel[inq.status]}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-gray-300 text-left">{fmtTime(inq.created_at)}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
