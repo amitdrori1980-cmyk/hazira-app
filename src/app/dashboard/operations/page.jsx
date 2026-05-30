@@ -15,6 +15,8 @@ export default function OperationsPage() {
   const [newMember, setNewMember] = useState({ full_name: '', role: '', phone: '', email: '' })
   const [adding, setAdding] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
+  const [inquiries, setInquiries] = useState([])
+  const [myMember, setMyMember] = useState(null)
 
   useEffect(() => { load() }, [])
 
@@ -30,12 +32,24 @@ export default function OperationsPage() {
       .order('full_name')
     setCrew(crewData || [])
 
+    const me = (crewData || []).find(c => c.user_id === user.id)
+    setMyMember(me || null)
+
     const { data: evData } = await supabase
       .from('events')
       .select('id, title, date')
       .order('date')
     setEvents(evData || [])
+
+    await loadInquiries(user.id, p?.is_manager, me)
     setLoading(false)
+  }
+
+  async function loadInquiries(uid, isMan, me) {
+    let q = supabase.from('operations_inquiries').select('*, member:to_member_id(full_name, role)').order('created_at', { ascending: false })
+    if (!isMan && me) q = q.eq('to_member_id', me.id)
+    const { data } = await q
+    setInquiries(data || [])
   }
 
   function toggleCrew(id) {
@@ -47,6 +61,12 @@ export default function OperationsPage() {
     const [y, m, d] = ds.split('-')
     const HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
     return `${+d} ${HE[+m-1]} ${y}`
+  }
+
+  function fmtTime(ts) {
+    if (!ts) return ''
+    const d = new Date(ts)
+    return d.toLocaleDateString('he-IL') + ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
   }
 
   async function addMember() {
@@ -72,25 +92,35 @@ export default function OperationsPage() {
     if (!targets.length) return
     setSending(true)
     for (const member of targets) {
-      if (!member.user_id) continue
-      await supabase.from('messages').insert({
-        to_user: member.user_id,
-        subject: 'בדיקת פניה: ' + event.title,
-        body: JSON.stringify({ type: 'inquiry', event_id: event.id, event_title: event.title, event_date: event.date }),
-        read: false,
-        created_at: new Date().toISOString()
+      await supabase.from('operations_inquiries').insert({
+        event_id: event.id,
+        event_title: event.title,
+        event_date: event.date,
+        to_member_id: member.id,
+        status: 'pending'
       })
     }
     setSending(false)
     setSent(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: p } = await supabase.from('profiles').select('is_manager').eq('id', user.id).single()
+    await loadInquiries(user.id, p?.is_manager, myMember)
     setTimeout(() => setSent(false), 3000)
     setSelectedCrew({})
     setSelectedEvent('')
   }
 
+  async function respond(id, status) {
+    await supabase.from('operations_inquiries').update({ status }).eq('id', id)
+    setInquiries(prev => prev.map(i => i.id === id ? { ...i, status } : i))
+  }
+
   const selEv = events.find(e => e.id === selectedEvent)
   const anySelected = crew.some(c => selectedCrew[c.id])
   const selectedCount = crew.filter(c => selectedCrew[c.id]).length
+
+  const statusLabel = { pending: 'ממתין', approved: 'אישר', rejected: 'דחה' }
+  const statusColor = { pending: 'text-yellow-600 bg-yellow-50', approved: 'text-green-600 bg-green-50', rejected: 'text-red-600 bg-red-50' }
 
   if (loading) return <div className="text-center py-8 text-gray-400 text-sm">טוען...</div>
 
@@ -100,6 +130,10 @@ export default function OperationsPage() {
         <button onClick={() => setTab('inquiries')}
           className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'inquiries' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
           בדיקת פניות
+        </button>
+        <button onClick={() => setTab('messages')}
+          className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'messages' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
+          פניות {inquiries.filter(i=>i.status==='pending').length > 0 && <span className="mr-1 bg-white text-[#E0197D] rounded-full px-1.5 text-[10px] font-bold">{inquiries.filter(i=>i.status==='pending').length}</span>}
         </button>
         {isManager && (
           <button onClick={() => setTab('team')}
@@ -157,6 +191,47 @@ export default function OperationsPage() {
         </div>
       )}
 
+      {tab === 'messages' && (
+        <div className="max-w-xl">
+          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+              <div className="text-[11px] text-gray-400">{inquiries.length} פניות</div>
+              <div className="text-[12px] font-semibold text-gray-700">פניות תפעול</div>
+            </div>
+            {inquiries.length === 0 && (
+              <div className="text-center text-[13px] text-gray-400 py-8">אין פניות עדיין</div>
+            )}
+            {inquiries.map(inq => (
+              <div key={inq.id} className="px-4 py-3 border-b border-gray-50 last:border-0">
+                <div className="flex items-start justify-between flex-row-reverse mb-2">
+                  <div className="text-right">
+                    <div className="text-[13px] font-semibold text-gray-800">{inq.event_title}</div>
+                    <div className="text-[11px] text-gray-400">{fmtDate(inq.event_date)}</div>
+                    {isManager && inq.member && <div className="text-[11px] text-gray-400 mt-0.5">{inq.member.full_name}</div>}
+                  </div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColor[inq.status]}`}>
+                    {statusLabel[inq.status]}
+                  </span>
+                </div>
+                {!isManager && inq.status === 'pending' && (
+                  <div className="flex gap-2 justify-end mt-2">
+                    <button onClick={() => respond(inq.id, 'approved')}
+                      className="text-[12px] bg-green-50 text-green-600 px-3 py-1 rounded-lg hover:bg-green-100">
+                      ✓ אני פנוי
+                    </button>
+                    <button onClick={() => respond(inq.id, 'rejected')}
+                      className="text-[12px] bg-red-50 text-red-500 px-3 py-1 rounded-lg hover:bg-red-100">
+                      ✗ לא פנוי
+                    </button>
+                  </div>
+                )}
+                <div className="text-[10px] text-gray-300 text-left mt-1">{fmtTime(inq.created_at)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {tab === 'team' && isManager && (
         <div className="max-w-xl">
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-4">
@@ -167,7 +242,6 @@ export default function OperationsPage() {
               </button>
               <div className="text-[12px] font-semibold text-gray-700">צוות תפעול</div>
             </div>
-
             {showAdd && (
               <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex flex-col gap-2">
                 <input value={newMember.full_name} onChange={e => setNewMember(v=>({...v,full_name:e.target.value}))}
@@ -185,7 +259,6 @@ export default function OperationsPage() {
                 </div>
               </div>
             )}
-
             {crew.length === 0 && !showAdd && (
               <div className="text-center text-[13px] text-gray-400 py-6">אין אנשי צוות עדיין</div>
             )}
