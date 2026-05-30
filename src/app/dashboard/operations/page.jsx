@@ -17,6 +17,8 @@ export default function OperationsPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [inquiries, setInquiries] = useState([])
   const [myMember, setMyMember] = useState(null)
+  const [shifts, setShifts] = useState([])
+  const [savingShift, setSavingShift] = useState(false)
   const [openInq, setOpenInq] = useState(null)
 
   useEffect(() => { load() }, [])
@@ -43,6 +45,8 @@ export default function OperationsPage() {
     setEvents(evData || [])
 
     await loadInquiries(user.id, p?.is_manager, me)
+    const { data: shiftData } = await supabase.from('operations_shifts').select('*').order('event_date')
+    setShifts(shiftData || [])
     setLoading(false)
   }
 
@@ -84,6 +88,25 @@ export default function OperationsPage() {
     if (!confirm('להסיר מהרשימה?')) return
     await supabase.from('operations_crew').update({ active: false }).eq('id', id)
     setCrew(prev => prev.filter(c => c.id !== id))
+  }
+
+  async function toggleShift(inq) {
+    const existing = shifts.find(s => s.event_id === inq.event_id && s.member_id === inq.to_member_id)
+    if (existing) {
+      await supabase.from('operations_shifts').delete().eq('id', existing.id)
+      setShifts(prev => prev.filter(s => s.id !== existing.id))
+    } else {
+      const { data } = await supabase.from('operations_shifts').insert({
+        event_id: inq.event_id, event_title: inq.event_title, event_date: inq.event_date,
+        member_id: inq.to_member_id, role: ''
+      }).select().single()
+      if (data) setShifts(prev => [...prev, data])
+    }
+  }
+
+  async function updateShiftRole(id, role) {
+    await supabase.from('operations_shifts').update({ role }).eq('id', id)
+    setShifts(prev => prev.map(s => s.id === id ? { ...s, role } : s))
   }
 
   async function sendInquiries() {
@@ -136,6 +159,12 @@ export default function OperationsPage() {
           className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'messages' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
           פניות {inquiries.filter(i=>i.status==='pending').length > 0 && <span className="mr-1 bg-white text-[#E0197D] rounded-full px-1.5 text-[10px] font-bold">{inquiries.filter(i=>i.status==='pending').length}</span>}
         </button>
+        {isManager && (
+          <button onClick={() => setTab('shifts')}
+            className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'shifts' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
+            סידור עבודה
+          </button>
+        )}
         {isManager && (
           <button onClick={() => setTab('team')}
             className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'team' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
@@ -256,6 +285,12 @@ export default function OperationsPage() {
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColor[inq.status]}`}>
                             {statusLabel[inq.status]}
                           </span>
+                          {inq.status === 'approved' && (
+                            <button onClick={e => { e.stopPropagation(); toggleShift(inq) }}
+                              className={`text-[9px] px-1.5 py-0.5 rounded border mt-1 ${shifts.find(s=>s.event_id===inq.event_id&&s.member_id===inq.to_member_id) ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'text-gray-400 border-gray-200 hover:border-[#E0197D] hover:text-[#E0197D]'}`}>
+                              {shifts.find(s=>s.event_id===inq.event_id&&s.member_id===inq.to_member_id) ? '✓ בסידור' : '+ סידור'}
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -290,6 +325,50 @@ export default function OperationsPage() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {tab === 'shifts' && isManager && (
+        <div className="max-w-2xl">
+          {(() => {
+            const grouped = {}
+            shifts.forEach(s => {
+              const key = s.event_id
+              if (!grouped[key]) grouped[key] = { event_title: s.event_title, event_date: s.event_date, items: [] }
+              grouped[key].items.push(s)
+            })
+            const groups = Object.values(grouped)
+            if (groups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">אין סידור עבודה עדיין. בחר עובדים מטאב הפניות</div>
+            return groups.map((g, gi) => (
+              <div key={gi} className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-3">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between flex-row-reverse">
+                  <div className="text-right">
+                    <div className="text-[13px] font-semibold text-gray-800">{g.event_title}</div>
+                    <div className="text-[11px] text-gray-400">{(() => { if (!g.event_date) return ''; const [y,m,d] = g.event_date.split('-'); const HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; return `${+d} ${HE[+m-1]} ${y}` })()}</div>
+                  </div>
+                  <div className="text-[11px] text-gray-400">{g.items.length} עובדים</div>
+                </div>
+                <div className="overflow-x-auto">
+                  <div className="flex flex-row-reverse p-3 gap-3 min-w-max">
+                    {g.items.map(s => (
+                      <div key={s.id} className="flex flex-col items-center px-3 py-2.5 border border-gray-100 rounded-xl min-w-[100px]">
+                        <div className="text-[12px] font-medium text-gray-700 text-center mb-2">
+                          {crew.find(c=>c.id===s.member_id)?.full_name || '—'}
+                        </div>
+                        <select value={s.role || ''} onChange={e => updateShiftRole(s.id, e.target.value)}
+                          className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full text-center bg-gray-50" dir="rtl">
+                          <option value="">תפקיד...</option>
+                          <option value="בר">בר</option>
+                          <option value="קופה">קופה</option>
+                          <option value="ניהול ערב">ניהול ערב</option>
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))
+          })()}
         </div>
       )}
 
