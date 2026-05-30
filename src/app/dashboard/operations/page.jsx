@@ -677,6 +677,7 @@ export default function OperationsPage() {
               </div>
             ))}
           </div>
+        </div>
           )}
         </div>
       )}
