@@ -592,6 +592,17 @@ function GeneralFilesMode() {
                 <i className="ti ti-mail" style={{fontSize:13}}/> שלח במייל ({selectedCount})
               </button>
             )}
+            {anySelected && (
+              <button onClick={() => {
+                files.filter(f => selectedFiles[f.name]).forEach(f => {
+                  const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${f.name}`)
+                  const a = document.createElement('a'); a.href = data.publicUrl; a.download = f.name; a.target = '_blank'; a.click()
+                })
+              }}
+                className="flex items-center gap-1.5 text-[12px] bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-200">
+                <i className="ti ti-download" style={{fontSize:13}}/> הורד ({selectedCount})
+              </button>
+            )}
           </div>
         )}
 
