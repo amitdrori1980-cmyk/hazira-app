@@ -11,14 +11,22 @@ export default function OperationsPage() {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [isManager, setIsManager] = useState(false)
+  const [newMember, setNewMember] = useState({ full_name: '', role: '', phone: '', email: '' })
+  const [adding, setAdding] = useState(false)
+  const [showAdd, setShowAdd] = useState(false)
 
   useEffect(() => { load() }, [])
 
   async function load() {
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: p } = await supabase.from('profiles').select('is_manager').eq('id', user.id).single()
+    setIsManager(p?.is_manager || false)
+
     const { data: crewData } = await supabase
-      .from('crew_members')
+      .from('operations_crew')
       .select('*')
-      .eq('is_operations', true)
+      .eq('active', true)
       .order('full_name')
     setCrew(crewData || [])
 
@@ -39,6 +47,22 @@ export default function OperationsPage() {
     const [y, m, d] = ds.split('-')
     const HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
     return `${+d} ${HE[+m-1]} ${y}`
+  }
+
+  async function addMember() {
+    if (!newMember.full_name.trim()) return
+    setAdding(true)
+    const { data } = await supabase.from('operations_crew').insert(newMember).select().single()
+    if (data) setCrew(prev => [...prev, data])
+    setNewMember({ full_name: '', role: '', phone: '', email: '' })
+    setShowAdd(false)
+    setAdding(false)
+  }
+
+  async function removeMember(id) {
+    if (!confirm('להסיר מהרשימה?')) return
+    await supabase.from('operations_crew').update({ active: false }).eq('id', id)
+    setCrew(prev => prev.filter(c => c.id !== id))
   }
 
   async function sendInquiries() {
@@ -77,6 +101,12 @@ export default function OperationsPage() {
           className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'inquiries' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
           בדיקת פניות
         </button>
+        {isManager && (
+          <button onClick={() => setTab('team')}
+            className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'team' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
+            ניהול צוות
+          </button>
+        )}
       </div>
 
       {tab === 'inquiries' && (
@@ -98,10 +128,7 @@ export default function OperationsPage() {
               <div className="text-[12px] font-semibold text-gray-700">צוות תפעול</div>
             </div>
             {crew.length === 0 && (
-              <div className="text-center text-[13px] text-gray-400 py-6">
-                אין אנשי צוות תפעול עדיין.<br/>
-                <span className="text-[11px]">סמן is_operations=true בטבלת crew_members</span>
-              </div>
+              <div className="text-center text-[13px] text-gray-400 py-6">אין אנשי צוות תפעול עדיין</div>
             )}
             {crew.map(member => (
               <label key={member.id} className="flex items-center justify-between px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer flex-row-reverse">
@@ -127,6 +154,54 @@ export default function OperationsPage() {
               {sent && <div className="text-center text-green-600 text-[12px] mt-2">✓ הפניות נשלחו בהצלחה</div>}
             </div>
           )}
+        </div>
+      )}
+
+      {tab === 'team' && isManager && (
+        <div className="max-w-xl">
+          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-4">
+            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+              <button onClick={() => setShowAdd(!showAdd)}
+                className="text-[12px] text-[#E0197D] flex items-center gap-1">
+                <i className="ti ti-plus" style={{fontSize:13}}/> הוסף
+              </button>
+              <div className="text-[12px] font-semibold text-gray-700">צוות תפעול</div>
+            </div>
+
+            {showAdd && (
+              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex flex-col gap-2">
+                <input value={newMember.full_name} onChange={e => setNewMember(v=>({...v,full_name:e.target.value}))}
+                  placeholder="שם מלא *" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D]" dir="rtl"/>
+                <input value={newMember.role} onChange={e => setNewMember(v=>({...v,role:e.target.value}))}
+                  placeholder="תפקיד" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none" dir="rtl"/>
+                <input value={newMember.phone} onChange={e => setNewMember(v=>({...v,phone:e.target.value}))}
+                  placeholder="טלפון" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none" dir="rtl"/>
+                <input value={newMember.email} onChange={e => setNewMember(v=>({...v,email:e.target.value}))}
+                  placeholder="אימייל" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none" dir="rtl"/>
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => setShowAdd(false)} className="text-sm text-gray-400 px-3 py-1.5">ביטול</button>
+                  <button onClick={addMember} disabled={adding}
+                    className="text-sm bg-[#E0197D] text-white px-4 py-1.5 rounded-lg">הוסף</button>
+                </div>
+              </div>
+            )}
+
+            {crew.length === 0 && !showAdd && (
+              <div className="text-center text-[13px] text-gray-400 py-6">אין אנשי צוות עדיין</div>
+            )}
+            {crew.map(member => (
+              <div key={member.id} className="flex items-center justify-between px-4 py-3 border-b border-gray-50 last:border-0 flex-row-reverse">
+                <div className="text-right">
+                  <div className="text-[13px] font-medium text-gray-700">{member.full_name}</div>
+                  {member.role && <div className="text-[11px] text-gray-400">{member.role}</div>}
+                  {member.phone && <div className="text-[11px] text-gray-400">{member.phone}</div>}
+                </div>
+                <button onClick={() => removeMember(member.id)} className="text-gray-300 hover:text-red-500">
+                  <i className="ti ti-trash" style={{fontSize:13}}/>
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
