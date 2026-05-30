@@ -2,7 +2,7 @@
   "name": "הזירה — ניהול הפקה",
   "short_name": "הזירה",
   "description": "מערכת ניהול הפקה לתיאטרון הזירה",
-  "start_url": "/dashboard",
+  "start_url": "/login",
   "display": "standalone",
   "background_color": "#E0197D",
   "theme_color": "#E0197D",
