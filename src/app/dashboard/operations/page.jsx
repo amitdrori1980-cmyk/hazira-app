@@ -17,6 +17,7 @@ export default function OperationsPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [inquiries, setInquiries] = useState([])
   const [myMember, setMyMember] = useState(null)
+  const [openInq, setOpenInq] = useState(null)
 
   useEffect(() => { load() }, [])
 
@@ -191,6 +192,35 @@ export default function OperationsPage() {
         </div>
       )}
 
+      {openInq && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setOpenInq(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+            <div className="text-[13px] text-gray-700 leading-relaxed text-right mb-4" dir="rtl">
+              היי {openInq.member?.full_name || 'שלום'},<br/><br/>
+              האם את/ה פנוי/ה לעבוד ב<span className="font-semibold">{openInq.event_title}</span> בתאריך <span className="font-semibold">{fmtDate(openInq.event_date)}</span>?
+            </div>
+            {openInq.status === 'pending' && !isManager && (
+              <div className="flex gap-2">
+                <button onClick={() => { respond(openInq.id, 'rejected'); setOpenInq(null) }}
+                  className="flex-1 text-sm bg-red-50 text-red-500 py-2 rounded-lg hover:bg-red-100">
+                  ✗ לא פנוי/ה
+                </button>
+                <button onClick={() => { respond(openInq.id, 'approved'); setOpenInq(null) }}
+                  className="flex-1 text-sm bg-green-50 text-green-600 py-2 rounded-lg hover:bg-green-100 font-medium">
+                  ✓ אני פנוי/ה
+                </button>
+              </div>
+            )}
+            {openInq.status !== 'pending' && (
+              <div className={`text-center text-sm py-2 rounded-lg font-medium ${statusColor[openInq.status]}`}>
+                {statusLabel[openInq.status]}
+              </div>
+            )}
+            <button onClick={() => setOpenInq(null)} className="w-full mt-3 text-[12px] text-gray-400 hover:text-gray-600">סגור</button>
+          </div>
+        </div>
+      )}
+
       {tab === 'messages' && (
         <div className="max-w-xl">
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
@@ -202,8 +232,9 @@ export default function OperationsPage() {
               <div className="text-center text-[13px] text-gray-400 py-8">אין פניות עדיין</div>
             )}
             {inquiries.map(inq => (
-              <div key={inq.id} className="px-4 py-3 border-b border-gray-50 last:border-0">
-                <div className="flex items-start justify-between flex-row-reverse mb-2">
+              <div key={inq.id} className="px-4 py-3 border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50"
+                onClick={() => setOpenInq(inq)}>
+                <div className="flex items-start justify-between flex-row-reverse mb-1">
                   <div className="text-right">
                     <div className="text-[13px] font-semibold text-gray-800">{inq.event_title}</div>
                     <div className="text-[11px] text-gray-400">{fmtDate(inq.event_date)}</div>
@@ -213,19 +244,7 @@ export default function OperationsPage() {
                     {statusLabel[inq.status]}
                   </span>
                 </div>
-                {!isManager && inq.status === 'pending' && (
-                  <div className="flex gap-2 justify-end mt-2">
-                    <button onClick={() => respond(inq.id, 'approved')}
-                      className="text-[12px] bg-green-50 text-green-600 px-3 py-1 rounded-lg hover:bg-green-100">
-                      ✓ אני פנוי
-                    </button>
-                    <button onClick={() => respond(inq.id, 'rejected')}
-                      className="text-[12px] bg-red-50 text-red-500 px-3 py-1 rounded-lg hover:bg-red-100">
-                      ✗ לא פנוי
-                    </button>
-                  </div>
-                )}
-                <div className="text-[10px] text-gray-300 text-left mt-1">{fmtTime(inq.created_at)}</div>
+                <div className="text-[10px] text-gray-300 text-left">{fmtTime(inq.created_at)}</div>
               </div>
             ))}
           </div>
