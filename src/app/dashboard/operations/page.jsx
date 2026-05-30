@@ -116,18 +116,6 @@ export default function OperationsPage() {
     setShifts(prev => prev.filter(s => s.event_id !== eventId))
   }
 
-  async function deleteShift(id) {
-    if (!confirm('למחוק עובד זה מהסידור?')) return
-    await supabase.from('operations_shifts').delete().eq('id', id)
-    setShifts(prev => prev.filter(s => s.id !== id))
-  }
-
-  async function deleteEventShifts(eventId) {
-    if (!confirm('למחוק את כל הסידור לאירוע זה?')) return
-    await supabase.from('operations_shifts').delete().eq('event_id', eventId)
-    setShifts(prev => prev.filter(s => s.event_id !== eventId))
-  }
-
   async function updateShiftRole(id, role) {
     await supabase.from('operations_shifts').update({ role }).eq('id', id)
     setShifts(prev => prev.map(s => s.id === id ? { ...s, role } : s))
