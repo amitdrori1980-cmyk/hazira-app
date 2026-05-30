@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import EquipmentPage from '../equipment/page'
+import EquipmentContent from '../equipment/EquipmentContent'
 import StorageContent from '../storage/StorageContent'
 
 export default function GearPage() {
@@ -17,7 +17,7 @@ export default function GearPage() {
           אכסון
         </button>
       </div>
-      {tab === 'equipment' && <EquipmentPage />}
+      {tab === 'equipment' && <EquipmentContent />}
       {tab === 'storage' && <StorageContent />}
     </div>
   )
