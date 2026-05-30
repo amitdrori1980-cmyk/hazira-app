@@ -79,6 +79,25 @@ export default function TasksPage() {
     setNewTask(''); setNewCrew(''); setAdding(false)
   }
 
+  async function exportExcel() {
+    const XLSX = await import('xlsx-js-style')
+    const hS = { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 }, fill: { fgColor: { rgb: 'E0197D' } }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2 } }
+    const cS = { alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2, wrapText: true }, border: { bottom: { style: 'thin', color: { rgb: 'EEEEEE' } } } }
+    const aS = { fill: { fgColor: { rgb: 'FCE4F3' } }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2, wrapText: true }, border: { bottom: { style: 'thin', color: { rgb: 'EEEEEE' } } } }
+    const wsData = [['כותרת','עדיפות','אחראי','מחלקה','סטטוס'].map(h => ({ v: h, s: hS }))]
+    tasks.forEach((t, i) => {
+      const s = i % 2 === 0 ? cS : aS
+      wsData.push([{ v: t.title||'', s }, { v: t.priority||'', s }, { v: t.crew?.full_name||'', s }, { v: t.dept||'', s }, { v: t.done?'הושלם':'פתוח', s }])
+    })
+    const ws = XLSX.utils.aoa_to_sheet(wsData)
+    ws['!cols'] = [{ wch: 35 }, { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 10 }]
+    ws['!rows'] = [{ hpt: 22 }, ...tasks.map(() => ({ hpt: 18 }))]
+    const wb = XLSX.utils.book_new()
+    wb.Workbook = { Views: [{ RTL: true }] }
+    XLSX.utils.book_append_sheet(wb, ws, 'משימות')
+    XLSX.writeFile(wb, 'tasks.xlsx')
+  }
+
   async function deleteTask(id) {
     await supabase.from('tasks').delete().eq('id', id)
     setTasks(prev => prev.filter(t => t.id !== id))
@@ -127,6 +146,11 @@ export default function TasksPage() {
 
   return (
     <div className="max-w-xl">
+      <div className="flex justify-end mb-2">
+        <button onClick={exportExcel} className="text-sm text-gray-500 hover:text-green-600 px-3 py-1 border border-gray-200 rounded-lg flex items-center gap-1">
+          <i className="ti ti-table-export" style={{fontSize:13}}/> ייצוא
+        </button>
+      </div>
       {/* Add */}
       <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
         <form onSubmit={addTask} className="flex flex-col gap-2">
