@@ -196,10 +196,10 @@ export default function OperationsPage() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setOpenInq(null)}>
           <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
             <div className="text-[13px] text-gray-700 leading-relaxed text-right mb-4" dir="rtl">
-              היי {openInq.member?.full_name || 'שלום'},<br/><br/>
+              היי {crew.find(c=>c.id===openInq.to_member_id)?.full_name || openInq.member?.full_name || 'שלום'},<br/><br/>
               האם את/ה פנוי/ה לעבוד ב<span className="font-semibold">{openInq.event_title}</span> בתאריך <span className="font-semibold">{fmtDate(openInq.event_date)}</span>?
             </div>
-            {openInq.status === 'pending' && (
+            {(openInq.status === 'pending' || openInq.status === undefined) && (
               <div className="flex gap-2">
                 <button onClick={() => { respond(openInq.id, 'rejected'); setOpenInq(null) }}
                   className="flex-1 text-sm bg-red-50 text-red-500 py-2 rounded-lg hover:bg-red-100">
