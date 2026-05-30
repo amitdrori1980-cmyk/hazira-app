@@ -21,6 +21,7 @@ export default function OperationsPage() {
   const [summaryItems, setSummaryItems] = useState([])
   const [savingSummary, setSavingSummary] = useState(false)
   const [summarySaved, setSummarySaved] = useState(false)
+  const [editingSummary, setEditingSummary] = useState(null)
   const [summaries, setSummaries] = useState([])
   const [shifts, setShifts] = useState([])
   const [savingShift, setSavingShift] = useState(false)
@@ -165,6 +166,30 @@ export default function OperationsPage() {
     setSavingSummary(false)
     setSummarySaved(true)
     setTimeout(() => setSummarySaved(false), 3000)
+  }
+
+  async function deleteSummary(id) {
+    if (!confirm('למחוק סיכום זה לצמיתות?')) return
+    await supabase.from('operations_summaries').delete().eq('id', id)
+    setSummaries(prev => prev.filter(s => s.id !== id))
+  }
+
+  async function updateSummary() {
+    if (!editingSummary) return
+    setSavingSummary(true)
+    await supabase.from('operations_summaries').update({ notes: editingSummary.notes }).eq('id', editingSummary.id)
+    await supabase.from('operations_summary_items').delete().eq('summary_id', editingSummary.id)
+    if (editingSummary.items?.length > 0) {
+      await supabase.from('operations_summary_items').insert(
+        editingSummary.items.filter(i => i.item_name).map((i, idx) => ({
+          summary_id: editingSummary.id, item_name: i.item_name, missing_qty: i.missing_qty, notes: i.notes, sort_order: idx
+        }))
+      )
+    }
+    const { data: refreshed } = await supabase.from('operations_summaries').select('*, items:operations_summary_items(*)').order('created_at', { ascending: false })
+    setSummaries(refreshed || [])
+    setEditingSummary(null)
+    setSavingSummary(false)
   }
 
   async function sendInquiries() {
@@ -390,6 +415,57 @@ export default function OperationsPage() {
         </div>
       )}
 
+      {editingSummary && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setEditingSummary(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="text-[13px] font-semibold text-gray-700 text-right mb-3">עריכת סיכום — {editingSummary.event_title}</div>
+            <textarea value={editingSummary.notes || ''} onChange={e => setEditingSummary(v => ({ ...v, notes: e.target.value }))}
+              placeholder="הערות כלליות..." rows={3} dir="rtl"
+              className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] resize-none mb-3"/>
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-2">
+                <button onClick={() => setEditingSummary(v => ({ ...v, items: [...(v.items||[]), { id: Date.now(), item_name:'', missing_qty:'', notes:'' }] }))}
+                  className="text-[11px] text-[#E0197D] flex items-center gap-1">
+                  <i className="ti ti-plus" style={{fontSize:11}}/> הוסף פריט
+                </button>
+                <div className="text-[11px] font-medium text-gray-500">מלאי חסר</div>
+              </div>
+              {(editingSummary.items||[]).length > 0 && (
+                <div className="border border-gray-100 rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-[2fr_1fr_2fr_auto] bg-gray-50 border-b border-gray-100">
+                    <div className="text-[10px] text-gray-500 px-2 py-1.5 text-right">פריט</div>
+                    <div className="text-[10px] text-gray-500 px-2 py-1.5 text-right border-r border-gray-100">כמות</div>
+                    <div className="text-[10px] text-gray-500 px-2 py-1.5 text-right border-r border-gray-100">הערות</div>
+                    <div className="w-6"/>
+                  </div>
+                  {(editingSummary.items||[]).map(item => (
+                    <div key={item.id} className="grid grid-cols-[2fr_1fr_2fr_auto] border-b border-gray-50 last:border-0">
+                      <input value={item.item_name||''} onChange={e => setEditingSummary(v => ({ ...v, items: v.items.map(i => i.id===item.id ? {...i, item_name: e.target.value} : i) }))}
+                        placeholder="פריט" dir="rtl" className="text-[11px] px-2 py-1.5 outline-none border-r border-gray-50"/>
+                      <input value={item.missing_qty||''} onChange={e => setEditingSummary(v => ({ ...v, items: v.items.map(i => i.id===item.id ? {...i, missing_qty: e.target.value} : i) }))}
+                        placeholder="כמות" dir="rtl" className="text-[11px] px-2 py-1.5 outline-none border-r border-gray-50"/>
+                      <input value={item.notes||''} onChange={e => setEditingSummary(v => ({ ...v, items: v.items.map(i => i.id===item.id ? {...i, notes: e.target.value} : i) }))}
+                        placeholder="הערות" dir="rtl" className="text-[11px] px-2 py-1.5 outline-none"/>
+                      <button onClick={() => setEditingSummary(v => ({ ...v, items: v.items.filter(i => i.id !== item.id) }))}
+                        className="px-1 text-gray-300 hover:text-red-500">
+                        <i className="ti ti-x" style={{fontSize:10}}/>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setEditingSummary(null)} className="flex-1 text-sm py-2 border border-gray-200 rounded-lg text-gray-500">ביטול</button>
+              <button onClick={updateSummary} disabled={savingSummary}
+                className="flex-1 text-sm py-2 bg-[#E0197D] text-white rounded-lg font-medium hover:bg-[#A0106A] disabled:opacity-50">
+                {savingSummary ? 'שומר...' : 'שמור שינויים'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {tab === 'summary' && (
         <div className="max-w-xl">
           {/* טופס הוספת סיכום */}
@@ -458,7 +534,17 @@ export default function OperationsPage() {
                       <div className="text-[13px] font-semibold text-gray-800">{s.event_title}</div>
                       <div className="text-[11px] text-gray-400">{fmtDate(s.event_date)}</div>
                     </div>
-                    <div className="text-[10px] text-gray-400">{fmtTime(s.created_at)}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-[10px] text-gray-400">{fmtTime(s.created_at)}</div>
+                      <button onClick={() => setEditingSummary({ ...s, items: s.items || [] })}
+                        className="text-gray-300 hover:text-[#E0197D] p-0.5">
+                        <i className="ti ti-pencil" style={{fontSize:12}}/>
+                      </button>
+                      <button onClick={() => deleteSummary(s.id)}
+                        className="text-gray-300 hover:text-red-500 p-0.5">
+                        <i className="ti ti-trash" style={{fontSize:12}}/>
+                      </button>
+                    </div>
                   </div>
                   {s.notes && <div className="px-4 py-3 text-[12px] text-gray-600 text-right border-b border-gray-50">{s.notes}</div>}
                   {s.items && s.items.length > 0 && (
