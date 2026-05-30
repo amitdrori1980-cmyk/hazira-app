@@ -104,6 +104,30 @@ export default function OperationsPage() {
     }
   }
 
+  async function deleteShift(id) {
+    if (!confirm('למחוק עובד זה מהסידור?')) return
+    await supabase.from('operations_shifts').delete().eq('id', id)
+    setShifts(prev => prev.filter(s => s.id !== id))
+  }
+
+  async function deleteEventShifts(eventId) {
+    if (!confirm('למחוק את כל הסידור לאירוע זה?')) return
+    await supabase.from('operations_shifts').delete().eq('event_id', eventId)
+    setShifts(prev => prev.filter(s => s.event_id !== eventId))
+  }
+
+  async function deleteShift(id) {
+    if (!confirm('למחוק עובד זה מהסידור?')) return
+    await supabase.from('operations_shifts').delete().eq('id', id)
+    setShifts(prev => prev.filter(s => s.id !== id))
+  }
+
+  async function deleteEventShifts(eventId) {
+    if (!confirm('למחוק את כל הסידור לאירוע זה?')) return
+    await supabase.from('operations_shifts').delete().eq('event_id', eventId)
+    setShifts(prev => prev.filter(s => s.event_id !== eventId))
+  }
+
   async function updateShiftRole(id, role) {
     await supabase.from('operations_shifts').update({ role }).eq('id', id)
     setShifts(prev => prev.map(s => s.id === id ? { ...s, role } : s))
@@ -346,13 +370,29 @@ export default function OperationsPage() {
                     <div className="text-[13px] font-semibold text-gray-800">{g.event_title}</div>
                     <div className="text-[11px] text-gray-400">{(() => { if (!g.event_date) return ''; const [y,m,d] = g.event_date.split('-'); const HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; return `${+d} ${HE[+m-1]} ${y}` })()}</div>
                   </div>
-                  <div className="text-[11px] text-gray-400">{g.items.length} עובדים</div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                    <div className="text-[11px] text-gray-400">{g.items.length} עובדים</div>
+                    <button onClick={() => deleteEventShifts(g.items[0]?.event_id)}
+                      className="text-gray-300 hover:text-red-500 p-1">
+                      <i className="ti ti-trash" style={{fontSize:13}}/>
+                    </button>
+                  </div>
+                    <button onClick={() => deleteEventShifts(g.items[0]?.event_id)}
+                      className="text-gray-300 hover:text-red-500 p-1">
+                      <i className="ti ti-trash" style={{fontSize:13}}/>
+                    </button>
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
                   <div className="flex flex-row-reverse p-3 gap-3 min-w-max">
                     {g.items.map(s => (
-                      <div key={s.id} className="flex flex-col items-center px-3 py-2.5 border border-gray-100 rounded-xl min-w-[100px]">
-                        <div className="text-[12px] font-medium text-gray-700 text-center mb-2">
+                      <div key={s.id} className="flex flex-col items-center px-3 py-2.5 border border-gray-100 rounded-xl min-w-[100px] relative">
+                        <button onClick={() => deleteShift(s.id)}
+                          className="absolute top-1 left-1 text-gray-200 hover:text-red-500">
+                          <i className="ti ti-x" style={{fontSize:11}}/>
+                        </button>
+                        <div className="text-[12px] font-medium text-gray-700 text-center mb-2 mt-1">
                           {crew.find(c=>c.id===s.member_id)?.full_name || '—'}
                         </div>
                         <select value={s.role || ''} onChange={e => updateShiftRole(s.id, e.target.value)}
