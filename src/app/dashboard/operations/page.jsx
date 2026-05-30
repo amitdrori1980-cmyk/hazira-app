@@ -635,9 +635,6 @@ export default function OperationsPage() {
               {sent && <div className="text-center text-green-600 text-[12px] mt-2">✓ הפניות נשלחו בהצלחה</div>}
             </div>
           )}
-        </div>
-            </div>
-          )}
           {teamSubTab === 'crew' && (
         <div className="max-w-xl">
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-4">
@@ -681,6 +678,7 @@ export default function OperationsPage() {
               </div>
             ))}
           </div>
+          )}
         </div>
       )}
     </div>
