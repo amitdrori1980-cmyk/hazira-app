@@ -141,6 +141,29 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
 
   useEffect(() => { loadTemplates() }, [])
 
+  async function exportExcel() {
+    const XLSX = await import('xlsx-js-style')
+    const hS = { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 }, fill: { fgColor: { rgb: 'E0197D' } }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2 } }
+    const cS = { alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2 }, border: { bottom: { style: 'thin', color: { rgb: 'EEEEEE' } } } }
+    const aS = { fill: { fgColor: { rgb: 'FCE4F3' } }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2 }, border: { bottom: { style: 'thin', color: { rgb: 'EEEEEE' } } } }
+    const wsData = [['קטגוריה','תת-קטגוריה','פריט','כמות'].map(h => ({ v: h, s: hS }))]
+    specDisplay.filter(Boolean).forEach((s, i) => {
+      const style = i % 2 === 0 ? cS : aS
+      wsData.push([
+        { v: s.cat?.name||'', s: style },
+        { v: s.sub?.name||'', s: style },
+        { v: s.item?.name||'', s: style },
+        { v: s.quantity||1, s: style }
+      ])
+    })
+    const ws = XLSX.utils.aoa_to_sheet(wsData)
+    ws['!cols'] = [{ wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 10 }]
+    const wb = XLSX.utils.book_new()
+    wb.Workbook = { Views: [{ RTL: true }] }
+    XLSX.utils.book_append_sheet(wb, ws, selTemplate?.name || 'מפרט')
+    XLSX.writeFile(wb, `${selTemplate?.name || 'spec'}.xlsx`)
+  }
+
   async function doCompare() {
     setComparing(true)
     const results = await Promise.all(checkedIds.map(id =>
@@ -352,7 +375,12 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
         ) : (
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-              <div className="text-[11px] text-gray-400">{templateItems.length} פריטים</div>
+              <div className="flex items-center gap-2">
+                <button onClick={exportExcel} className="text-sm text-gray-500 hover:text-green-600 px-2 py-1 border border-gray-200 rounded-lg flex items-center gap-1">
+                  <i className="ti ti-table-export" style={{fontSize:12}}/> ייצוא
+                </button>
+                <div className="text-[11px] text-gray-400">{templateItems.length} פריטים</div>
+              </div>
               <div className="text-right">
                 <div className="text-[13px] font-semibold text-gray-800">{selTemplate?.name}</div>
                 {selTemplate?.description && <div className="text-[11px] text-gray-400">{selTemplate.description}</div>}
