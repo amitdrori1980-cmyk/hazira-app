@@ -227,7 +227,7 @@ export default function OperationsPage() {
   const selectedCount = crew.filter(c => selectedCrew[c.id]).length
 
   const statusLabel = { pending: 'ממתין', approved: 'אישר', rejected: 'דחה' }
-  const statusColor = { pending: 'text-yellow-600 bg-yellow-50', approved: 'text-green-600 bg-green-50', rejected: 'text-red-600 bg-red-50' }
+  const statusColor = { pending: 'text-green-600 bg-green-50', approved: 'text-yellow-600 bg-yellow-50', rejected: 'text-red-600 bg-red-50' }
 
   if (loading) return <div className="text-center py-8 text-gray-400 text-sm">טוען...</div>
 
