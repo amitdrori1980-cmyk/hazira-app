@@ -359,13 +359,7 @@ export default function OperationsPage() {
                     <div className="text-[11px] text-gray-400">{(() => { if (!g.event_date) return ''; const [y,m,d] = g.event_date.split('-'); const HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; return `${+d} ${HE[+m-1]} ${y}` })()}</div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2">
                     <div className="text-[11px] text-gray-400">{g.items.length} עובדים</div>
-                    <button onClick={() => deleteEventShifts(g.items[0]?.event_id)}
-                      className="text-gray-300 hover:text-red-500 p-1">
-                      <i className="ti ti-trash" style={{fontSize:13}}/>
-                    </button>
-                  </div>
                     <button onClick={() => deleteEventShifts(g.items[0]?.event_id)}
                       className="text-gray-300 hover:text-red-500 p-1">
                       <i className="ti ti-trash" style={{fontSize:13}}/>
