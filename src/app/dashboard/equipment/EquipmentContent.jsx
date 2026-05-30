@@ -77,22 +77,27 @@ export default function EquipmentContent() {
 
   async function exportExcel() {
     const XLSX = await import('xlsx-js-style')
+    const { data: allCats } = await supabase.from('equipment_categories').select('*').order('name')
+    const { data: allSubs } = await supabase.from('equipment_subcategories').select('*').order('name')
+    const { data: allItems } = await supabase.from('equipment_items').select('*').order('name')
+    const catMap = {}
+    allCats?.forEach(c => { catMap[c.id] = c.name })
+    const subMap = {}
+    allSubs?.forEach(s => { subMap[s.id] = { name: s.name, catId: s.category_id } })
     const hS = { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 }, fill: { fgColor: { rgb: 'E0197D' } }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2 } }
     const cS = { alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2 }, border: { bottom: { style: 'thin', color: { rgb: 'EEEEEE' } } } }
     const aS = { fill: { fgColor: { rgb: 'FCE4F3' } }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2 }, border: { bottom: { style: 'thin', color: { rgb: 'EEEEEE' } } } }
     const wsData = [['קטגוריה','תת-קטגוריה','פריט','יחידות','פרטים'].map(h => ({ v: h, s: hS }))]
-    let row = 0
-    for (const cat of categories) {
-      const subs = subcats[cat.id] || []
-      for (const sub of subs) {
-        const its = items[sub.id] || []
-        for (const it of its) {
-          const s = row % 2 === 0 ? cS : aS
-          wsData.push([{ v: cat.name||'', s }, { v: sub.name||'', s }, { v: it.name||'', s }, { v: it.units||'', s }, { v: it.details||'', s }])
-          row++
-        }
-      }
-    }
+    allItems?.forEach((it, i) => {
+      const s = i % 2 === 0 ? cS : aS
+      wsData.push([
+        { v: catMap[subMap[it.subcategory_id]?.catId]||'', s },
+        { v: subMap[it.subcategory_id]?.name||'', s },
+        { v: it.name||'', s },
+        { v: it.units||'', s },
+        { v: it.details||'', s }
+      ])
+    })
     const ws = XLSX.utils.aoa_to_sheet(wsData)
     ws['!cols'] = [{ wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 12 }, { wch: 30 }]
     const wb = XLSX.utils.book_new()
