@@ -199,7 +199,7 @@ export default function OperationsPage() {
               היי {openInq.member?.full_name || 'שלום'},<br/><br/>
               האם את/ה פנוי/ה לעבוד ב<span className="font-semibold">{openInq.event_title}</span> בתאריך <span className="font-semibold">{fmtDate(openInq.event_date)}</span>?
             </div>
-            {openInq.status === 'pending' && !isManager && (
+            {openInq.status === 'pending' && (
               <div className="flex gap-2">
                 <button onClick={() => { respond(openInq.id, 'rejected'); setOpenInq(null) }}
                   className="flex-1 text-sm bg-red-50 text-red-500 py-2 rounded-lg hover:bg-red-100">
