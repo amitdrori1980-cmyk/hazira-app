@@ -459,7 +459,7 @@ export default function ProductionsPage() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".xlsx,.xls"
+        accept="*"
         className="hidden"
         onChange={e => handleImportExcel(e)}
       />
