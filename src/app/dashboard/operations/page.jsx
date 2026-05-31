@@ -134,6 +134,11 @@ export default function OperationsPage() {
     setShifts(prev => prev.map(s => s.id === id ? { ...s, role } : s))
   }
 
+  async function updateShiftNotes(id, notes) {
+    await supabase.from('operations_shifts').update({ notes }).eq('id', id)
+    setShifts(prev => prev.map(s => s.id === id ? { ...s, notes } : s))
+  }
+
   function addSummaryItem() {
     setSummaryItems(prev => [...prev, { id: Date.now(), item_name: '', missing_qty: '', notes: '' }])
   }
