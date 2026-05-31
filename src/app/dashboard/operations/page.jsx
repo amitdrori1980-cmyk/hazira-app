@@ -84,12 +84,16 @@ export default function OperationsPage() {
   }
 
   async function addMember() {
-    if (!newMember.full_name.trim()) return
+    if (!newMember.full_name.trim() || !newMember.email || !newMember.password) return alert('שם, אימייל וסיסמה הם שדות חובה')
     setAdding(true)
-    const { data } = await supabase.from('operations_crew').insert(newMember).select().single()
-    if (data) setCrew(prev => [...prev, data])
-    setNewMember({ full_name: '', role: '', phone: '', email: '' })
-    setShowAdd(false)
+    const res = await fetch('/api/create-crew-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newMember)
+    })
+    const json = await res.json()
+    if (json.error) { alert('שגיאה: ' + json.error) }
+    else { setCrew(prev => [...prev, json.member]); setNewMember({ full_name: '', role: '', phone: '', email: '', password: '' }); setShowAdd(false) }
     setAdding(false)
   }
 
