@@ -36,9 +36,13 @@ export default function DashboardLayout({ children }) {
         .select('*')
         .eq('enabled', true)
         .order('sort_order')
-      const { data: opsCrew } = await supabase.from('operations_crew').select('id').eq('user_id', user.id).eq('active', true).maybeSingle()
+      const { data: opsCrew } = await supabase.from('operations_crew').select('id,full_name').eq('user_id', data.user.id).eq('active', true).maybeSingle()
       if (opsCrew && !p?.is_manager) {
         setNavItems([{ label: 'מחלקת תפעול', href: '/dashboard/operations', icon: 'ti-settings', manager_only: false }])
+        if (!p) setProfile({ full_name: opsCrew.full_name, is_manager: false })
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/operations')) {
+          router.push('/dashboard/operations')
+        }
       } else {
         setNavItems((nav || []).filter(n => !n.manager_only || p?.is_manager))
       }
