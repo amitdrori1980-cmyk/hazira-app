@@ -549,20 +549,20 @@ export default function OperationsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="text-[11px] text-gray-400">{g.items.length} עובדים</div>
-                    <button onClick={() => deleteEventShifts(g.items[0]?.event_id)}
+                    {isManager && <button onClick={() => deleteEventShifts(g.items[0]?.event_id)}
                       className="text-gray-300 hover:text-red-500 p-1">
                       <i className="ti ti-trash" style={{fontSize:13}}/>
-                    </button>
+                    </button>}
                   </div>
                 </div>
                 <div className="overflow-x-auto">
                   <div className="flex flex-row-reverse p-3 gap-3 min-w-max">
                     {g.items.map(s => (
                       <div key={s.id} className="flex flex-col items-center px-3 py-2.5 border border-gray-100 rounded-xl min-w-[100px] relative">
-                        <button onClick={() => deleteShift(s.id)}
+                        {isManager && <button onClick={() => deleteShift(s.id)}
                           className="absolute top-1 left-1 text-gray-200 hover:text-red-500">
                           <i className="ti ti-x" style={{fontSize:11}}/>
-                        </button>
+                        </button>}
                         <div className="text-[12px] font-medium text-gray-700 text-center mb-2 mt-1">
                           {crew.find(c=>c.id===s.member_id)?.full_name || '—'}
                         </div>
