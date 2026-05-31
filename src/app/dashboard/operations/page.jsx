@@ -573,7 +573,7 @@ export default function OperationsPage() {
                           <option value="קופה">קופה</option>
                           <option value="ניהול ערב">ניהול ערב</option>
                         </select>
-                        <textarea value={s.notes || ''} onChange={e => updateShiftNotes(s.id, e.target.value)}
+                        <textarea key={s.id + '-notes'} defaultValue={s.notes || ''} onBlur={e => updateShiftNotes(s.id, e.target.value)}
                           placeholder="הערות..." rows={2} dir="rtl"
                           className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full resize-none mt-1 bg-gray-50"/>
                       </div>
