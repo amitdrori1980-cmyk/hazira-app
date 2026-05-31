@@ -248,7 +248,6 @@ export default function OperationsPage() {
           className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'summary' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
           סיכום ערב
         </button>
-        {isManager && (
           <button onClick={() => setTab('shifts')}
             className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'shifts' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
             סידור עבודה
