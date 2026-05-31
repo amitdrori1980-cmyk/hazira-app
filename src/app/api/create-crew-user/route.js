@@ -19,5 +19,6 @@ export async function POST(request) {
     .insert({ full_name, role: role || '', phone: phone || '', email, user_id: authData.user.id, active: true })
     .select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  await admin.from('profiles').upsert({ id: authData.user.id, full_name, is_manager: false })
   return NextResponse.json({ member: data })
 }

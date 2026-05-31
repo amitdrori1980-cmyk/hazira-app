@@ -526,7 +526,7 @@ export default function OperationsPage() {
         </div>
       )}
 
-      {tab === 'shifts' && isManager && (
+      {tab === 'shifts' && (
         <div className="max-w-2xl">
           {(() => {
             const grouped = {}
