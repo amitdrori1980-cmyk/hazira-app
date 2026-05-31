@@ -12,7 +12,7 @@ export default function OperationsPage() {
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(true)
   const [isManager, setIsManager] = useState(false)
-  const [newMember, setNewMember] = useState({ full_name: '', role: '', phone: '', email: '' })
+  const [newMember, setNewMember] = useState({ full_name: '', role: '', phone: '', email: '', password: '' })
   const [adding, setAdding] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [inquiries, setInquiries] = useState([])
@@ -656,7 +656,9 @@ export default function OperationsPage() {
                 <input value={newMember.phone} onChange={e => setNewMember(v=>({...v,phone:e.target.value}))}
                   placeholder="טלפון" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none" dir="rtl"/>
                 <input value={newMember.email} onChange={e => setNewMember(v=>({...v,email:e.target.value}))}
-                  placeholder="אימייל" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none" dir="rtl"/>
+                  placeholder="אימייל *" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none" dir="rtl"/>
+                <input type="password" value={newMember.password} onChange={e => setNewMember(v=>({...v,password:e.target.value}))}
+                  placeholder="סיסמה *" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none" dir="rtl"/>
                 <div className="flex gap-2 justify-end">
                   <button onClick={() => setShowAdd(false)} className="text-sm text-gray-400 px-3 py-1.5">ביטול</button>
                   <button onClick={addMember} disabled={adding}

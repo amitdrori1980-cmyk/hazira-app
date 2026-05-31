@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head><meta charset="utf-8"><title>בדיקת צלילים</title>
+<style>body{font-family:sans-serif;padding:2rem;background:#f8f8f8}
+button{margin:8px;padding:12px 24px;font-size:16px;cursor:pointer;border-radius:8px;border:1px solid #ccc;background:white}
+button:hover{background:#E0197D;color:white;border-color:#E0197D}</style></head>
+<body>
+<h2>בחר צליל להתראה</h2>
+<button onclick="playDing()">Ding</button>
+<button onclick="playChime()">Chime</button>
+<button onclick="playPop()">Pop</button>
+<button onclick="playNotif()">Notification</button>
+<button onclick="playMarimba()">Marimba</button>
+<button onclick="playKnock()">Knock</button>
+<button onclick="playCrystal()">Crystal</button>
+<button onclick="playTelegram()">Telegram</button>
+<script>
+function ctx(){return new AudioContext()}
+function playDing(){const c=ctx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.setValueAtTime(1200,c.currentTime);o.frequency.exponentialRampToValueAtTime(800,c.currentTime+0.3);g.gain.setValueAtTime(0.4,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.5);o.start();o.stop(c.currentTime+0.5)}
+function playChime(){const c=ctx();[523,659,784].forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=f;const t=c.currentTime+i*0.15;g.gain.setValueAtTime(0.3,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.6);o.start(t);o.stop(t+0.6)})}
+function playPop(){const c=ctx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.setValueAtTime(400,c.currentTime);o.frequency.exponentialRampToValueAtTime(200,c.currentTime+0.08);g.gain.setValueAtTime(0.5,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.15);o.start();o.stop(c.currentTime+0.15)}
+function playNotif(){const c=ctx();[440,554,659].forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type='triangle';o.connect(g);g.connect(c.destination);o.frequency.value=f;const t=c.currentTime+i*0.1;g.gain.setValueAtTime(0.3,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.start(t);o.stop(t+0.25)})}
+function playMarimba(){const c=ctx();[[440,0],[554,0.18]].forEach(([f,t])=>{const o=c.createOscillator(),g=c.createGain();o.type='triangle';o.connect(g);g.connect(c.destination);o.frequency.value=f;const s=c.currentTime+t;g.gain.setValueAtTime(0.4,s);g.gain.exponentialRampToValueAtTime(0.001,s+0.5);o.start(s);o.stop(s+0.5)})}
+function playKnock(){const c=ctx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.setValueAtTime(160,c.currentTime);o.frequency.exponentialRampToValueAtTime(60,c.currentTime+0.1);g.gain.setValueAtTime(0.6,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.18);o.start();o.stop(c.currentTime+0.18)}
+function playCrystal(){const c=ctx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=1800;g.gain.setValueAtTime(0.2,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.8);o.start();o.stop(c.currentTime+0.8)}
+function playTelegram(){const c=ctx();[[700,0],[700,0.12]].forEach(([f,t])=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=f;const s=c.currentTime+t;g.gain.setValueAtTime(0.3,s);g.gain.exponentialRampToValueAtTime(0.001,s+0.1);o.start(s);o.stop(s+0.1)})}
+</script></body></html>
