@@ -136,8 +136,12 @@ function ProductionInquiries() {
     }, { onConflict: 'production_event_id,slot' })
   }
 
-  function exportXlsxSch(sch) {
-    const schRows = rows[sch.id] || []
+  async function exportXlsxSch(sch) {
+    let schRows = rows[sch.id]
+    if (!schRows) {
+      const { data } = await supabase.from('general_schedule_rows').select('*').eq('schedule_id', sch.id).order('sort_order')
+      schRows = data || []
+    }
     if (!schRows.length) { alert('אין שורות לייצוא'); return }
     const skip = new Set(['id','schedule_id','created_at','updated_at','sort_order'])
     const keys = Object.keys(schRows[0]).filter(k => !skip.has(k))
@@ -149,8 +153,12 @@ function ProductionInquiries() {
     XLSX.writeFile(wb, (sch.title || 'לוז') + '.xlsx')
   }
 
-  function exportPdfSch(sch) {
-    const schRows = rows[sch.id] || []
+  async function exportPdfSch(sch) {
+    let schRows = rows[sch.id]
+    if (!schRows) {
+      const { data } = await supabase.from('general_schedule_rows').select('*').eq('schedule_id', sch.id).order('sort_order')
+      schRows = data || []
+    }
     const skip = new Set(['id','schedule_id','created_at','updated_at','sort_order'])
     const keys = schRows.length ? Object.keys(schRows[0]).filter(k => !skip.has(k)) : ['שעה','מה','מי','הערות']
     const headerRow = keys.map(h => '<th>' + h + '</th>').join('')
