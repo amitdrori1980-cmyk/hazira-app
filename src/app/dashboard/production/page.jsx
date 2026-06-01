@@ -973,9 +973,9 @@ function GeneralSchedulesMode() {
                   className="text-gray-300 hover:text-green-600 p-1" title="ייבא מאקסל">
                   <i className="ti ti-table-import" style={{fontSize:13}}/>
                 </button>
-                <button onClick={e => { e.stopPropagation(); if (!rows[sch.id]) loadRows(sch.id).then(()=>exportXlsxSch(sch)); else exportXlsxSch(sch) }}
+                <button onClick={e => { e.stopPropagation(); exportXlsxSch(sch) }}
                   className="text-[11px] text-gray-500 hover:text-green-600 px-1.5 py-0.5 border border-gray-200 rounded" title="ייצוא Excel">XLS</button>
-                <button onClick={e => { e.stopPropagation(); if (!rows[sch.id]) loadRows(sch.id).then(()=>exportPdfSch(sch)); else exportPdfSch(sch) }}
+                <button onClick={e => { e.stopPropagation(); exportPdfSch(sch) }}
                   className="text-[11px] text-gray-500 hover:text-red-600 px-1.5 py-0.5 border border-gray-200 rounded" title="ייצוא PDF">PDF</button>
                 <button onClick={e => { e.stopPropagation(); if (!rows[sch.id]) loadRows(sch.id).then(()=>duplicateSchedule(sch)); else duplicateSchedule(sch) }}
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="שכפל לוז">
