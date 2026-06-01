@@ -80,6 +80,27 @@ export default function RundownsPage() {
     setEditing(prev => ({ ...prev, rows: prev.rows.filter((_,i) => i!==idx) }))
   }
 
+  function exportXlsx(t) {
+    const ws = XLSX.utils.json_to_sheet(
+      (t.rows || []).map(r => ({ 'שעה': r.time, 'מה': r.what, 'מי': r.who, 'הערות': r.notes }))
+    )
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, t.name || 'לוז')
+    XLSX.writeFile(wb, (t.name || 'לוז') + '.xlsx')
+  }
+
+  function exportPdf(t) {
+    const rows = (t.rows || []).map(r =>
+      `<tr><td>${r.time||''}</td><td>${r.what||''}</td><td>${r.who||''}</td><td>${r.notes||''}</td></tr>`
+    ).join('')
+    const html = `<html><head><meta charset="utf-8"><title>${t.name}</title><style>body{direction:rtl;font-family:Arial,sans-serif;padding:20px}h2{color:#E0197D;margin-bottom:12px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid #ddd;padding:8px;text-align:right}th{background:#E0197D;color:white}tr:nth-child(even){background:#FFF8F8}.print-btn{margin-top:16px;padding:8px 16px;background:#E0197D;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px}@media print{.print-btn{display:none}}</style></head><body><h2>${t.name}</h2><table><thead><tr><th>שעה</th><th>מה</th><th>מי</th><th>הערות</th></tr></thead><tbody>${rows}</tbody></table><button class="print-btn" onclick="window.print()">הדפס / שמור PDF</button></body></html>`
+    const w = window.open('', '_blank')
+    w.document.write(html)
+    w.document.close()
+    w.focus()
+    setTimeout(() => w.print(), 400)
+  }
+
   if (loading) return <div className="text-center text-gray-400 py-8 text-sm">טוען...</div>
 
   if (editing) return (
@@ -150,6 +171,12 @@ export default function RundownsPage() {
                 <div className="text-[12px] text-gray-400 mt-0.5">{t.rows?.length || 0} שורות</div>
               </div>
               <div className="flex items-center gap-2">
+                <button onClick={()=>exportXlsx(t)} className="text-gray-400 hover:text-green-600 p-1.5 border border-gray-200 rounded-lg" title="ייצוא Excel">
+                  <i className="ti ti-file-spreadsheet" style={{fontSize:13}}/>
+                </button>
+                <button onClick={()=>exportPdf(t)} className="text-gray-400 hover:text-red-600 p-1.5 border border-gray-200 rounded-lg" title="ייצוא PDF">
+                  <i className="ti ti-file-type-pdf" style={{fontSize:13}}/>
+                </button>
                 <button onClick={()=>setEditing({...t})} className="text-gray-400 hover:text-[#E0197D] p-1.5 border border-gray-200 rounded-lg">
                   <i className="ti ti-pencil" style={{fontSize:13}}/>
                 </button>
