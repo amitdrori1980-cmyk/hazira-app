@@ -172,10 +172,10 @@ export default function RundownsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={()=>exportXlsx(t)} className="text-gray-400 hover:text-green-600 p-1.5 border border-gray-200 rounded-lg" title="ייצוא Excel">
-                  <i className="ti ti-file-spreadsheet" style={{fontSize:13}}/>
+                  <i className="ti ti-table-export" style={{fontSize:13}}/>
                 </button>
                 <button onClick={()=>exportPdf(t)} className="text-gray-400 hover:text-red-600 p-1.5 border border-gray-200 rounded-lg" title="ייצוא PDF">
-                  <i className="ti ti-file-type-pdf" style={{fontSize:13}}/>
+                  <i className="ti ti-printer" style={{fontSize:13}}/>
                 </button>
                 <button onClick={()=>setEditing({...t})} className="text-gray-400 hover:text-[#E0197D] p-1.5 border border-gray-200 rounded-lg">
                   <i className="ti ti-pencil" style={{fontSize:13}}/>
