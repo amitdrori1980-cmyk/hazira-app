@@ -137,6 +137,7 @@ function ProductionInquiries() {
   }
 
   async function exportXlsxSch(sch) {
+    alert('XLS נלחץ! id=' + sch.id)
     let schRows = rows[sch.id]
     if (!schRows) {
       const { data } = await supabase.from('general_schedule_rows').select('*').eq('schedule_id', sch.id).order('sort_order')
