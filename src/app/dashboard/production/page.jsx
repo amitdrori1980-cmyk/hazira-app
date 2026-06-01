@@ -136,6 +136,33 @@ function ProductionInquiries() {
     }, { onConflict: 'production_event_id,slot' })
   }
 
+  function exportXlsxSch(sch) {
+    const schRows = rows[sch.id] || []
+    if (!schRows.length) { alert('אין שורות לייצוא'); return }
+    const skip = new Set(['id','schedule_id','created_at','updated_at','sort_order'])
+    const keys = Object.keys(schRows[0]).filter(k => !skip.has(k))
+    const wsData = [keys, ...schRows.map(r => keys.map(k => r[k] ?? ''))]
+    const ws = XLSX.utils.aoa_to_sheet(wsData)
+    ws['!cols'] = keys.map(() => ({ wch: 20 }))
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'לוז')
+    XLSX.writeFile(wb, (sch.title || 'לוז') + '.xlsx')
+  }
+
+  function exportPdfSch(sch) {
+    const schRows = rows[sch.id] || []
+    const skip = new Set(['id','schedule_id','created_at','updated_at','sort_order'])
+    const keys = schRows.length ? Object.keys(schRows[0]).filter(k => !skip.has(k)) : ['שעה','מה','מי','הערות']
+    const headerRow = keys.map(h => '<th>' + h + '</th>').join('')
+    const tableRows = schRows.map(r => '<tr>' + keys.map(k => '<td>' + (r[k]??'') + '</td>').join('') + '</tr>').join('')
+    const html = '<html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;direction:rtl;margin:20px}h2{color:#E0197D}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:right;font-size:13px}th{background:#E0197D;color:white}</style></head><body><h2>' + (sch.title||'לוז') + '</h2><table><tr>' + headerRow + '</tr>' + tableRows + '</table></body></html>'
+    const w = window.open('','_blank')
+    if (!w) { alert('אנא אפשר חלונות popup'); return }
+    w.document.write(html)
+    w.document.close()
+    setTimeout(() => w.print(), 300)
+  }
+
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
 
   return (
@@ -938,6 +965,10 @@ function GeneralSchedulesMode() {
                   className="text-gray-300 hover:text-green-600 p-1" title="ייבא מאקסל">
                   <i className="ti ti-table-import" style={{fontSize:13}}/>
                 </button>
+                <button onClick={e => { e.stopPropagation(); if (!rows[sch.id]) loadRows(sch.id).then(()=>exportXlsxSch(sch)); else exportXlsxSch(sch) }}
+                  className="text-[11px] text-gray-500 hover:text-green-600 px-1.5 py-0.5 border border-gray-200 rounded" title="ייצוא Excel">XLS</button>
+                <button onClick={e => { e.stopPropagation(); if (!rows[sch.id]) loadRows(sch.id).then(()=>exportPdfSch(sch)); else exportPdfSch(sch) }}
+                  className="text-[11px] text-gray-500 hover:text-red-600 px-1.5 py-0.5 border border-gray-200 rounded" title="ייצוא PDF">PDF</button>
                 <button onClick={e => { e.stopPropagation(); if (!rows[sch.id]) loadRows(sch.id).then(()=>duplicateSchedule(sch)); else duplicateSchedule(sch) }}
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="שכפל לוז">
                   <i className="ti ti-copy" style={{fontSize:13}}/>
