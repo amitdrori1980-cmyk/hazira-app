@@ -28,6 +28,22 @@ export default function MessagesPage() {
 
   useEffect(() => { load() }, [])
 
+  useEffect(() => {
+    let uid = null
+    supabase.auth.getUser().then(({ data }) => { uid = data?.user?.id })
+    const channel = supabase
+      .channel('messages-page')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
+        const m = payload.new
+        if (!uid) return
+        const { data: sender } = await supabase.from('profiles').select('full_name').eq('id', m.sender_id).single()
+        const withSender = { ...m, sender: sender || null }
+        setMessages(prev => [withSender, ...prev])
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
+
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
     const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
