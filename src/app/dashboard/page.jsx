@@ -47,6 +47,11 @@ export default function DashboardPage() {
       .channel('dashboard-messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
         const m = payload.new
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+        const relevant = p?.is_manager || m.to_dept === 'all' || m.to_dept === p?.dept || m.to_user === user.id
+        if (!relevant) return
         const { data: sender } = await supabase.from('profiles').select('full_name').eq('id', m.sender_id).single()
         setMessages(prev => [{ ...m, sender: sender || null }, ...prev].slice(0, 3))
       })
