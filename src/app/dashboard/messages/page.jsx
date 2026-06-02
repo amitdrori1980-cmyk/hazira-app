@@ -227,8 +227,8 @@ export default function MessagesPage() {
         </div>
       )}
 
-      {/* שליחת הודעה — מנהלים בלבד */}
-      {profile?.is_manager && (
+      {/* שליחת הודעה */}
+      {profile && (
         <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
           <div className="text-[13px] font-medium text-gray-800 mb-3">שלח הודעה</div>
           <form onSubmit={sendMessage} className="flex flex-col gap-2">
@@ -236,7 +236,7 @@ export default function MessagesPage() {
               placeholder="תוכן ההודעה..." rows={2}
               className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-none"/>
             <div className="flex gap-1.5 flex-wrap">
-              {[{val:'all',label:'🌐 כולם'},{val:'dept',label:'📂 מחלקה'},{val:'person',label:'👤 אדם ספציפי'}].map(opt=>(
+              {[{val:'all',label:'🌐 כולם'},{val:'dept',label:'📂 מחלקה'},{val:'person',label:'👤 אדם ספציפי'}].filter(opt => profile?.is_manager || opt.val !== 'dept').map(opt=>(
                 <button key={opt.val} type="button"
                   onClick={()=>setForm(f=>({...f,target_type:opt.val}))}
                   className={`text-[12px] px-3 py-1.5 rounded-full border transition-colors ${form.target_type===opt.val?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
