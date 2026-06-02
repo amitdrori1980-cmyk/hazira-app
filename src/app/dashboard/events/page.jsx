@@ -113,7 +113,7 @@ function EventsPageInner() {
 
   function startEdit(ev) {
     setEditing(ev.id)
-    setEditVal({title:ev.title,date:ev.date,end_date:ev.end_date||'',time:ev.time||'',type:ev.type,description:ev.description||'',crew_notes:ev.crew_notes||''})
+    setEditVal({title:ev.title,date:ev.date,end_date:ev.end_date||'',time:ev.time||'',type:ev.type,description:ev.description||'',crew_notes:ev.crew_notes||'',venue:ev.venue||''})
   }
   async function saveEdit(id) {
     await supabase.from('events').update(editVal).eq('id',id)
