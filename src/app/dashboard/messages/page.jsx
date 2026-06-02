@@ -26,11 +26,8 @@ export default function MessagesPage() {
   const [sendingReply, setSendingReply] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
 
-  useEffect(() => { load() }, [])
-
   useEffect(() => {
-    let uid = null
-    supabase.auth.getUser().then(({ data }) => { uid = data?.user?.id })
+    load()
     const channel = supabase
       .channel('messages-page')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
