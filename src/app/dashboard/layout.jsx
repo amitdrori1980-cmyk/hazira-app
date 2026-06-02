@@ -35,17 +35,6 @@ export default function DashboardLayout({ children }) {
   }
 
   useEffect(() => {
-    const channel = supabase
-      .channel('layout-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
-        if (!muted) playSound()
-        setUnread(prev => prev + 1)
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [muted])
-
-  useEffect(() => {
     supabase.auth.getSession().then(async ({ data: sessionData }) => {
       if (!sessionData.session) {
         supabase.auth.onAuthStateChange((event, session) => {
@@ -105,17 +94,6 @@ export default function DashboardLayout({ children }) {
     })
     })
   }, [])
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('layout-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
-        if (!muted) playSound()
-        setUnread(prev => prev + 1)
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [muted])
 
   useEffect(() => {
     const channel = supabase
