@@ -76,6 +76,30 @@ export default function DashboardLayout({ children }) {
     })
   }, [])
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('layout-messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+        if (muted) return
+        try {
+          const ac = new AudioContext()
+          const freqs = [523, 659, 784]
+          freqs.forEach((f, i) => {
+            const o = ac.createOscillator(), g = ac.createGain()
+            o.connect(g); g.connect(ac.destination)
+            o.type = 'sine'; o.frequency.value = f
+            const t = ac.currentTime + i * 0.15
+            g.gain.setValueAtTime(0.3, t)
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.6)
+            o.start(t); o.stop(t + 0.6)
+          })
+        } catch(e) {}
+        setUnread(prev => prev + 1)
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [muted])
+
   function toggleMute() {
     const next = !muted
     setMuted(next)
