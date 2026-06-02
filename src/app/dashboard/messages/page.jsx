@@ -33,12 +33,8 @@ export default function MessagesPage() {
     supabase.auth.getUser().then(({ data }) => { uid = data?.user?.id })
     const channel = supabase
       .channel('messages-page')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
-        const m = payload.new
-        if (!uid) return
-        const { data: sender } = await supabase.from('profiles').select('full_name').eq('id', m.sender_id).single()
-        const withSender = { ...m, sender: sender || null }
-        setMessages(prev => [withSender, ...prev])
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+        load()
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }

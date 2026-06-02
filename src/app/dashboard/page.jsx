@@ -45,15 +45,15 @@ export default function DashboardPage() {
   useEffect(() => {
     const channel = supabase
       .channel('dashboard-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
-        const m = payload.new
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-        const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-        const relevant = p?.is_manager || m.to_dept === 'all' || m.to_dept === p?.dept || m.to_user === user.id
-        if (!relevant) return
-        const { data: sender } = await supabase.from('profiles').select('full_name').eq('id', m.sender_id).single()
-        setMessages(prev => [{ ...m, sender: sender || null }, ...prev].slice(0, 3))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+        supabase.auth.getUser().then(async ({ data: { user } }) => {
+          if (!user) return
+          const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+          const mq = supabase.from('messages').select('*, sender:sender_id(full_name)').order('created_at', { ascending: false }).limit(3)
+          if (!p?.is_manager) mq.or(`to_user.eq.${user.id},to_dept.eq.${p?.dept},to_dept.eq.all`)
+          const { data: m } = await mq
+          setMessages(m || [])
+        })
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
