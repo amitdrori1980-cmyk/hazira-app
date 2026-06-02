@@ -101,6 +101,7 @@ export default function DashboardLayout({ children }) {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
         if (!muted) playSound()
         setUnread(prev => prev + 1)
+        window.dispatchEvent(new CustomEvent('new-message'))
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }

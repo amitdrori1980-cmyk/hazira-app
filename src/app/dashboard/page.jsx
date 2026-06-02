@@ -43,6 +43,21 @@ export default function DashboardPage() {
   const [searching, setSearching]   = useState(false)
 
   useEffect(() => {
+    const msgHandler = () => {
+      supabase.auth.getUser().then(async ({ data: { user } }) => {
+        if (!user) return
+        const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+        const mq = supabase.from('messages').select('*, sender:sender_id(full_name)').order('created_at', { ascending: false }).limit(3)
+        if (!p?.is_manager) mq.or(`to_user.eq.${user.id},to_dept.eq.${p?.dept},to_dept.eq.all`)
+        const { data: m } = await mq
+        setMessages(m || [])
+      })
+    }
+    window.addEventListener('new-message', msgHandler)
+    return () => window.removeEventListener('new-message', msgHandler)
+  }, [])
+
+  useEffect(() => {
     const channel = supabase
       .channel('dashboard-messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {

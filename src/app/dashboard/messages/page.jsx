@@ -28,13 +28,9 @@ export default function MessagesPage() {
 
   useEffect(() => {
     load()
-    const channel = supabase
-      .channel('messages-page')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
-        load()
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    const handler = () => load()
+    window.addEventListener('new-message', handler)
+    return () => window.removeEventListener('new-message', handler)
   }, [])
 
   async function load() {
