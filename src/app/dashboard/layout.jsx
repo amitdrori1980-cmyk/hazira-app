@@ -113,6 +113,29 @@ export default function DashboardLayout({ children }) {
     return () => { supabase.removeChannel(channel) }
   }, [muted])
 
+  useEffect(() => {
+    let lastCount = -1
+    const poll = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { count } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact' })
+        .or(`to_user.eq.${user.id},to_dept.eq.all`)
+        .eq('read', false)
+      const c = count || 0
+      if (lastCount >= 0 && c > lastCount) {
+        setUnread(c)
+        window.dispatchEvent(new CustomEvent('new-message'))
+        if (!muted) playSound()
+      }
+      if (lastCount === -1) setUnread(c)
+      lastCount = c
+    }
+    const interval = setInterval(poll, 10000)
+    return () => clearInterval(interval)
+  }, [muted])
+
   function toggleMute() {
     const next = !muted
     setMuted(next)
