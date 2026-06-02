@@ -14,6 +14,25 @@ export default function DashboardLayout({ children }) {
   const [unread, setUnread] = useState(0)
   const [muted, setMuted] = useState(() => typeof window !== 'undefined' && localStorage.getItem('notif-muted') === 'true')
   const [menuOpen, setMenuOpen] = useState(false)
+  const audioCtxRef = typeof window !== 'undefined' ? { current: null } : { current: null }
+
+  function playSound() {
+    try {
+      if (!audioCtxRef.current) audioCtxRef.current = new AudioContext()
+      const ac = audioCtxRef.current
+      if (ac.state === 'suspended') ac.resume()
+      const freqs = [523, 659, 784]
+      freqs.forEach((f, i) => {
+        const o = ac.createOscillator(), g = ac.createGain()
+        o.connect(g); g.connect(ac.destination)
+        o.type = 'sine'; o.frequency.value = f
+        const t = ac.currentTime + i * 0.15
+        g.gain.setValueAtTime(0.3, t)
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.6)
+        o.start(t); o.stop(t + 0.6)
+      })
+    } catch(e) { console.log('sound error', e) }
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: sessionData }) => {
@@ -76,30 +95,6 @@ export default function DashboardLayout({ children }) {
     })
   }, [])
 
-  useEffect(() => {
-    const channel = supabase
-      .channel('layout-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
-        if (muted) return
-        try {
-          const ac = new AudioContext()
-          const freqs = [523, 659, 784]
-          freqs.forEach((f, i) => {
-            const o = ac.createOscillator(), g = ac.createGain()
-            o.connect(g); g.connect(ac.destination)
-            o.type = 'sine'; o.frequency.value = f
-            const t = ac.currentTime + i * 0.15
-            g.gain.setValueAtTime(0.3, t)
-            g.gain.exponentialRampToValueAtTime(0.001, t + 0.6)
-            o.start(t); o.stop(t + 0.6)
-          })
-        } catch(e) {}
-        setUnread(prev => prev + 1)
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [muted])
-
   function toggleMute() {
     const next = !muted
     setMuted(next)
@@ -118,7 +113,7 @@ export default function DashboardLayout({ children }) {
   const bottomNavItems = navItems.slice(0, 4)
 
   return (
-    <div className="flex flex-row-reverse h-screen bg-[#f8f5f5] overflow-hidden">
+    <div className="flex flex-row-reverse h-screen bg-[#f8f5f5] overflow-hidden" onClick={() => { if (!audioCtxRef.current) { audioCtxRef.current = new AudioContext() } }}>
 
       {/* SIDEBAR - desktop only */}
       <aside className="hidden md:flex w-48 flex-col bg-white border-l border-gray-100 flex-shrink-0">
