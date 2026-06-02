@@ -77,6 +77,15 @@ function EventsPageInner() {
     setEventEquip(em)
 
     setLoading(false)
+    // scroll to nearest event
+    setTimeout(() => {
+      const today = new Date().toISOString().slice(0,10)
+      const nearest = (evs||[]).find(e => e.date >= today)
+      if (nearest) {
+        const el = document.getElementById("event-" + nearest.id)
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+      }
+    }, 300)
   }
 
   const getTypeStyle = v => { const t=eventTypes.find(t=>t.value===v); return t?t.color:'bg-gray-100 text-gray-600' }
