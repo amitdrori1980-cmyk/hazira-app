@@ -884,6 +884,101 @@ function GeneralSchedulesMode() {
     if (!rows[id]) loadRows(id)
   }
 
+  async function exportXlsx(sch) {
+    let schRows = rows[sch.id]
+    if (!schRows) {
+      const { data } = await supabase
+        .from('general_schedule_rows')
+        .select('*')
+        .eq('schedule_id', sch.id)
+        .order('sort_order')
+      schRows = data || []
+    }
+    const wb = XLSX.utils.book_new()
+    wb.Workbook = { Views: [{ RTL: true }] }
+    const ws = {}
+    const border = {
+      top:    { style: 'thin', color: { rgb: '999999' } },
+      bottom: { style: 'thin', color: { rgb: '999999' } },
+      left:   { style: 'thin', color: { rgb: '999999' } },
+      right:  { style: 'thin', color: { rgb: '999999' } },
+    }
+    ws['A1'] = { v: `לוז: ${sch.title}`, t: 's', s: { font: { bold: true, sz: 16, name: 'Calibri', color: { rgb: 'CC1010' } }, alignment: { horizontal: 'right', readingOrder: 2 } } }
+    ws['A2'] = { v: sch.venue || '', t: 's', s: { font: { sz: 12, name: 'Calibri', color: { rgb: '666666' } }, alignment: { horizontal: 'right', readingOrder: 2 } } }
+    ws['A3'] = { v: `משתתפים: ${sch.participants || ''}`, t: 's', s: { font: { sz: 12, name: 'Calibri', italic: true }, alignment: { horizontal: 'right', readingOrder: 2 } } }
+    ws['A4'] = { v: '', t: 's' }
+    const headers = ['שעה', 'מה', 'מי', 'הערות']
+    headers.forEach((h, ci) => {
+      const ref = XLSX.utils.encode_cell({ r: 4, c: ci })
+      ws[ref] = { v: h, t: 's', s: { fill: { patternType: 'solid', fgColor: { rgb: 'CC1010' } }, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12, name: 'Calibri' }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2 }, border } }
+    })
+    schRows.forEach((row, ri) => {
+      const isOdd = ri % 2 !== 0
+      const vals = [row.time || '', row.what || '', row.who || '', row.notes || '']
+      vals.forEach((v, ci) => {
+        const ref = XLSX.utils.encode_cell({ r: ri + 5, c: ci })
+        ws[ref] = { v, t: 's', s: { fill: { patternType: 'solid', fgColor: { rgb: isOdd ? 'FFF0F0' : 'FFFFFF' } }, font: { sz: 12, name: 'Calibri' }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2, wrapText: true }, border } }
+      })
+    })
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: schRows.length + 5, c: 3 } })
+    ws['!views'] = [{ rightToLeft: true }]
+    ws['!cols'] = [{ wch: 10 }, { wch: 35 }, { wch: 25 }, { wch: 30 }]
+    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } }, { s: { r: 2, c: 0 }, e: { r: 2, c: 3 } }]
+    XLSX.utils.book_append_sheet(wb, ws, 'לוז')
+    XLSX.writeFile(wb, `לוז_${sch.title}.xlsx`)
+  }
+
+  async function exportPdf(sch) {
+    let schRows = rows[sch.id]
+    if (!schRows) {
+      const { data } = await supabase
+        .from('general_schedule_rows')
+        .select('*')
+        .eq('schedule_id', sch.id)
+        .order('sort_order')
+      schRows = data || []
+    }
+    const win = window.open('', '_blank')
+    win.document.write(`
+      <html dir="rtl">
+      <head>
+        <meta charset="utf-8"/>
+        <title>לוז: ${sch.title}</title>
+        <style>
+          body { font-family: Arial, sans-serif; direction: rtl; padding: 24px; color: #111; }
+          h2 { color: #CC1010; margin-bottom: 4px; }
+          .meta { color: #666; font-size: 13px; margin-bottom: 16px; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; }
+          th { background: #E0197D; color: white; padding: 8px 12px; text-align: right; }
+          td { padding: 7px 12px; border-bottom: 1px solid #eee; text-align: right; }
+          tr:nth-child(even) { background: #FFF8F8; }
+        </style>
+      </head>
+      <body>
+        <h2>${sch.title}</h2>
+        <div class="meta">
+          ${sch.venue ? `<span>${sch.venue}</span> · ` : ''}
+          ${sch.participants ? `משתתפים: ${sch.participants}` : ''}
+        </div>
+        <table>
+          <thead><tr><th>שעה</th><th>מה</th><th>מי</th><th>הערות</th></tr></thead>
+          <tbody>
+            ${schRows.map(r => `
+              <tr>
+                <td style="font-family:monospace;white-space:nowrap">${r.time || ''}</td>
+                <td>${r.what || ''}</td>
+                <td>${r.who || ''}</td>
+                <td style="color:#888">${r.notes || ''}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+        <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }<\/script>
+      </body>
+      </html>
+    `)
+    win.document.close()
+  }
+
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
 
   return (
@@ -935,6 +1030,14 @@ function GeneralSchedulesMode() {
               <div className="flex items-center gap-1">
                 <input type="file" accept=".xlsx,.xls" className="hidden" id={`xl-${sch.id}`}
                   onChange={e => { if (e.target.files[0]) importExcel(sch.id, e.target.files[0]); e.target.value = '' }}/>
+                <button onClick={e => { e.stopPropagation(); exportXlsx(sch) }}
+                  className="text-gray-300 hover:text-green-600 p-1" title="ייצוא אקסל">
+                  <i className="ti ti-file-spreadsheet" style={{fontSize:13}}/>
+                </button>
+                <button onClick={e => { e.stopPropagation(); exportPdf(sch) }}
+                  className="text-gray-300 hover:text-[#E0197D] p-1" title="ייצוא PDF">
+                  <i className="ti ti-file-type-pdf" style={{fontSize:13}}/>
+                </button>
                 <button onClick={e => { e.stopPropagation(); document.getElementById(`xl-${sch.id}`).click() }}
                   className="text-gray-300 hover:text-green-600 p-1" title="ייבא מאקסל">
                   <i className="ti ti-table-import" style={{fontSize:13}}/>
