@@ -279,7 +279,7 @@ function EventsPageInner() {
           const assignedEquip=eventEquip[ev.id]||[]
 
           return (
-            <div key={ev.id} className="border-b border-gray-50 last:border-0">
+            <div key={ev.id} id={"event-"+ev.id} className="border-b border-gray-50 last:border-0">
               {editing===ev.id ? (
                 <div className="py-2 flex flex-col gap-2">
                   <input value={editVal.title} onChange={e=>setEditVal(v=>({...v,title:e.target.value}))}
