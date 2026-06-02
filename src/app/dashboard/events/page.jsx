@@ -116,9 +116,10 @@ function EventsPageInner() {
     setEditVal({title:ev.title,date:ev.date,end_date:ev.end_date||'',time:ev.time||'',type:ev.type,description:ev.description||'',crew_notes:ev.crew_notes||'',venue:ev.venue||''})
   }
   async function saveEdit(id) {
-    const { error } = await supabase.from('events').update(editVal).eq('id',id)
+    const payload = {...editVal, end_date: editVal.end_date||null, time: editVal.time||null}
+    const { error } = await supabase.from('events').update(payload).eq('id',id)
     console.log('saveEdit error:', error, 'editVal:', editVal)
-    setEvents(prev=>prev.map(e=>e.id===id?{...e,...editVal}:e))
+    setEvents(prev=>prev.map(e=>e.id===id?{...e,...payload}:e))
     setEditing(null)
   }
 
