@@ -118,11 +118,10 @@ export default function DashboardLayout({ children }) {
     const poll = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      const { count } = await supabase
-        .from('messages')
-        .select('id', { count: 'exact' })
-        .or(`to_user.eq.${user.id},to_dept.eq.all`)
-        .eq('read', false)
+      const { data: p2 } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      let countQ = supabase.from('messages').select('id', { count: 'exact' }).eq('read', false)
+      if (!p2?.is_manager) countQ = countQ.or(`to_user.eq.${user.id},to_dept.eq.all,to_dept.eq.${p2?.dept}`)
+      const { count } = await countQ
       const c = count || 0
       if (lastCount >= 0 && c > lastCount) {
         setUnread(c)
