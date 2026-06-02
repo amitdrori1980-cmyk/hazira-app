@@ -98,7 +98,13 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     const channel = supabase
       .channel('layout-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
+        const m = payload.new
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+        const relevant = p?.is_manager || m.to_dept === 'all' || m.to_dept === p?.dept || m.to_user === user.id
+        if (!relevant) return
         if (!muted) playSound()
         setUnread(prev => prev + 1)
         window.dispatchEvent(new CustomEvent('new-message'))
