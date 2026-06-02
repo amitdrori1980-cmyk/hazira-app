@@ -87,6 +87,17 @@ export default function DashboardLayout({ children }) {
     return () => { supabase.removeChannel(channel) }
   }, [muted])
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('layout-messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+        if (!muted) playSound()
+        setUnread(prev => prev + 1)
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [muted])
+
   function toggleMute() {
     const next = !muted
     setMuted(next)
