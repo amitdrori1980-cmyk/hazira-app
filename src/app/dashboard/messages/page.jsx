@@ -49,8 +49,8 @@ export default function MessagesPage() {
       .from('messages')
       .select('*, sender:sender_id(full_name)')
       .order('created_at', { ascending: false })
-    if (!p?.is_manager) {
-      q.or(`to_user.eq.${user.id},to_dept.eq.${p?.dept},to_dept.eq.all,sender_id.eq.${user.id}`)
+    if (p?.role_type !== 'admin') {
+      q.or(`to_user.eq.${user.id},to_dept.eq.all,sender_id.eq.${user.id}`)
     }
     const { data: msgs } = await q
     setMessages(msgs || [])

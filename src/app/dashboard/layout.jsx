@@ -130,7 +130,7 @@ export default function DashboardLayout({ children }) {
       if (!user) return
       const { data: p2 } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       let countQ = supabase.from('messages').select('id', { count: 'exact' }).eq('read', false)
-      if (!p2?.is_manager) countQ = countQ.or(`to_user.eq.${user.id},to_dept.eq.all,to_dept.eq.${p2?.dept}`)
+      if (p2?.role_type !== 'admin') countQ = countQ.or(`to_user.eq.${user.id},to_dept.eq.all`)
       const { count } = await countQ
       const c = count || 0
       if (lastCount >= 0 && c > lastCount) {
