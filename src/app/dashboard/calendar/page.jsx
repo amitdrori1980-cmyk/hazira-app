@@ -193,12 +193,14 @@ export default function CalendarPage() {
             <span className="text-[13px] font-medium text-gray-800">
               {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
             </span>
-            <button
-              onClick={() => router.push(`/dashboard/events?date=${selectedDay}`)}
-              className="text-xs bg-[#E0197D] text-white px-3 py-1.5 rounded-lg flex items-center gap-1"
-            >
-              <i className="ti ti-plus" /> הוסף אירוע
-            </button>
+            {profile?.is_manager && (
+              <button
+                onClick={() => router.push(`/dashboard/events?date=${selectedDay}`)}
+                className="text-xs bg-[#E0197D] text-white px-3 py-1.5 rounded-lg flex items-center gap-1"
+              >
+                <i className="ti ti-plus" /> הוסף אירוע
+              </button>
+            )}
           </div>
           {selectedEvents.length === 0 ? (
             <p className="text-[13px] text-gray-400 text-center py-4">אין אירועים ביום זה</p>
@@ -212,10 +214,12 @@ export default function CalendarPage() {
                       <i className="ti ti-trash" style={{fontSize:13}}/>
                     </button>
                   )}
-                  <button onClick={() => router.push(`/dashboard/events?edit=${e.id}`)}
-                    className="text-gray-300 hover:text-[#E0197D] p-1 flex-shrink-0">
-                    <i className="ti ti-pencil" style={{fontSize:13}}/>
-                  </button>
+                  {profile?.is_manager && (
+                    <button onClick={() => router.push(`/dashboard/events?edit=${e.id}`)}
+                      className="text-gray-300 hover:text-[#E0197D] p-1 flex-shrink-0">
+                      <i className="ti ti-pencil" style={{fontSize:13}}/>
+                    </button>
+                  )}
                   <div className="flex-1">
                     <div className="text-[13px] font-medium text-right">{e.title}</div>
                     {e.description && <div className="text-[12px] text-gray-500 text-right mt-0.5">{e.description}</div>}
