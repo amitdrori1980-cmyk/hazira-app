@@ -54,6 +54,11 @@ export default function MessagesPage() {
     }
     const { data: msgs } = await q
     setMessages(msgs || [])
+    // סמן הודעות שהתקבלו כנקראות
+    const unreadIds = (msgs || []).filter(m => !m.read && m.sender_id !== user.id).map(m => m.id)
+    if (unreadIds.length > 0) {
+      await supabase.from('messages').update({ read: true }).in('id', unreadIds)
+    }
     const today = new Date().toISOString().slice(0,10)
     const { data: evs } = await supabase.from('events').select('id,title,date,time').gte('date', today).order('date').limit(50)
     setEvents(evs || [])

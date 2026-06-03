@@ -14,6 +14,10 @@ export default function DashboardLayout({ children }) {
   const [unread, setUnread] = useState(0)
   const [muted, setMuted] = useState(() => typeof window !== 'undefined' && localStorage.getItem('notif-muted') === 'true')
   const [menuOpen, setMenuOpen] = useState(false)
+
+  useEffect(() => {
+    if (pathname === '/dashboard/messages') setUnread(0)
+  }, [pathname])
   const audioCtxRef = useRef(null)
 
   function playSound() {
