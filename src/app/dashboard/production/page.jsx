@@ -765,7 +765,7 @@ function GeneralSchedulesMode() {
 
   async function load() {
     setLoading(true)
-    const { data } = await supabase.from('general_schedules').select('*').order('created_at', { ascending: false })
+    const { data } = await supabase.from('general_schedules').select('*').order('title', { ascending: true })
     setSchedules(data || [])
     setLoading(false)
   }
