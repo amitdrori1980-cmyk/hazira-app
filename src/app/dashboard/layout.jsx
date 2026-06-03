@@ -61,7 +61,7 @@ export default function DashboardLayout({ children }) {
         '/dashboard', '/dashboard/messages', '/dashboard/tasks',
         '/dashboard/calendar', '/dashboard/specs', '/dashboard/production',
         '/dashboard/gear', '/dashboard/storage', '/dashboard/productions',
-        '/dashboard/notes',
+        '/dashboard/notes', '/dashboard/constraints',
       ]
       if (opsCrew && !p?.is_manager) {
         setNavItems([{ label: 'מחלקת תפעול', href: '/dashboard/operations', icon: 'ti-settings', manager_only: false }])

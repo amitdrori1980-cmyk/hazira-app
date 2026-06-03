@@ -1153,23 +1153,27 @@ function GeneralSchedulesMode() {
 
 export default function ProductionPage() {
   const [profile, setProfile] = useState(null)
-  const [tab, setTab] = useState('inquiries')
+  const [tab, setTab] = useState(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return
       const { data: p } = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
       setProfile(p)
+      setTab(p?.is_manager ? 'inquiries' : 'files')
     })
   }, [])
+
+  if (!tab) return null
+
+  const tabs = profile?.is_manager
+    ? [{ id: 'inquiries', label: 'בדיקת פניות' }, { id: 'files', label: 'לוזים כללי' }]
+    : [{ id: 'files', label: 'לוזים כללי' }]
 
   return (
     <div>
       <div className="flex gap-2 mb-4">
-        {[
-          { id: 'inquiries', label: 'בדיקת פניות' },
-          { id: 'files',     label: 'לוזים כללי' },
-        ].map(t => (
+        {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`text-[13px] px-4 py-2 rounded-lg border transition-colors ${tab===t.id?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-600 hover:border-[#E0197D]'}`}>
             {t.label}
