@@ -210,11 +210,7 @@ export default function DashboardLayout({ children }) {
             >
               <i className={`ti ${item.icon}`} style={{ fontSize: 15 }} aria-hidden />
               {item.label}
-              {item.label === 'הודעות' && unread > 0 && (
-                <span className="mr-auto bg-[#E0197D] text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">
-                  {unread}
-                </span>
-              )}
+
             </Link>
           ))}
 
@@ -277,11 +273,7 @@ export default function DashboardLayout({ children }) {
           >
             <i className={`ti ${item.icon}`} style={{ fontSize: 20 }} />
             <span className="text-[10px]">{item.label}</span>
-            {item.label === 'הודעות' && unread > 0 && (
-              <span className="absolute top-2 right-1/4 bg-[#E0197D] text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center">
-                {unread}
-              </span>
-            )}
+
           </Link>
         ))}
         <button
@@ -335,11 +327,7 @@ export default function DashboardLayout({ children }) {
                 >
                   <i className={`ti ${item.icon}`} style={{ fontSize: 17 }} />
                   {item.label}
-                  {item.label === 'הודעות' && unread > 0 && (
-                    <span className="mr-auto bg-[#E0197D] text-white text-[10px] rounded-full px-1.5 py-0.5">
-                      {unread}
-                    </span>
-                  )}
+
                 </Link>
               ))}
 
