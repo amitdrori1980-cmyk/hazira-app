@@ -269,13 +269,13 @@ export default function ConstraintsPage() {
               <i className="ti ti-plus"/> הוסף ידנית
             </button>
 <label className={`text-[12px] border px-3 py-1.5 rounded-lg cursor-pointer transition-colors ${importing ? 'border-gray-200 text-gray-400' : 'border-[#6366f1] text-[#6366f1] hover:bg-[#EEF2FF]'}`}>
-              {importing ? 'מייבא...' : <><i className="ti ti-file-spreadsheet"/> ייבא Excel</>}
+              {importing ? 'מייבא...' : <><i className="ti ti-file-spreadsheet"/> ייבא</>}
               <input type="file" accept=".xlsx,.xls" onChange={handleFile} className="hidden" disabled={importing}/>
             </label>
             <button onClick={exportExcel}
               className="text-[12px] border border-green-600 text-green-600 px-3 py-1.5 rounded-lg hover:bg-green-50 flex items-center gap-1">
               <i className="ti ti-table-export" style={{fontSize:13}}/>
-              ייצוא Excel
+              ייצוא
             </button>
           </div>
         </div>
