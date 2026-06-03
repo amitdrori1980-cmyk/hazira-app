@@ -56,14 +56,24 @@ export default function DashboardLayout({ children }) {
         .eq('enabled', true)
         .order('sort_order')
       const { data: opsCrew } = await supabase.from('operations_crew').select('id,full_name').eq('user_id', data.user.id).eq('active', true).maybeSingle()
+      const roleType = p?.role_type || 'arena_crew'
+      const arenaCrewPages = [
+        '/dashboard', '/dashboard/messages', '/dashboard/tasks',
+        '/dashboard/calendar', '/dashboard/specs', '/dashboard/production',
+        '/dashboard/gear', '/dashboard/storage', '/dashboard/productions',
+        '/dashboard/notes',
+      ]
       if (opsCrew && !p?.is_manager) {
         setNavItems([{ label: 'מחלקת תפעול', href: '/dashboard/operations', icon: 'ti-settings', manager_only: false }])
         if (!p) setProfile({ full_name: opsCrew.full_name, is_manager: false })
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/operations')) {
           router.push('/dashboard/operations')
         }
-      } else {
+      } else if (p?.is_manager) {
         setNavItems((nav || []).filter(n => !n.manager_only || p?.is_manager))
+      } else {
+        // arena_crew — רק עמודים מורשים
+        setNavItems((nav || []).filter(n => arenaCrewPages.includes(n.href)))
       }
 
       const { count } = await supabase
