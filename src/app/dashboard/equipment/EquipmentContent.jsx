@@ -16,6 +16,7 @@ export default function EquipmentContent() {
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(null)
   const [editVal, setEditVal] = useState({})
+  const [importing, setImporting] = useState(false)
 
   useEffect(() => { load() }, [])
 
@@ -38,6 +39,48 @@ export default function EquipmentContent() {
     if (items[subId]) return
     const { data } = await supabase.from('equipment_items').select('*').eq('subcategory_id', subId).order('name')
     setItems(p => ({ ...p, [subId]: data || [] }))
+  }
+
+  async function handleImport(file) {
+    setImporting(true)
+    const XLSX = await import('xlsx')
+    const buf = await file.arrayBuffer()
+    const wb = XLSX.read(buf, { type: 'array' })
+    const ws = wb.Sheets[wb.SheetNames[0]]
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }).filter(r => r.some(c => String(c).trim()))
+    let inserted = 0
+    for (const row of rows) {
+      const catName  = String(row[0] || '').trim()
+      const subName  = String(row[1] || '').trim()
+      const itemName = String(row[2] || '').trim()
+      const units    = String(row[3] || '').trim()
+      const details  = String(row[4] || '').trim()
+      if (!catName || !subName || !itemName) continue
+      let cat = categories.find(c => c.name === catName)
+      if (!cat) {
+        const { data } = await supabase.from('equipment_categories').insert({ name: catName }).select().single()
+        if (!data) continue
+        cat = data
+        setCategories(prev => [...prev, data])
+      }
+      let subs = subcats[cat.id]
+      if (!subs) {
+        const { data } = await supabase.from('equipment_subcategories').select('*').eq('category_id', cat.id).order('name')
+        subs = data || []
+        setSubcats(p => ({ ...p, [cat.id]: subs }))
+      }
+      let sub = subs.find(s => s.name === subName)
+      if (!sub) {
+        const { data } = await supabase.from('equipment_subcategories').insert({ name: subName, category_id: cat.id }).select().single()
+        if (!data) continue
+        sub = data
+        setSubcats(p => ({ ...p, [cat.id]: [...(p[cat.id] || []), data] }))
+      }
+      await supabase.from('equipment_items').insert({ name: itemName, units, details, subcategory_id: sub.id })
+      inserted++
+    }
+    setImporting(false)
+    alert(`יובאו ${inserted} פריטים`)
   }
 
   async function toggleCat(id) {
@@ -120,9 +163,16 @@ export default function EquipmentContent() {
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="...Search equipment"
           className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
-        <button onClick={exportExcel} className="text-sm text-gray-500 hover:text-green-600 px-3 py-1 border border-gray-200 rounded-lg flex items-center gap-1">
-          <i className="ti ti-table-export" style={{fontSize:13}}/> ייצוא
-        </button>
+        <div className="flex gap-2 items-center">
+          <label className={`text-[12px] border px-3 py-1.5 rounded-lg cursor-pointer flex items-center gap-1 transition-colors ${importing ? 'border-gray-200 text-gray-400' : 'border-[#6366f1] text-[#6366f1] hover:bg-[#EEF2FF]'}`}>
+            <i className="ti ti-file-spreadsheet" style={{fontSize:13}}/>
+            {importing ? 'מייבא...' : 'ייבוא'}
+            <input type="file" accept=".xlsx,.xls" onChange={e => { if (e.target.files[0]) handleImport(e.target.files[0]); e.target.value='' }} className="hidden" disabled={importing}/>
+          </label>
+          <button onClick={exportExcel} className="text-[12px] border border-green-600 text-green-600 px-3 py-1.5 rounded-lg hover:bg-green-50 flex items-center gap-1">
+            <i className="ti ti-table-export" style={{fontSize:13}}/> ייצוא
+          </button>
+        </div>
       </div>
       {filtered.map(cat => (
         <div key={cat.id} className="mb-2 border border-gray-100 rounded-xl overflow-hidden">
