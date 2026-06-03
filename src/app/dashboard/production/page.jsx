@@ -1021,7 +1021,13 @@ function GeneralSchedulesMode() {
             <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 flex-row-reverse"
               onClick={() => toggleOpen(sch.id)}>
               <div className="flex-1 text-right">
-                <div className="text-[13px] font-semibold text-gray-800">{sch.title}</div>
+                <input
+                  value={sch.title}
+                  onChange={e => setSchedules(prev => prev.map(s => s.id === sch.id ? {...s, title: e.target.value} : s))}
+                  onBlur={e => updateSchedule(sch.id, 'title', e.target.value)}
+                  onClick={e => e.stopPropagation()}
+                  className="text-[13px] font-semibold text-gray-800 bg-transparent outline-none border-b border-transparent focus:border-[#E0197D] text-right w-full"
+                />
                 <div className="text-[11px] text-gray-400 mt-0.5 flex gap-2 justify-end flex-wrap">
                   {sch.venue && <span>{sch.venue}</span>}
                   {sch.participants && <span>{sch.participants}</span>}
