@@ -147,7 +147,7 @@ export default function TasksPage() {
   return (
     <div className="max-w-xl">
       <div className="flex justify-end mb-2">
-        <button onClick={exportExcel} className="text-sm text-gray-500 hover:text-green-600 px-3 py-1 border border-gray-200 rounded-lg flex items-center gap-1">
+        <button onClick={exportExcel} className="text-[12px] border border-green-600 text-green-600 px-3 py-1.5 rounded-lg hover:bg-green-50 flex items-center gap-1">
           <i className="ti ti-table-export" style={{fontSize:13}}/> ייצוא
         </button>
       </div>
