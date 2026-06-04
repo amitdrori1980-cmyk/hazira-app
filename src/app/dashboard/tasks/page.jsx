@@ -38,10 +38,11 @@ export default function TasksPage() {
     const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
     setDept(p?.dept)
     setIsManager(p?.is_manager || false)
+    setAuthorName(p?.full_name || '')
 
     const q = supabase
       .from('tasks')
-      .select('*, crew:crew_member_id(full_name), creator:created_by(full_name)')
+      .select('*, crew:crew_member_id(full_name)')
       .order('created_at', { ascending: false })
     if (!p?.is_manager) {
       q.or(`assignee_id.eq.${user.id},and(crew_member_id.not.is.null,dept.eq.${p?.dept})`)
@@ -74,7 +75,7 @@ export default function TasksPage() {
       assignee_id: uid,
       dept,
       crew_member_id: newCrew || null,
-    }).select('*, crew:crew_member_id(full_name), creator:created_by(full_name)').single()
+    }).select('*, crew:crew_member_id(full_name)').single()
     if (!error) setTasks(prev => [data, ...prev])
     setNewTask(''); setNewCrew(''); setAdding(false)
   }
