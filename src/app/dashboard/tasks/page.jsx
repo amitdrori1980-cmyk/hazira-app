@@ -39,6 +39,7 @@ export default function TasksPage() {
     setDept(p?.dept)
     setIsManager(p?.is_manager || false)
     setAuthorName(p?.full_name || '')
+    setAuthorName(p?.full_name || '')
 
     const q = supabase
       .from('tasks')
@@ -75,6 +76,8 @@ export default function TasksPage() {
       assignee_id: uid,
       dept,
       crew_member_id: newCrew || null,
+      created_by: uid,
+      created_by_name: authorName,
     }).select('*, crew:crew_member_id(full_name)').single()
     if (!error) setTasks(prev => [data, ...prev])
     setNewTask(''); setNewCrew(''); setAdding(false)
