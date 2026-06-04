@@ -17,6 +17,9 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState(null)
   const [venues, setVenues] = useState([])
   const [selectedVenue, setSelectedVenue] = useState('all')
+  const [editingEvent, setEditingEvent] = useState(null)
+  const [editForm, setEditForm] = useState({})
+  const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -77,6 +80,23 @@ export default function CalendarPage() {
     XLSX.utils.book_append_sheet(wb, ws, 'יומן')
     const venueSuffix = selectedVenue === 'all' ? 'all' : selectedVenue
     XLSX.writeFile(wb, `calendar_${prefix}_${venueSuffix}.xlsx`)
+  }
+
+  async function saveEventEdit() {
+    if (!editingEvent) return
+    setSavingEdit(true)
+    await supabase.from('events').update({
+      title: editForm.title,
+      date: editForm.date,
+      end_date: editForm.end_date || null,
+      time: editForm.time || null,
+      type: editForm.type,
+      venue: editForm.venue || null,
+      description: editForm.description || null,
+    }).eq('id', editingEvent)
+    setEvents(prev => prev.map(e => e.id === editingEvent ? { ...e, ...editForm } : e))
+    setEditingEvent(null)
+    setSavingEdit(false)
   }
 
   return (
@@ -215,7 +235,7 @@ export default function CalendarPage() {
                     </button>
                   )}
                   {profile?.is_manager && (
-                    <button onClick={() => router.push(`/dashboard/events?edit=${e.id}`)}
+                    <button onClick={() => { setEditingEvent(e.id); setEditForm({ title:e.title, date:e.date, end_date:e.end_date||'', time:e.time||'', type:e.type||'show', venue:e.venue||'', description:e.description||'' }) }}
                       className="text-gray-300 hover:text-[#E0197D] p-1 flex-shrink-0">
                       <i className="ti ti-pencil" style={{fontSize:13}}/>
                     </button>
@@ -235,6 +255,51 @@ export default function CalendarPage() {
               ))}
             </div>
           )}
+        </div>
+      )}
+      {editingEvent && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setEditingEvent(null)}>
+          <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={() => setEditingEvent(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{fontSize:16}}/></button>
+              <span className="text-[14px] font-semibold text-gray-800">עריכת אירוע</span>
+            </div>
+            <div className="flex flex-col gap-3">
+              <input value={editForm.title||''} onChange={e=>setEditForm(p=>({...p,title:e.target.value}))}
+                placeholder="שם האירוע" className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right"/>
+              <div className="grid grid-cols-2 gap-2">
+                <input type="date" value={editForm.date||''} onChange={e=>setEditForm(p=>({...p,date:e.target.value}))}
+                  className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
+                <input type="date" value={editForm.end_date||''} onChange={e=>setEditForm(p=>({...p,end_date:e.target.value}))}
+                  placeholder="תאריך סיום" className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input type="time" value={editForm.time||''} onChange={e=>setEditForm(p=>({...p,time:e.target.value}))}
+                  className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
+                <select value={editForm.type||'show'} onChange={e=>setEditForm(p=>({...p,type:e.target.value}))}
+                  className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]">
+                  {Object.entries({show:'הצגה',rehearsal:'חזרה',crew:'צוות',technical:'טכני',strike:'פירוק'}).map(([v,l])=>(
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </div>
+              <select value={editForm.venue||''} onChange={e=>setEditForm(p=>({...p,venue:e.target.value}))}
+                className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right">
+                <option value="">בחר אולם</option>
+                {venues.map(v=><option key={v} value={v}>{v}</option>)}
+              </select>
+              <textarea value={editForm.description||''} onChange={e=>setEditForm(p=>({...p,description:e.target.value}))}
+                placeholder="תיאור" rows={2}
+                className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-none"/>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={saveEventEdit} disabled={savingEdit || !editForm.title?.trim()}
+                className="flex-1 bg-[#E0197D] text-white text-sm py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
+                {savingEdit ? 'שומר...' : 'שמור'}
+              </button>
+              <button onClick={() => setEditingEvent(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-500">ביטול</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
