@@ -119,7 +119,7 @@ export default function TasksPage() {
 
   function startEdit(task) {
     setEditing(task.id)
-    setEditVal({ title: task.title, priority: task.priority, crew_member_id: task.crew_member_id || '' })
+    setEditVal({ title: task.title, priority: task.priority, crew_member_id: task.crew_member_id || '', dept: task.dept || '' })
   }
 
   async function saveEdit(id) {
@@ -217,6 +217,11 @@ export default function TasksPage() {
                       <select value={editVal.priority} onChange={e => setEditVal(v=>({...v,priority:e.target.value}))}
                         className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
                         {PRIORITIES.map(p => <option key={p}>{p}</option>)}
+                      </select>
+                      <select value={editVal.dept} onChange={e => setEditVal(v=>({...v,dept:e.target.value}))}
+                        className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
+                        <option value="">כל המחלקות</option>
+                        {depts.map(d => <option key={d} value={d}>{d}</option>)}
                       </select>
                       <select value={editVal.crew_member_id} onChange={e => setEditVal(v=>({...v,crew_member_id:e.target.value}))}
                         className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
