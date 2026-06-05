@@ -30,11 +30,11 @@ input, select, textarea {
 ::-webkit-scrollbar-thumb { background: #e0c8c8; border-radius: 99px; }
 
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 *, *::before, *::after {
