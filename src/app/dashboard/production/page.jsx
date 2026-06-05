@@ -295,7 +295,11 @@ function ProductionInquiries() {
                   className="text-gray-300 hover:text-gray-600 p-1"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
                 <button onClick={e=>{e.stopPropagation();if(window.confirm('למחוק את האירוע?'))deleteEvent(ev.id)}}
                   className="text-gray-300 hover:text-red-500 p-1"><i className="ti ti-trash" style={{fontSize:13}}/></button>
-                <i className={`ti ${isOpen?'ti-chevron-up':'ti-chevron-down'} text-gray-300`} style={{fontSize:13}}/>
+                <button onClick={e=>{e.stopPropagation(); setOpenEvent(isOpen ? null : ev.id)}}
+                  className={`text-[11px] px-2.5 py-1 rounded-lg font-medium flex items-center gap-1 transition-colors flex-shrink-0 ${isOpen ? 'bg-[#FCE4F3] text-[#A0106A]' : 'bg-[#E0197D] text-white hover:bg-[#A0106A]'}`}>
+                  <i className={`ti ${isOpen?'ti-chevron-up':'ti-chevron-down'}`} style={{fontSize:12}}/>
+                  {isOpen ? 'סגור' : 'פתח'}
+                </button>
               </div>
             </div>
             {isOpen && !collapsedEvents[ev.id] && (
