@@ -235,6 +235,7 @@ export default function TasksPage() {
                       className="w-4 h-4 flex-shrink-0" style={{accentColor:'#E0197D'}}/>
                     <div className="flex-1 text-right min-w-0">
                       <div className="text-[13px]">{t.title}</div>
+                      {t.dept && <span className="text-[11px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">📂 {t.dept}</span>}
                       {t.created_by_name && <span className="text-[11px] text-gray-300">מ: {t.created_by_name}</span>}
                       {t.crew?.full_name && (
                         <div className="text-[11px] text-gray-400 flex items-center gap-1 justify-end">
