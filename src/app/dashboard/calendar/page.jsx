@@ -57,7 +57,15 @@ export default function CalendarPage() {
     : events.filter(e => e.venue === selectedVenue)
 
   const selectedEvents = selectedDay
-    ? filteredEvents.filter(e => e.date === selectedDay)
+    ? filteredEvents
+        .filter(e => e.date === selectedDay)
+        .sort((a, b) => {
+          // הצגות (ירוק) תמיד למעלה
+          if (a.type === 'show' && b.type !== 'show') return -1
+          if (a.type !== 'show' && b.type === 'show') return 1
+          // אחר כך לפי שעה
+          return (a.time || '').localeCompare(b.time || '')
+        })
     : []
 
   async function exportExcel() {
@@ -145,7 +153,7 @@ export default function CalendarPage() {
         <div className="grid grid-cols-7 gap-1.5">
           {/* Prev month padding */}
           {Array.from({ length: firstDay }).map((_, i) => (
-            <div key={'p'+i} className="min-h-[52px] md:min-h-[80px] rounded-lg p-1 md:p-1.5 opacity-25">
+            <div key={'p'+i} className="min-h-[52px] md:h-[104px] rounded-lg p-1 md:p-1.5 opacity-25">
               <div className="text-center text-[12px] text-gray-400">{daysInPrev - firstDay + i + 1}</div>
             </div>
           ))}
@@ -159,6 +167,12 @@ export default function CalendarPage() {
             const dayEvs = filteredEvents.filter(e => {
               if (!e.end_date) return e.date === ds
               return ds >= e.date && ds <= e.end_date
+            }).sort((a, b) => {
+              // הצגות (ירוק) תמיד למעלה
+              if (a.type === 'show' && b.type !== 'show') return -1
+              if (a.type !== 'show' && b.type === 'show') return 1
+              // אחר כך לפי שעה
+              return (a.time || '').localeCompare(b.time || '')
             })
             const isMultiStart = (e) => e.end_date && e.date === ds
             const isMultiMid   = (e) => e.end_date && ds > e.date && ds < e.end_date
@@ -168,13 +182,13 @@ export default function CalendarPage() {
               <div
                 key={d}
                 onClick={() => setSelectedDay(ds)}
-                className={`min-h-[52px] md:min-h-[80px] rounded-lg p-1 md:p-1.5 cursor-pointer border transition-all ${
+                className={`min-h-[52px] md:h-[104px] flex flex-col rounded-lg p-1 md:p-1.5 cursor-pointer border transition-all ${
                   isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
                   isToday    ? 'bg-[#FCE4F3] border-transparent' :
                                'border-transparent hover:border-gray-200 hover:bg-gray-50'
                 }`}
               >
-                <div className={`text-center text-[11px] md:text-[12px] font-medium mb-1 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{d}</div>
+                <div className={`text-center text-[11px] md:text-[12px] font-medium mb-1 flex-shrink-0 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{d}</div>
                 {/* Mobile: dots only */}
                 <div className="flex flex-wrap gap-0.5 md:hidden">
                   {dayEvs.slice(0,3).map(e => (
@@ -186,20 +200,19 @@ export default function CalendarPage() {
                   ))}
                   {dayEvs.length > 3 && <span className="text-[8px] text-gray-400">+{dayEvs.length-3}</span>}
                 </div>
-                {/* Desktop: text */}
-                {dayEvs.slice(0,2).map(e => (
-                  <div key={e.id} className={`hidden md:block text-[10px] px-1.5 py-0.5 mb-0.5 truncate ${TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'} ${
-                    isMultiStart(e) ? 'rounded-r-full rounded-l-none pl-2' :
-                    isMultiMid(e)   ? 'rounded-none -mx-1 px-2' :
-                    isMultiEnd(e)   ? 'rounded-l-full rounded-r-none pr-2' :
-                    'rounded'
-                  }`}>
-                    {isMultiStart(e) || !e.end_date ? <>{e.time?.slice(0,5)} {e.title}</> : ''}
-                  </div>
-                ))}
-                {dayEvs.length > 2 && (
-                  <div className="hidden md:block text-[9px] text-gray-400 text-center">+{dayEvs.length-2}</div>
-                )}
+                {/* Desktop: scrollable list — shows ~3, scroll for the rest */}
+                <div className="hidden md:flex md:flex-col gap-0.5 flex-1 min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-width:thin]">
+                  {dayEvs.map(e => (
+                    <div key={e.id} className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 truncate ${TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'} ${
+                      isMultiStart(e) ? 'rounded-r-full rounded-l-none pl-2' :
+                      isMultiMid(e)   ? 'rounded-none px-2' :
+                      isMultiEnd(e)   ? 'rounded-l-full rounded-r-none pr-2' :
+                      'rounded'
+                    }`}>
+                      {isMultiStart(e) || !e.end_date ? <>{e.time?.slice(0,5)} {e.title}</> : ''}
+                    </div>
+                  ))}
+                </div>
               </div>
             )
           })}
