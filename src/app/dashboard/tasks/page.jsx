@@ -38,8 +38,6 @@ export default function TasksPage() {
     const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
     setDept(p?.dept)
     setIsManager(p?.is_manager || false)
-    setAuthorName(p?.full_name || '')
-    setAuthorName(p?.full_name || '')
 
     const q = supabase
       .from('tasks')
