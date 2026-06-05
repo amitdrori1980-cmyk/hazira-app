@@ -190,9 +190,7 @@ function ProductionInquiries() {
         const evSlots = slots[ev.id] || emptySlots()
         const isOpen = openEvent === ev.id
         const filledCount = evSlots.filter(s => s.name.trim()).length
-        const statCounts = STATUSES.slice(1).map(s => ({
-          ...s, count: evSlots.filter(x => x.status === s.value && x.name.trim()).length
-        })).filter(s => s.count > 0)
+        const firstEmptyHdr = evSlots.findIndex(s => !s.name.trim())
         return (
           <div key={ev.id} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 flex-row-reverse"
@@ -222,15 +220,34 @@ function ProductionInquiries() {
                       <span className="text-gray-300">·</span>
                       <span>{filledCount}/{SLOTS} אנשים</span>
                     </div>
-                    {statCounts.length > 0 && (
-                      <div className="flex gap-1.5 justify-end mt-1 flex-wrap">
-                        {statCounts.map(s => (
-                          <span key={s.value} className={`text-[10px] px-2 py-0.5 rounded-full ${s.bg} ${s.text}`}>
-                            {s.label} {s.count}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    {/* רשימת אנשים גלויה תמיד — שם חופשי + לחיצה על העיגול לבחירת צבע */}
+                    <div className="flex gap-1.5 justify-end mt-1.5 flex-wrap" onClick={e => e.stopPropagation()}>
+                      {evSlots.map((slot, idx) => {
+                        if (!slot.name.trim() && idx !== firstEmptyHdr) return null
+                        const st = getStatus(slot.status)
+                        const pickerKey = `chip-${ev.id}-${idx}`
+                        const isPickerOpen = statusPicker === pickerKey
+                        return (
+                          <div key={idx} className="flex items-center gap-1">
+                            <div className={`flex items-center gap-1 ${st.bg} ${st.text} rounded-full border border-black/5 px-2 py-0.5`}>
+                              <button onClick={() => setStatusPicker(isPickerOpen ? null : pickerKey)} title={st.label}
+                                className="w-3.5 h-3.5 rounded-full flex-shrink-0 ring-1 ring-black/10" style={{background: st.dot}}/>
+                              <input value={slot.name} onChange={e => updateSlotName(ev.id, idx, e.target.value)}
+                                onBlur={() => saveSlotName(ev.id, idx)} placeholder="+ שם"
+                                className={`bg-transparent outline-none text-[11px] text-right w-16 focus:w-24 transition-all ${st.text} placeholder:text-gray-400`}/>
+                            </div>
+                            {isPickerOpen && (
+                              <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-full px-2 py-1 shadow-sm">
+                                {STATUSES.map(s => (
+                                  <button key={s.value} onClick={() => updateSlotStatus(ev.id, idx, s.value)} title={s.label}
+                                    className="w-4 h-4 rounded-full ring-1 ring-black/10 hover:scale-125 transition-transform" style={{background:s.dot}}/>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
                   </>
                 )}
               </div>
