@@ -29,6 +29,8 @@ export default function TasksPage() {
   const [commentText, setCommentText] = useState({})
   const [openComments, setOpenComments] = useState({})
   const [authorName, setAuthorName]   = useState('')
+  const [depts, setDepts]         = useState([])
+  const [newDept, setNewDept]     = useState('')
 
   useEffect(() => {
     loadTasks()
@@ -62,6 +64,8 @@ export default function TasksPage() {
       .eq('active', true)
       .order('full_name')
     setCrew(crewData || [])
+    const { data: deptsData } = await supabase.from('departments').select('name').order('name')
+    setDepts((deptsData||[]).map(d=>d.name))
     setLoading(false)
   }
 
@@ -81,11 +85,12 @@ export default function TasksPage() {
       assignee_id: uid,
       dept,
       crew_member_id: newCrew || null,
+      dept: newDept || dept,
       created_by: uid,
       created_by_name: authorName,
     }).select('*, crew:crew_member_id(full_name)').single()
     if (!error) setTasks(prev => [data, ...prev])
-    setNewTask(''); setNewCrew(''); setAdding(false)
+    setNewTask(''); setNewCrew(''); setNewDept(''); setAdding(false)
   }
 
   async function exportExcel() {
@@ -170,6 +175,11 @@ export default function TasksPage() {
             <select value={newPri} onChange={e => setNewPri(e.target.value)}
               className="text-sm px-2 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
               {PRIORITIES.map(p => <option key={p}>{p}</option>)}
+            </select>
+            <select value={newDept} onChange={e => setNewDept(e.target.value)}
+              className="text-sm px-2 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
+              <option value="">כל המחלקות</option>
+              {depts.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
             <select value={newCrew} onChange={e => setNewCrew(e.target.value)}
               className="flex-1 text-sm px-2 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
