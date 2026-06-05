@@ -167,7 +167,7 @@ export default function DashboardLayout({ children }) {
   const bottomNavItems = navItems.slice(0, 4)
 
   return (
-    <div className="flex h-screen bg-[#f8f5f5] overflow-hidden">
+    <div className="flex h-screen w-full bg-[#f8f5f5] overflow-hidden">
 
       {/* SIDEBAR - desktop only */}
       <aside className="hidden md:flex w-48 flex-col bg-white border-l border-gray-100 flex-shrink-0">
@@ -256,8 +256,10 @@ export default function DashboardLayout({ children }) {
         </div>
 
         {/* Page content */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24 md:pb-5">
-          {children}
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full overflow-y-auto p-4 pb-24 md:pb-5">
+            {children}
+          </div>
         </div>
       </main>
 
