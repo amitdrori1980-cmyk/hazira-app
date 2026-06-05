@@ -167,7 +167,7 @@ export default function DashboardLayout({ children }) {
   const bottomNavItems = navItems.slice(0, 4)
 
   return (
-    <div className="flex h-screen w-full bg-[#f8f5f5] overflow-hidden">
+    <div className="fixed inset-0 flex bg-[#f8f5f5] overflow-hidden">
 
       {/* SIDEBAR - desktop only */}
       <aside className="hidden md:flex w-48 flex-col bg-white border-l border-gray-100 flex-shrink-0">
