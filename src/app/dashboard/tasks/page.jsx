@@ -30,7 +30,13 @@ export default function TasksPage() {
   const [openComments, setOpenComments] = useState({})
   const [authorName, setAuthorName]   = useState('')
 
-  useEffect(() => { loadTasks() }, [])
+  useEffect(() => {
+    loadTasks()
+    const sub = supabase.channel('tasks-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => loadTasks())
+      .subscribe()
+    return () => supabase.removeChannel(sub)
+  }, [])
 
   async function loadTasks() {
     const { data: { user } } = await supabase.auth.getUser()
