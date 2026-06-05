@@ -38,12 +38,45 @@ function ProductionInquiries() {
   const [editEventVal, setEditEventVal] = useState({})
   const [statusPicker, setStatusPicker] = useState(null)
   const [collapsedEvents, setCollapsedEvents] = useState({})
+  const [didAutoOpen, setDidAutoOpen] = useState(false)
 
   useEffect(() => { load() }, [])
 
+  // פתיחה אוטומטית של אירוע מתוך ניהול אירועים (?inq=שם&date=...&venue=...)
+  useEffect(() => {
+    if (loading || didAutoOpen) return
+    const params = new URLSearchParams(window.location.search)
+    const inqName = params.get('inq')
+    if (!inqName) return
+    setDidAutoOpen(true)
+    ;(async () => {
+      const date = params.get('date') || null
+      const venue = params.get('venue') || null
+      let match = events.find(e => e.event_name === inqName && (!date || e.date === date))
+                || events.find(e => e.event_name === inqName)
+      if (!match) {
+        const day = date ? DAYS[new Date(date).getDay()] : null
+        const { data } = await supabase.from('production_events').insert({
+          event_name: inqName, date, day, venue,
+        }).select().single()
+        if (data) {
+          setEvents(prev => [...prev, data].sort((a,b) => (a.date||'9999-12-31').localeCompare(b.date||'9999-12-31')))
+          setSlots(prev => ({ ...prev, [data.id]: emptySlots() }))
+          match = data
+        }
+      }
+      if (match) {
+        setOpenEvent(match.id)
+        setTimeout(() => {
+          document.getElementById('prod-ev-' + match.id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 250)
+      }
+    })()
+  }, [loading, events, didAutoOpen])
+
   async function load() {
-    const { data: evs } = await supabase.from('production_events').select('*').order('date', { ascending: true })
-    setEvents(evs || [])
+    const { data: evs } = await supabase.from('production_events').select('*')
+    setEvents((evs || []).slice().sort((a, b) => (a.date || '9999-12-31').localeCompare(b.date || '9999-12-31')))
     if (evs?.length) {
       const { data: ppl } = await supabase.from('production_people').select('*').in('production_event_id', evs.map(e => e.id))
       const map = {}
@@ -66,7 +99,7 @@ function ProductionInquiries() {
       day: newEvent.day || null, venue: newEvent.venue || null,
     }).select().single()
     if (data) {
-      setEvents(prev => [...prev, data].sort((a,b) => (a.date||'').localeCompare(b.date||'')))
+      setEvents(prev => [...prev, data].sort((a,b) => (a.date||'9999-12-31').localeCompare(b.date||'9999-12-31')))
       setSlots(prev => ({ ...prev, [data.id]: emptySlots() }))
       setNewEvent({ event_name:'', date:'', day:'', venue:'' })
       setShowNewEvent(false)
@@ -192,7 +225,7 @@ function ProductionInquiries() {
         const filledCount = evSlots.filter(s => s.name.trim()).length
         const firstEmptyHdr = evSlots.findIndex(s => !s.name.trim())
         return (
-          <div key={ev.id} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
+          <div key={ev.id} id={'prod-ev-' + ev.id} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 flex-row-reverse"
               onClick={() => setOpenEvent(isOpen ? null : ev.id)}>
               <div className="flex-1 text-right">

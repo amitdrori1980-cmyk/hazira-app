@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -10,6 +10,7 @@ const PANEL_EQUIP = 'equip'
 
 function EventsPageInner() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [events, setEvents]         = useState([])
   const [depts, setDepts]           = useState([])
   const [eventTypes, setEventTypes] = useState([])
@@ -342,6 +343,11 @@ function EventsPageInner() {
                       className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition-colors flex-shrink-0 ${isOpen(ev.id,PANEL_EQUIP)?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
                       <i className="ti ti-tool" style={{fontSize:11}}/>
                       {assignedEquip.length}
+                    </button>
+                    <button onClick={()=>router.push('/dashboard/production?inq='+encodeURIComponent(ev.title)+'&date='+(ev.date||'')+'&venue='+encodeURIComponent(ev.venue||''))}
+                      title="בדיקת פניות"
+                      className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border border-gray-200 text-gray-500 hover:border-[#E0197D] hover:text-[#E0197D] transition-colors flex-shrink-0">
+                      <i className="ti ti-clipboard-check" style={{fontSize:11}}/>
                     </button>
                     <button onClick={()=>startDuplicate(ev)} className="text-gray-200 hover:text-[#E0197D] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
                       <i className="ti ti-copy" style={{fontSize:13}}/>
