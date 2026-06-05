@@ -28,3 +28,7 @@ input, select, textarea {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #e0c8c8; border-radius: 99px; }
+
+body {
+  overflow-x: hidden;
+}
