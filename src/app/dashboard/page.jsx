@@ -263,14 +263,14 @@ export default function DashboardPage() {
       {/* Stats */}
       {!query && (
         <>
-          <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="flex gap-2 mb-4">
             {[
               { label: 'משימות פתוחות', value: tasks.length,    href: '/dashboard/tasks' },
               { label: 'אירועים קרובים', value: events.length,  href: '/dashboard/calendar' },
               { label: 'הודעות',         value: messages.length, href: '/dashboard/messages' },
             ].map(s => (
               <div key={s.label} onClick={() => router.push(s.href)}
-                className="bg-white border border-gray-100 rounded-xl p-2 cursor-pointer hover:border-[#E0197D] hover:shadow-sm transition-all overflow-hidden"
+                className="flex-1 min-w-0 bg-white border border-gray-100 rounded-xl p-2 cursor-pointer hover:border-[#E0197D] hover:shadow-sm transition-all overflow-hidden"
                 style={{ borderTop: '2px solid #E0197D' }}>
                 <div className="text-[10px] text-gray-400 mb-1 truncate">{s.label}</div>
                 <div className="text-xl font-medium text-[#E0197D]">{s.value}</div>
