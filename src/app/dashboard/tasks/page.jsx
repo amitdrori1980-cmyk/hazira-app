@@ -234,10 +234,12 @@ export default function TasksPage() {
                       className="text-gray-200 hover:text-[#E0197D] opacity-0 group-hover:opacity-100 transition-all">
                       <i className="ti ti-pencil" style={{fontSize:13}}/>
                     </button>
-                    <button onClick={() => { if(window.confirm('למחוק משימה זו?')) deleteTask(t.id) }}
-                      className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                      <i className="ti ti-trash" style={{fontSize:13}}/>
-                    </button>
+                    {(isManager || t.created_by === uid) && (
+                      <button onClick={() => { if(window.confirm('למחוק משימה זו?')) deleteTask(t.id) }}
+                        className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                        <i className="ti ti-trash" style={{fontSize:13}}/>
+                      </button>
+                    )}
                     <button onClick={() => toggleComments(t.id)}
                       className="text-gray-200 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all">
                       <i className="ti ti-message" style={{fontSize:13}}/>
@@ -282,10 +284,12 @@ export default function TasksPage() {
                       </div>
                     )}
                   </div>
-                  <button onClick={() => { if(window.confirm('למחוק משימה זו?')) deleteTask(t.id) }}
-                    className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                    <i className="ti ti-trash" style={{fontSize:13}}/>
-                  </button>
+                  {(isManager || t.created_by === uid) && (
+                    <button onClick={() => { if(window.confirm('למחוק משימה זו?')) deleteTask(t.id) }}
+                      className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                      <i className="ti ti-trash" style={{fontSize:13}}/>
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
