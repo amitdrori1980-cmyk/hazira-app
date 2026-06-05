@@ -20,7 +20,6 @@ export default function CalendarPage() {
   const [editingEvent, setEditingEvent] = useState(null)
   const [editForm, setEditForm] = useState({})
   const [savingEdit, setSavingEdit] = useState(false)
-  const [eventCrew, setEventCrew] = useState({})
 
   useEffect(() => {
     async function load() {
@@ -33,19 +32,6 @@ export default function CalendarPage() {
       setEvents(data || [])
       const { data: vs } = await supabase.from('venues').select('name').order('sort_order')
       setVenues((vs||[]).map(v => v.name))
-      // שיוך צוות לאירועים
-      const { data: ecRows } = await supabase.from('event_crew').select('event_id, crew_member_id, note')
-      const { data: cmRows } = await supabase.from('crew_members').select('id, full_name, role')
-      const cmMap = {}
-      ;(cmRows || []).forEach(c => { cmMap[c.id] = c })
-      const grouped = {}
-      ;(ecRows || []).forEach(r => {
-        const m = cmMap[r.crew_member_id]
-        if (!m) return
-        if (!grouped[r.event_id]) grouped[r.event_id] = []
-        grouped[r.event_id].push({ ...m, note: r.note })
-      })
-      setEventCrew(grouped)
     }
     load()
   }, [])
@@ -276,19 +262,12 @@ export default function CalendarPage() {
                       </span>
                       {e.venue && <span className="text-[11px] text-gray-400">{e.venue}</span>}
                     </div>
-                    {eventCrew[e.id]?.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-gray-200/70">
-                        <div className="flex items-center gap-1 justify-end mb-1 text-gray-400">
-                          <span className="text-[10px]">צוות ({eventCrew[e.id].length})</span>
-                          <i className="ti ti-users" style={{fontSize:11}} />
-                        </div>
-                        <div className="flex flex-wrap gap-1 justify-end">
-                          {eventCrew[e.id].map(c => (
-                            <span key={c.id} className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-600">
-                              {c.full_name}{c.role ? ' · ' + c.role : ''}
-                            </span>
-                          ))}
-                        </div>
+                    {e.crew_notes && (
+                      <div className="mt-2 pt-2 border-t border-gray-200/70 flex items-start gap-1.5 justify-end">
+                        <span className="text-[11px] px-2 py-1 rounded-lg bg-[#FCE4F3] text-[#A0106A] text-right leading-relaxed whitespace-pre-wrap">
+                          {e.crew_notes}
+                        </span>
+                        <i className="ti ti-users text-[#A0106A] flex-shrink-0" style={{fontSize:13, marginTop:4}} />
                       </div>
                     )}
                   </div>
