@@ -30,7 +30,10 @@ export default function MessagesPage() {
     load()
     const handler = () => load()
     window.addEventListener('new-message', handler)
-    return () => window.removeEventListener('new-message', handler)
+    const sub = supabase.channel('messages-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => load())
+      .subscribe()
+    return () => { window.removeEventListener('new-message', handler); supabase.removeChannel(sub) }
   }, [])
 
   async function load() {
