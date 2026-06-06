@@ -39,6 +39,18 @@ export default function VenuesPage() {
     window.location.href = `mailto:?subject=${encodeURIComponent(venueName)}&body=${links}`
   }
 
+  function sendSelectedByWhatsapp(venueName) {
+    const venueFiles = files[venueName] || []
+    const folder = VENUE_FOLDER_MAP[venueName] || venueName
+    const selected = venueFiles.filter(f => selectedFiles[`${venueName}/${f.name}`])
+    if (!selected.length) return
+    const text = selected.map(f => {
+      const { data } = supabase.storage.from('venues').getPublicUrl(`${folder}/${f.name}`)
+      return `${f.name}: ${data.publicUrl}`
+    }).join('\n')
+    window.open(`https://wa.me/?text=${encodeURIComponent(venueName + '\n' + text)}`, '_blank')
+  }
+
   function selectAllVenue(venueName) {
     const venueFiles = files[venueName] || []
     const allSelected = venueFiles.every(f => selectedFiles[`${venueName}/${f.name}`])
@@ -209,6 +221,13 @@ export default function VenuesPage() {
                         className="flex items-center gap-1.5 text-[12px] bg-[#E0197D] text-white px-3 py-1.5 rounded-lg hover:bg-[#A0106A]">
                         <i className="ti ti-mail" style={{fontSize:13}}/>
                         שלח במייל ({venueFiles.filter(f => selectedFiles[`${venue}/${f.name}`]).length})
+                      </button>
+                    )}
+                    {venueFiles.some(f => selectedFiles[`${venue}/${f.name}`]) && (
+                      <button onClick={() => sendSelectedByWhatsapp(venue)}
+                        className="flex items-center gap-1.5 text-[12px] bg-[#25D366] text-white px-3 py-1.5 rounded-lg hover:bg-[#1da851]">
+                        <i className="ti ti-brand-whatsapp" style={{fontSize:13}}/>
+                        וואטסאפ ({venueFiles.filter(f => selectedFiles[`${venue}/${f.name}`]).length})
                       </button>
                     )}
                   </div>
