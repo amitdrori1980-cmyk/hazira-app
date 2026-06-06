@@ -512,6 +512,16 @@ function GeneralFilesMode() {
     window.location.href = `mailto:?subject=${encodeURIComponent('מפרטים כלליים')}&body=${encodeURIComponent(selected.map(f => { const { data } = supabase.storage.from('venues').getPublicUrl(FOLDER + '/' + f.name); return f.name + ': ' + data.publicUrl }).join('\n'))}`
   }
 
+  function sendByWhatsapp() {
+    const selected = files.filter(f => selectedFiles[f.name])
+    if (!selected.length) return
+    const text = selected.map(f => {
+      const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${f.name}`)
+      return `${f.name}: ${data.publicUrl}`
+    }).join('\n')
+    window.open(`https://wa.me/?text=${encodeURIComponent('מפרטים כלליים\n' + text)}`, '_blank')
+  }
+
   const anySelected = files.some(f => selectedFiles[f.name])
   const selectedCount = files.filter(f => selectedFiles[f.name]).length
 
@@ -593,6 +603,12 @@ function GeneralFilesMode() {
               </button>
             )}
             {anySelected && (
+              <button onClick={sendByWhatsapp}
+                className="flex items-center gap-1.5 text-[12px] bg-[#25D366] text-white px-3 py-1.5 rounded-lg hover:bg-[#1da851]">
+                <i className="ti ti-brand-whatsapp" style={{fontSize:13}}/> וואטסאפ ({selectedCount})
+              </button>
+            )}
+            {anySelected && (
               <button onClick={() => {
                 files.filter(f => selectedFiles[f.name]).forEach(f => {
                   const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${f.name}`)
@@ -617,9 +633,6 @@ function GeneralFilesMode() {
               onChange={() => toggleSelect(f.name)}
               className="w-4 h-4 accent-[#E0197D] flex-shrink-0 cursor-pointer"
             />
-            <div className="w-9 h-9 bg-[#FCE4F3] rounded-lg flex items-center justify-center flex-shrink-0">
-              <i className="ti ti-file-type-pdf text-[#E0197D]" style={{fontSize:18}}/>
-            </div>
             <div className="flex-1 text-right min-w-0 overflow-hidden">
               <div className="text-[13px] font-medium text-gray-800 truncate">{f.name}</div>
               <div className="text-[11px] text-gray-400">
