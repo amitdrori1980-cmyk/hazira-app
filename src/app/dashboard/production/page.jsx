@@ -333,7 +333,7 @@ function ProductionInquiries() {
                       <span>{filledCount}/{SLOTS} אנשים</span>
                     </div>
                     {/* רשימת אנשים גלויה תמיד — שם ניטרלי + נקודת צבע לסטטוס, לחיצה פותחת תפריט */}
-                    <div className="flex gap-1.5 justify-end mt-1.5 flex-wrap md:flex-nowrap md:overflow-x-auto md:pb-1 [scrollbar-width:thin]" onClick={e => e.stopPropagation()}>
+                    <div dir="rtl" className="flex gap-1.5 justify-start mt-1.5 flex-wrap md:flex-nowrap md:overflow-x-auto md:pb-1 [scrollbar-width:thin]" onClick={e => e.stopPropagation()}>
                       {evSlots.map((slot, idx) => {
                         if (!slot.name.trim() && idx !== firstEmptyHdr) return null
                         const st = getStatus(slot.status)
