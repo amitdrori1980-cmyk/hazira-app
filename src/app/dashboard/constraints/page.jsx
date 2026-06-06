@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '@/lib/supabase'
 
@@ -68,6 +68,57 @@ export default function ConstraintsPage() {
     if (m < 0)  { m = 11; y-- }
     setCalMonth(m); setCalYear(y); setSelectedDay(null)
   }
+
+  // מעבר חודש בגלילה (עכבר/טראקפד) והחלקה (מובייל)
+  const gridRef = useRef(null)
+  const wheelAcc = useRef(0)
+  const wheelTime = useRef(0)
+  const wheelLock = useRef(false)
+  const touchStart = useRef(null)
+  useEffect(() => {
+    const el = gridRef.current
+    if (!el) return
+    function onWheel(e) {
+      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
+      if (!d) return
+      e.preventDefault()
+      if (wheelLock.current) return
+      const now = Date.now()
+      if (now - wheelTime.current > 300) wheelAcc.current = 0
+      wheelTime.current = now
+      wheelAcc.current += d
+      if (Math.abs(wheelAcc.current) >= 40) {
+        const dir = wheelAcc.current > 0 ? 1 : -1
+        wheelAcc.current = 0
+        wheelLock.current = true
+        changeMonth(dir)
+        setTimeout(() => { wheelLock.current = false }, 500)
+      }
+    }
+    function onTouchStart(e) {
+      touchStart.current = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null
+    }
+    function onTouchEnd(e) {
+      const st = touchStart.current
+      touchStart.current = null
+      if (!st || wheelLock.current) return
+      const t = e.changedTouches[0]
+      const dx = t.clientX - st.x, dy = t.clientY - st.y
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        wheelLock.current = true
+        changeMonth(dx > 0 ? 1 : -1)
+        setTimeout(() => { wheelLock.current = false }, 500)
+      }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchend', onTouchEnd, { passive: true })
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [calMonth, calYear])
 
   function dateStr(y, m, d) {
     return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
@@ -341,7 +392,7 @@ export default function ConstraintsPage() {
       </div>
 
       {/* Calendar */}
-      <div className="bg-white border border-gray-100 rounded-xl p-5 mb-3">
+      <div ref={gridRef} className="bg-white border border-gray-100 rounded-xl p-5 mb-3">
         <div className="flex items-center justify-between mb-4">
           <button onClick={()=>changeMonth(-1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">‹ הקודם</button>
           <span className="text-base font-semibold text-[#E0197D]">{HE_MONTHS[calMonth]} {calYear}</span>
