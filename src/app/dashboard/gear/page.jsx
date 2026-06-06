@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import EquipmentContent from '../equipment/EquipmentContent'
 import StorageContent from '../storage/StorageContent'
@@ -34,13 +34,20 @@ function JapanContent() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [openCell, setOpenCell] = useState(null)
+  const [cellMeta, setCellMeta] = useState({})
+  const dirty = useRef(new Set())
 
   useEffect(() => { load() }, [])
 
   async function load() {
     setLoading(true)
-    const { data } = await supabase.from('japan_rows').select('*').order('position', { ascending: true })
+    const { data, error } = await supabase.from('japan_rows').select('*').order('position', { ascending: true })
+    if (error) alert('שגיאה בטעינה: ' + error.message)
     setRows(data || [])
+    const { data: meta } = await supabase.from('japan_cells').select('*')
+    const m = {}
+    ;(meta || []).forEach(c => { m[c.cell] = c.updated_at })
+    setCellMeta(m)
     setLoading(false)
   }
 
@@ -50,21 +57,40 @@ function JapanContent() {
 
   async function addRow(cell) {
     const pos = cellRows(cell).reduce((m, r) => Math.max(m, r.position || 0), 0) + 1
-    const { data } = await supabase.from('japan_rows').insert({ cell, content: '', position: pos }).select().single()
-    if (data) setRows(prev => [...prev, data])
+    const { data, error } = await supabase.from('japan_rows').insert({ cell, content: '', position: pos }).select().single()
+    if (error) { alert('שגיאה בהוספת שורה: ' + error.message); return }
+    if (data) { setRows(prev => [...prev, data]); touchCell(cell) }
   }
 
   async function deleteRow(id) {
+    const row = rows.find(r => r.id === id)
     await supabase.from('japan_rows').delete().eq('id', id)
     setRows(prev => prev.filter(r => r.id !== id))
+    if (row) touchCell(row.cell)
   }
 
   function changeRow(id, content) {
+    dirty.current.add(id)
     setRows(prev => prev.map(r => r.id === id ? { ...r, content } : r))
   }
 
   async function saveRow(id, content) {
+    if (!dirty.current.has(id)) return
+    dirty.current.delete(id)
+    const row = rows.find(r => r.id === id)
     await supabase.from('japan_rows').update({ content }).eq('id', id)
+    if (row) touchCell(row.cell)
+  }
+
+  async function touchCell(cell) {
+    const now = new Date().toISOString()
+    setCellMeta(prev => ({ ...prev, [cell]: now }))
+    await supabase.from('japan_cells').upsert({ cell, updated_at: now }, { onConflict: 'cell' })
+  }
+
+  function fmtUpdated(ts) {
+    const d = new Date(ts)
+    return d.toLocaleDateString('he-IL') + ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
   }
 
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
@@ -118,6 +144,9 @@ function JapanContent() {
             className="bg-white border-2 border-gray-200 rounded-2xl h-32 flex flex-col items-center justify-center hover:border-[#E0197D] hover:bg-gray-50 transition-colors">
             <div className="text-[16px] font-semibold text-gray-800">יפן {cell}</div>
             <div className="text-[11px] text-gray-400 mt-1">{count} שורות</div>
+            {cellMeta[cell] && (
+              <div className="text-[10px] text-gray-300 mt-1">תאריך עדכון: {fmtUpdated(cellMeta[cell])}</div>
+            )}
           </button>
         )
       })}
