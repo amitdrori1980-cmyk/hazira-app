@@ -37,6 +37,7 @@ function ProductionInquiries() {
   const [editingEvent, setEditingEvent] = useState(null)
   const [editEventVal, setEditEventVal] = useState({})
   const [statusPicker, setStatusPicker] = useState(null)
+  const [colorMenu, setColorMenu] = useState(null)
   const [collapsedEvents, setCollapsedEvents] = useState({})
   const [didAutoOpen, setDidAutoOpen] = useState(false)
 
@@ -251,35 +252,23 @@ function ProductionInquiries() {
                       <span className="text-gray-300">·</span>
                       <span>{filledCount}/{SLOTS} אנשים</span>
                     </div>
-                    {/* רשימת אנשים גלויה תמיד — שם חופשי + לחיצה על העיגול לפלטת צבעים */}
+                    {/* רשימת אנשים גלויה תמיד — שם ניטרלי + נקודת צבע לסטטוס, לחיצה פותחת תפריט */}
                     <div className="flex gap-1.5 justify-end mt-1.5 flex-wrap" onClick={e => e.stopPropagation()}>
-                      {evSlots.flatMap((slot, idx) => {
-                        if (!slot.name.trim() && idx !== firstEmptyHdr) return []
+                      {evSlots.map((slot, idx) => {
+                        if (!slot.name.trim() && idx !== firstEmptyHdr) return null
                         const st = getStatus(slot.status)
-                        const pickerKey = `chip-${ev.id}-${idx}`
-                        const isPickerOpen = statusPicker === pickerKey
-                        const chip = (
-                          <div key={`c-${idx}`} className={`flex items-center gap-1 ${st.bg} ${st.text} rounded-full border border-black/5 px-2 py-0.5`}>
-                            <button onClick={() => setStatusPicker(isPickerOpen ? null : pickerKey)} title={st.label}
-                              className="w-3.5 h-3.5 rounded-full flex-shrink-0 ring-1 ring-black/10" style={{background: st.dot}}/>
+                        return (
+                          <div key={idx} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-full px-2 py-1">
+                            <button onClick={(e) => {
+                                const r = e.currentTarget.getBoundingClientRect()
+                                setColorMenu(cm => (cm && cm.evId===ev.id && cm.idx===idx) ? null : { evId: ev.id, idx, x: r.left, y: r.bottom })
+                              }} title={st.label}
+                              className="w-4 h-4 rounded-full flex-shrink-0 ring-1 ring-black/10" style={{background: st.dot}}/>
                             <input value={slot.name} onChange={e => updateSlotName(ev.id, idx, e.target.value)}
                               onBlur={() => saveSlotName(ev.id, idx)} placeholder="+ שם"
-                              className={`bg-transparent outline-none text-[11px] text-right w-16 focus:w-24 transition-all ${st.text} placeholder:text-gray-400`}/>
+                              className="bg-transparent outline-none text-[12px] text-right w-16 focus:w-28 transition-all text-gray-700 placeholder:text-gray-400"/>
                           </div>
                         )
-                        if (!isPickerOpen) return [chip]
-                        const palette = (
-                          <div key={`p-${idx}`} className="w-full flex items-center gap-1.5 justify-end flex-wrap bg-gray-50 rounded-xl p-1.5 mt-0.5">
-                            {STATUSES.map(s => (
-                              <button key={s.value} onClick={() => updateSlotStatus(ev.id, idx, s.value)}
-                                className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-full ${s.bg} ${s.text} hover:opacity-80`}>
-                                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background:s.dot}}/>
-                                {s.label}
-                              </button>
-                            ))}
-                          </div>
-                        )
-                        return [chip, palette]
                       })}
                     </div>
                   </>
@@ -298,6 +287,25 @@ function ProductionInquiries() {
           </div>
         )
       })}
+      {colorMenu && (
+        <>
+          <div className="fixed inset-0 z-[9998]" onClick={() => setColorMenu(null)} />
+          <div className="fixed z-[9999] bg-white border border-gray-200 rounded-xl p-1.5 flex flex-col gap-1 w-[170px]"
+            style={{
+              top: Math.min(colorMenu.y + 6, (typeof window !== 'undefined' ? window.innerHeight : 800) - 270),
+              left: Math.max(8, Math.min(colorMenu.x - 150, (typeof window !== 'undefined' ? window.innerWidth : 400) - 178)),
+              boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
+            }}>
+            {STATUSES.map(s => (
+              <button key={s.value} onClick={() => { updateSlotStatus(colorMenu.evId, colorMenu.idx, s.value); setColorMenu(null) }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] ${s.bg} ${s.text} hover:opacity-80 text-right`}>
+                <span className="w-3 h-3 rounded-full flex-shrink-0 ring-1 ring-black/10" style={{background:s.dot}}/>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }
