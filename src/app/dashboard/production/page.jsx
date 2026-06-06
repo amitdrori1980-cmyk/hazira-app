@@ -149,20 +149,34 @@ function ProductionInquiries() {
 
   async function pushToCalendar(ev) {
     const evSlots = slots[ev.id] || emptySlots()
-    const crewNames = evSlots.filter(s => s.name.trim()).map(s => s.name.trim())
-    const crewList = crewNames.length ? 'צוות:\n' + crewNames.join('\n') : ''
-    const dayStr = ev.day ? `יום ${ev.day}` : ''
-    const description = [dayStr, crewList].filter(Boolean).join('\n')
-    const { error } = await supabase.from('events').insert({
-      title: ev.event_name,
-      date: ev.date || null,
-      time: null,
-      type: 'show',
-      venue: ev.venue || null,
-      description: description || null,
-    })
-    if (!error) alert('האירוע נוסף ליומן!')
-    else alert('שגיאה: ' + error.message)
+    // רק מי שאישר (צהוב)
+    const confirmed = evSlots.filter(s => s.status === 'yellow' && s.name.trim()).map(s => s.name.trim())
+    const crewList = confirmed.length ? 'צוות: ' + confirmed.join(', ') : ''
+
+    // בדיקה אם האירוע כבר קיים ביומן (לפי שם + תאריך)
+    let q = supabase.from('events').select('id').eq('title', ev.event_name)
+    if (ev.date) q = q.eq('date', ev.date)
+    const { data: existingRows } = await q
+    const existing = existingRows && existingRows[0]
+
+    if (existing) {
+      const { error } = await supabase.from('events').update({ crew_notes: crewList || null }).eq('id', existing.id)
+      if (error) return alert('שגיאה: ' + error.message)
+      alert(confirmed.length
+        ? `האירוע כבר קיים ביומן — עודכנה רשימת הצוות (${confirmed.length} שאישרו).`
+        : 'האירוע כבר קיים ביומן — אין כרגע מי שאישר, רשימת הצוות נוקתה.')
+    } else {
+      const { error } = await supabase.from('events').insert({
+        title: ev.event_name,
+        date: ev.date || null,
+        time: null,
+        type: 'show',
+        venue: ev.venue || null,
+        crew_notes: crewList || null,
+      })
+      if (error) return alert('שגיאה: ' + error.message)
+      alert(`האירוע נוסף ליומן${confirmed.length ? ` עם ${confirmed.length} אנשי צוות שאישרו` : ''}!`)
+    }
   }
 
   async function saveEventEdit() {
