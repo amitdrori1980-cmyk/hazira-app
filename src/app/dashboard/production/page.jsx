@@ -227,7 +227,7 @@ function ProductionInquiries() {
         return (
           <div key={ev.id} id={'prod-ev-' + ev.id} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 flex-row-reverse">
-              <div className="flex-1 text-right">
+              <div className="flex-1 min-w-0 text-right">
                 {editingEvent === ev.id ? (
                   <div className="flex gap-2 flex-row-reverse" onClick={e=>e.stopPropagation()}>
                     <input value={editEventVal.event_name||''} onChange={e=>setEditEventVal(p=>({...p,event_name:e.target.value}))}
@@ -253,12 +253,12 @@ function ProductionInquiries() {
                       <span>{filledCount}/{SLOTS} אנשים</span>
                     </div>
                     {/* רשימת אנשים גלויה תמיד — שם ניטרלי + נקודת צבע לסטטוס, לחיצה פותחת תפריט */}
-                    <div className="flex gap-1.5 justify-end mt-1.5 flex-wrap" onClick={e => e.stopPropagation()}>
+                    <div className="flex gap-1.5 justify-end mt-1.5 flex-wrap md:flex-nowrap md:overflow-x-auto md:pb-1 [scrollbar-width:thin]" onClick={e => e.stopPropagation()}>
                       {evSlots.map((slot, idx) => {
                         if (!slot.name.trim() && idx !== firstEmptyHdr) return null
                         const st = getStatus(slot.status)
                         return (
-                          <div key={idx} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-full px-2 py-1">
+                          <div key={idx} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-full px-2 py-1 flex-shrink-0">
                             <button onClick={(e) => {
                                 const r = e.currentTarget.getBoundingClientRect()
                                 setColorMenu(cm => (cm && cm.evId===ev.id && cm.idx===idx) ? null : { evId: ev.id, idx, x: r.left, y: r.bottom })
