@@ -198,6 +198,19 @@ function ProductionInquiries() {
   }
 
   async function deleteEvent(id) {
+    const ts = new Date().toISOString()
+    const { error } = await supabase.from('production_events').update({ deleted_at: ts }).eq('id', id)
+    if (error) { alert('שגיאה במחיקה: ' + error.message); return }
+    setEvents(prev => prev.map(e => e.id === id ? { ...e, deleted_at: ts } : e))
+    if (openEvent === id) setOpenEvent(null)
+  }
+
+  async function restoreEvent(id) {
+    await supabase.from('production_events').update({ deleted_at: null }).eq('id', id)
+    setEvents(prev => prev.map(e => e.id === id ? { ...e, deleted_at: null } : e))
+  }
+
+  async function purgeEvent(id) {
     await supabase.from('production_people').delete().eq('production_event_id', id)
     await supabase.from('production_events').delete().eq('id', id)
     setEvents(prev => prev.filter(e => e.id !== id))
@@ -237,8 +250,10 @@ function ProductionInquiries() {
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
 
   const todayStr = new Date().toISOString().slice(0, 10)
-  const activeEvents = events.filter(e => !(e.date && e.date < todayStr))
-  const archivedAll = events.filter(e => e.date && e.date < todayStr)
+  const liveEvents = events.filter(e => !e.deleted_at)
+  const deletedEvents = events.filter(e => e.deleted_at)
+  const activeEvents = liveEvents.filter(e => !(e.date && e.date < todayStr))
+  const archivedAll = liveEvents.filter(e => e.date && e.date < todayStr)
   const archivedFiltered = archiveSearch.trim()
     ? archivedAll.filter(e => (e.event_name || '').toLowerCase().includes(archiveSearch.trim().toLowerCase()))
     : archivedAll
@@ -432,6 +447,10 @@ function ProductionInquiries() {
             className={`text-[12px] px-3 py-1.5 rounded-lg font-medium ${view === 'archive' ? 'bg-[#E0197D] text-white' : 'bg-gray-100 text-gray-500 hover:text-[#E0197D]'}`}>
             ארכיון ({archivedAll.length})
           </button>
+          <button onClick={() => setView('trash')}
+            className={`text-[12px] px-3 py-1.5 rounded-lg font-medium ${view === 'trash' ? 'bg-[#E0197D] text-white' : 'bg-gray-100 text-gray-500 hover:text-[#E0197D]'}`}>
+            סל מיחזור ({deletedEvents.length})
+          </button>
           {view === 'archive' && (
             <input value={archiveSearch} onChange={e => setArchiveSearch(e.target.value)}
               placeholder="חיפוש בארכיון..."
@@ -463,6 +482,22 @@ function ProductionInquiries() {
         <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">אין אירועים בארכיון</div>
       )}
       </div>
+      {view === 'trash' && (
+        <div className="bg-white border border-gray-100 rounded-xl p-4">
+          {deletedEvents.length === 0 ? (
+            <div className="text-center text-sm text-gray-400 py-6">סל המיחזור ריק</div>
+          ) : deletedEvents.map(ev => (
+            <div key={ev.id} className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
+              <div className="flex-1 text-right min-w-0">
+                <div className="text-[13px] text-gray-800 truncate">{ev.event_name}</div>
+                <div className="text-[11px] text-gray-400">{ev.date ? fmtDate(ev.date) : ''}</div>
+              </div>
+              <button onClick={() => restoreEvent(ev.id)} className="text-[12px] text-[#E0197D] border border-[#E0197D] px-2 py-1 rounded-lg flex-shrink-0 hover:bg-[#FCE4F3]">שחזר</button>
+              <button onClick={() => { if (window.confirm('למחוק לצמיתות? פעולה בלתי הפיכה.')) purgeEvent(ev.id) }} className="text-[12px] text-gray-400 hover:text-red-500 px-2 py-1 flex-shrink-0">מחק לצמיתות</button>
+            </div>
+          ))}
+        </div>
+      )}
             {colorMenu && (
         <>
           <div className="fixed inset-0 z-[9998]" onClick={() => setColorMenu(null)} />
