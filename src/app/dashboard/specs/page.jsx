@@ -174,6 +174,44 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
     setComparing(false)
   }
 
+  function specToText(rows) {
+    const disp = rows.map(s => {
+      const item = allItems.find(i => i.id === s.equipment_item_id)
+      const sub  = subcats.find(x => x.id === item?.subcategory_id)
+      const cat  = categories.find(c => c.id === sub?.category_id)
+      return item ? { item, cat, qty: s.quantity } : null
+    }).filter(Boolean)
+    const byCat = categories.map(c => ({ c, items: disp.filter(d => d.cat?.id === c.id) })).filter(g => g.items.length)
+    const lines = []
+    byCat.forEach(g => {
+      lines.push(g.c.name + ':')
+      g.items.forEach(d => lines.push('  - ' + d.item.name + ' x ' + d.qty))
+    })
+    return lines.join('\n')
+  }
+
+  async function buildSelectedText() {
+    const blocks = []
+    for (const id of checkedIds) {
+      const t = templates.find(x => x.id === id)
+      const { data } = await supabase.from('spec_items').select('*').eq('template_id', id).is('event_id', null)
+      blocks.push((t?.name || '') + '\n' + specToText(data || []))
+    }
+    return blocks.join('\n\n')
+  }
+
+  async function sendSelectedEmail() {
+    if (!checkedIds.length) return
+    const text = await buildSelectedText()
+    window.location.href = `mailto:?subject=${encodeURIComponent('מפרט ציוד')}&body=${encodeURIComponent(text)}`
+  }
+
+  async function sendSelectedWhatsapp() {
+    if (!checkedIds.length) return
+    const text = await buildSelectedText()
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+  }
+
   async function loadTemplates() {
     const { data } = await supabase.from('spec_templates').select('*').order('created_at', { ascending: false })
     setTemplates(data || [])
@@ -269,7 +307,7 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
             <div className="text-center text-[12px] text-gray-400 py-4">אין מפרטים עדיין</div>
           ) : templates.map(t => (
             <div key={t.id}
-              onClick={() => selectTemplate(t.id)}
+              onClick={() => selectTemplate(selected===t.id ? null : t.id)}
               className={`flex items-center gap-2 px-3 py-2.5 border-b border-gray-50 last:border-0 cursor-pointer flex-row-reverse group ${selected===t.id?'bg-[#FCE4F3] text-[#E0197D]':'hover:bg-gray-50 text-gray-700'}`}>
               <input type="checkbox" checked={checkedIds.includes(t.id)}
                 onClick={e=>e.stopPropagation()}
@@ -285,6 +323,18 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
               </button>
             </div>
           ))}
+          {checkedIds.length >= 1 && (
+            <div className="flex gap-2 p-2 border-t border-gray-50">
+              <button onClick={sendSelectedEmail}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[12px] bg-[#E0197D] text-white rounded-lg hover:bg-[#A0106A]">
+                <i className="ti ti-mail" style={{fontSize:13}}/> שלח במייל ({checkedIds.length})
+              </button>
+              <button onClick={sendSelectedWhatsapp}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[12px] bg-[#25D366] text-white rounded-lg hover:bg-[#1da851]">
+                <i className="ti ti-brand-whatsapp" style={{fontSize:13}}/> וואטסאפ
+              </button>
+            </div>
+          )}
           {checkedIds.length >= 2 && (
             <button onClick={doCompare}
               className="w-full mt-2 py-2 text-[13px] bg-[#E0197D] text-white rounded-lg">
