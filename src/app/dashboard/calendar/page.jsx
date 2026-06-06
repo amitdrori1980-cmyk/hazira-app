@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -60,6 +60,25 @@ export default function CalendarPage() {
     if (m < 0)  { m = 11; y-- }
     setCalMonth(m); setCalYear(y); setSelectedDay(null)
   }
+
+  // מעבר חודש בגלילה/החלקה מעל היומן
+  const gridRef = useRef(null)
+  const wheelLock = useRef(false)
+  useEffect(() => {
+    const el = gridRef.current
+    if (!el) return
+    function onWheel(e) {
+      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
+      if (Math.abs(d) < 12) return
+      e.preventDefault()
+      if (wheelLock.current) return
+      wheelLock.current = true
+      changeMonth(d > 0 ? 1 : -1)
+      setTimeout(() => { wheelLock.current = false }, 450)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [calMonth, calYear])
 
   function dateStr(y, m, d) {
     return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
@@ -162,7 +181,7 @@ export default function CalendarPage() {
 
   return (
     <div className="w-full">
-      <div className="bg-white border border-gray-100 rounded-xl p-5 mb-3">
+      <div ref={gridRef} className="bg-white border border-gray-100 rounded-xl p-5 mb-3">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <button onClick={() => changeMonth(-1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">
