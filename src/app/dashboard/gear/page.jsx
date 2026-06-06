@@ -136,16 +136,16 @@ function JapanContent() {
 
   // ---- Grid view: 9 clickable tiles ----
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-3xl">
+    <div className="grid grid-cols-3 gap-2 md:gap-3 max-w-3xl">
       {CELLS.map(cell => {
         const count = cellRows(cell).length
         return (
           <button key={cell} onClick={() => setOpenCell(cell)}
-            className="bg-white border-2 border-gray-200 rounded-2xl h-32 flex flex-col items-center justify-center hover:border-[#E0197D] hover:bg-gray-50 transition-colors">
-            <div className="text-[16px] font-semibold text-gray-800">יפן {cell}</div>
-            <div className="text-[11px] text-gray-400 mt-1">{count} שורות</div>
+            className="bg-white border-2 border-gray-200 rounded-2xl h-24 md:h-32 px-1 flex flex-col items-center justify-center text-center hover:border-[#E0197D] hover:bg-gray-50 transition-colors">
+            <div className="text-[13px] md:text-[16px] font-semibold text-gray-800">יפן {cell}</div>
+            <div className="text-[10px] md:text-[11px] text-gray-400 mt-0.5 md:mt-1">{count} שורות</div>
             {cellMeta[cell] && (
-              <div className="text-[10px] text-gray-300 mt-1">תאריך עדכון: {fmtUpdated(cellMeta[cell])}</div>
+              <div className="text-[8px] md:text-[10px] text-gray-300 mt-0.5 md:mt-1 leading-tight break-words">תאריך עדכון: {fmtUpdated(cellMeta[cell])}</div>
             )}
           </button>
         )
