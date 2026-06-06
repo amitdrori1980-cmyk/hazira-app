@@ -66,6 +66,7 @@ export default function CalendarPage() {
   const wheelAcc = useRef(0)
   const wheelTime = useRef(0)
   const wheelLock = useRef(false)
+  const touchStart = useRef(null)
   useEffect(() => {
     const el = gridRef.current
     if (!el) return
@@ -86,8 +87,29 @@ export default function CalendarPage() {
         setTimeout(() => { wheelLock.current = false }, 500)
       }
     }
+    function onTouchStart(e) {
+      touchStart.current = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null
+    }
+    function onTouchEnd(e) {
+      const st = touchStart.current
+      touchStart.current = null
+      if (!st || wheelLock.current) return
+      const t = e.changedTouches[0]
+      const dx = t.clientX - st.x, dy = t.clientY - st.y
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        wheelLock.current = true
+        changeMonth(dx < 0 ? 1 : -1)
+        setTimeout(() => { wheelLock.current = false }, 500)
+      }
+    }
     el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchend', onTouchEnd, { passive: true })
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchend', onTouchEnd)
+    }
   }, [calMonth, calYear])
 
   function dateStr(y, m, d) {
