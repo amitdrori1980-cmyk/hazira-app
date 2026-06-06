@@ -62,6 +62,46 @@ export default function CalendarPage() {
     ? events
     : events.filter(e => e.venue === selectedVenue)
 
+  // ---- בניית שבועות + פסים מתפרסים לאירועים מתמשכים ----
+  const todayDs = dateStr(today.getFullYear(), today.getMonth(), today.getDate())
+  const weeks = []
+  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7
+  for (let i = 0; i < totalCells; i += 7) {
+    const wk = []
+    for (let j = 0; j < 7; j++) {
+      const dt = new Date(calYear, calMonth, (i + j) - firstDay + 1)
+      wk.push({ d: dt.getDate(), ds: dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate()), inMonth: dt.getMonth() === calMonth && dt.getFullYear() === calYear })
+    }
+    weeks.push(wk)
+  }
+  const weekData = weeks.map(week => {
+    const wStart = week[0].ds, wEnd = week[6].ds
+    const segs = filteredEvents
+      .filter(e => { const en = e.end_date || e.date; return e.date && e.date <= wEnd && en >= wStart })
+      .map(e => {
+        const s = e.date, en = e.end_date || e.date
+        let sc = 0; while (sc < 7 && week[sc].ds < s) sc++
+        let ec = 6; while (ec >= 0 && week[ec].ds > en) ec--
+        return { event: e, startCol: sc, endCol: ec, isStart: s >= wStart, isEnd: en <= wEnd }
+      })
+      .filter(seg => seg.startCol <= seg.endCol)
+    segs.sort((a, b) => {
+      if ((a.event.type === 'show') !== (b.event.type === 'show')) return a.event.type === 'show' ? -1 : 1
+      if (a.startCol !== b.startCol) return a.startCol - b.startCol
+      return (b.endCol - b.startCol) - (a.endCol - a.startCol)
+    })
+    const lanes = []
+    segs.forEach(seg => {
+      let lane = 0
+      while (true) {
+        const occ = lanes[lane] || (lanes[lane] = [])
+        if (occ.every(o => seg.endCol < o.startCol || seg.startCol > o.endCol)) { occ.push(seg); seg.lane = lane; break }
+        lane++
+      }
+    })
+    return { week, segs, laneCount: Math.max(lanes.length, 1) }
+  })
+
   const selectedEvents = selectedDay
     ? filteredEvents
         .filter(e => e.date === selectedDay)
@@ -155,73 +195,43 @@ export default function CalendarPage() {
           ))}
         </div>
 
-        {/* Days grid */}
-        <div className="grid grid-cols-7 gap-1.5">
-          {/* Prev month padding */}
-          {Array.from({ length: firstDay }).map((_, i) => (
-            <div key={'p'+i} className="min-h-[52px] md:h-[104px] rounded-lg p-1 md:p-1.5 opacity-25">
-              <div className="text-center text-[12px] text-gray-400">{daysInPrev - firstDay + i + 1}</div>
+        {/* Days grid — שבועות עם פסים מתפרסים */}
+        <div className="flex flex-col gap-1.5">
+          {weekData.map((wd, wi) => (
+            <div key={wi}>
+              <div className="grid grid-cols-7 gap-1.5">
+                {wd.week.map((c, ci) => {
+                  const isToday = c.ds === todayDs
+                  const isSelected = selectedDay === c.ds
+                  return (
+                    <div key={ci} onClick={() => setSelectedDay(c.ds)}
+                      className={`min-h-[26px] rounded-lg pt-1 pb-0.5 cursor-pointer border transition-all ${
+                        isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
+                        isToday ? 'bg-[#FCE4F3] border-transparent' :
+                        'border-transparent hover:bg-gray-50'
+                      } ${c.inMonth ? '' : 'opacity-30'}`}>
+                      <div className={`text-center text-[11px] md:text-[12px] font-medium ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="grid grid-cols-7 gap-x-1.5 gap-y-0.5 mt-0.5" style={{ gridTemplateRows: `repeat(${wd.laneCount}, minmax(18px, auto))`, minHeight: '3.4rem' }}>
+                {wd.segs.map((seg, si) => (
+                  <div key={seg.event.id + '-' + wi}
+                    onClick={() => setSelectedDay(seg.event.date)}
+                    style={{ gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`, gridRow: seg.lane + 1 }}
+                    className={`min-w-0 min-h-[16px] text-[9px] md:text-[10px] leading-tight px-1.5 py-0.5 truncate cursor-pointer ${getTypeStyle(seg.event.type)} ${
+                      seg.isStart && seg.isEnd ? 'rounded' :
+                      seg.isStart ? 'rounded-r-md rounded-l-none' :
+                      seg.isEnd ? 'rounded-l-md rounded-r-none' :
+                      'rounded-none'
+                    }`}>
+                    {seg.isStart ? <>{seg.event.time ? seg.event.time.slice(0,5) + ' ' : ''}{seg.event.title}</> : ''}
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
-
-          {/* Current month */}
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const d = i + 1
-            const ds = dateStr(calYear, calMonth, d)
-            const isToday = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d
-            const isSelected = selectedDay === ds
-            const dayEvs = filteredEvents.filter(e => {
-              if (!e.end_date) return e.date === ds
-              return ds >= e.date && ds <= e.end_date
-            }).sort((a, b) => {
-              // הצגות (ירוק) תמיד למעלה
-              if (a.type === 'show' && b.type !== 'show') return -1
-              if (a.type !== 'show' && b.type === 'show') return 1
-              // אחר כך לפי שעה
-              return (a.time || '').localeCompare(b.time || '')
-            })
-            const isMultiStart = (e) => e.end_date && e.date === ds
-            const isMultiMid   = (e) => e.end_date && ds > e.date && ds < e.end_date
-            const isMultiEnd   = (e) => e.end_date && e.end_date === ds
-
-            return (
-              <div
-                key={d}
-                onClick={() => setSelectedDay(ds)}
-                className={`min-h-[52px] md:h-[104px] flex flex-col rounded-lg p-1 md:p-1.5 cursor-pointer border transition-all ${
-                  isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
-                  isToday    ? 'bg-[#FCE4F3] border-transparent' :
-                               'border-transparent hover:border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <div className={`text-center text-[11px] md:text-[12px] font-medium mb-1 flex-shrink-0 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{d}</div>
-                {/* Mobile: dots only */}
-                <div className="flex flex-wrap gap-0.5 md:hidden">
-                  {dayEvs.slice(0,3).map(e => (
-                    <span key={e.id} className={`w-2.5 h-2.5 rounded-full inline-block ${
-                      e.type==='show' ? 'bg-[#22c55e]' :
-                      e.type==='rehearsal' ? 'bg-[#E0197D]' :
-                      e.type==='crew' ? 'bg-[#f59e0b]' : 'bg-[#f97316]'
-                    }`}/>
-                  ))}
-                  {dayEvs.length > 3 && <span className="text-[8px] text-gray-400">+{dayEvs.length-3}</span>}
-                </div>
-                {/* Desktop: scrollable list — shows ~3, scroll for the rest */}
-                <div className="hidden md:flex md:flex-col gap-0.5 flex-1 min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-width:thin]">
-                  {dayEvs.map(e => (
-                    <div key={e.id} className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 truncate ${getTypeStyle(e.type)} ${
-                      isMultiStart(e) ? 'rounded-r-full rounded-l-none pl-2' :
-                      isMultiMid(e)   ? 'rounded-none px-2' :
-                      isMultiEnd(e)   ? 'rounded-l-full rounded-r-none pr-2' :
-                      'rounded'
-                    }`}>
-                      {isMultiStart(e) || !e.end_date ? <>{e.time?.slice(0,5)} {e.title}</> : ''}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
         </div>
       </div>
 
