@@ -84,9 +84,9 @@ export default function CalendarPage() {
   const weekData = weeks.map(week => {
     const wStart = week[0].ds, wEnd = week[6].ds
     const segs = filteredEvents
-      .filter(e => { const en = e.end_date || e.date; return e.date && e.date <= wEnd && en >= wStart })
+      .filter(e => { const en = (e.end_date && e.end_date >= e.date ? e.end_date : e.date); return e.date && e.date <= wEnd && en >= wStart })
       .map(e => {
-        const s = e.date, en = e.end_date || e.date
+        const s = e.date, en = (e.end_date && e.end_date >= e.date ? e.end_date : e.date)
         let sc = 0; while (sc < 7 && week[sc].ds < s) sc++
         let ec = 6; while (ec >= 0 && week[ec].ds > en) ec--
         return { event: e, startCol: sc, endCol: ec, isStart: s >= wStart, isEnd: en <= wEnd }
