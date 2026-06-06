@@ -89,8 +89,7 @@ function JapanContent() {
   }
 
   function fmtUpdated(ts) {
-    const d = new Date(ts)
-    return d.toLocaleDateString('he-IL') + ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+    return new Date(ts).toLocaleDateString('he-IL')
   }
 
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
