@@ -330,7 +330,12 @@ function ProductionInquiries() {
 
   return (
     <div className="max-w-7xl">
+      <style dangerouslySetInnerHTML={{__html: `@media print { body * { visibility: hidden !important; } .prod-print-area, .prod-print-area * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .prod-print-area { position: absolute; top: 0; left: 0; right: 0; padding: 12px; } .no-print { display: none !important; } @page { margin: 8mm; } }`}} />
       <div className="flex justify-end gap-2 mb-4">
+        <button onClick={() => window.print()}
+          className="bg-white border border-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-1">
+          <i className="ti ti-file-type-pdf"/> ייצוא PDF
+        </button>
         <button onClick={openImport}
           className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1">
           <i className="ti ti-calendar-down"/> ייבא מהיומן
@@ -439,6 +444,7 @@ function ProductionInquiries() {
           אין אירועים — לחץ על "אירוע חדש" להתחלה
         </div>
       )}
+      <div className="prod-print-area">
       {view === 'active' && activeEvents.map(ev => RenderCard(ev))}
       {view === 'active' && events.length > 0 && activeEvents.length === 0 && (
         <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">אין אירועים פעילים</div>
@@ -456,6 +462,7 @@ function ProductionInquiries() {
       {view === 'archive' && monthGroups.length === 0 && (
         <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">אין אירועים בארכיון</div>
       )}
+      </div>
             {colorMenu && (
         <>
           <div className="fixed inset-0 z-[9998]" onClick={() => setColorMenu(null)} />
