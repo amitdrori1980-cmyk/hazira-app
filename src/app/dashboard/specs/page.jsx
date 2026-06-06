@@ -246,9 +246,9 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
   })).filter(g => g.items.length > 0)
 
   return (
-    <div className="flex gap-4">
+    <div className="flex flex-col md:flex-row gap-4">
       {/* Right: template list */}
-      <div className="w-72 flex-shrink-0 flex flex-col gap-3">
+      <div className="w-full md:w-72 flex-shrink-0 flex flex-col gap-3">
         {/* Create new */}
         <div className="bg-white border border-gray-100 rounded-xl p-3">
           <div className="text-[11px] font-semibold text-gray-500 mb-2">מפרט חדש</div>
@@ -812,8 +812,8 @@ export default function SpecsPage() {
 
       {/* SPEC MODE */}
       {mode === 'spec' && (
-        <div className="flex gap-4">
-          <div className="w-72 flex-shrink-0 flex flex-col gap-3">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="w-full md:w-72 flex-shrink-0 flex flex-col gap-3">
             <div className="bg-white border border-gray-100 rounded-xl p-3">
               <div className="text-[11px] font-semibold text-gray-500 mb-2">בחר אירוע</div>
               <select value={selectedEvent} onChange={e=>selectEvent(e.target.value)}
