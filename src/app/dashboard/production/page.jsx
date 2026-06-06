@@ -45,6 +45,9 @@ function ProductionInquiries() {
   const [importLoading, setImportLoading] = useState(false)
   const [importSearch, setImportSearch] = useState('')
   const [eventTypes, setEventTypes] = useState([])
+  const [view, setView] = useState('active')
+  const [archiveSearch, setArchiveSearch] = useState('')
+  const [openMonths, setOpenMonths] = useState({})
 
   const getTypeStyle = v => { const t = eventTypes.find(t => t.value === v); return t ? t.color : 'bg-gray-100 text-gray-600' }
   const getTypeLabel = v => { const t = eventTypes.find(t => t.value === v); return t ? t.label : v }
@@ -233,6 +236,98 @@ function ProductionInquiries() {
 
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
 
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const activeEvents = events.filter(e => !(e.date && e.date < todayStr))
+  const archivedAll = events.filter(e => e.date && e.date < todayStr)
+  const archivedFiltered = archiveSearch.trim()
+    ? archivedAll.filter(e => (e.event_name || '').toLowerCase().includes(archiveSearch.trim().toLowerCase()))
+    : archivedAll
+  const monthGroups = (() => {
+    const groups = {}
+    archivedFiltered.forEach(e => {
+      const key = (e.date || '').slice(0, 7)
+      ;(groups[key] = groups[key] || []).push(e)
+    })
+    return Object.keys(groups).sort((a, b) => b.localeCompare(a)).map(key => {
+      const [y, mo] = key.split('-')
+      return { key, label: HE_MONTHS[Number(mo) - 1] + ' ' + y, events: groups[key].slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')) }
+    })
+  })()
+
+  function RenderCard(ev) {
+        const evSlots = slots[ev.id] || emptySlots()
+        const filledCount = evSlots.filter(s => s.name.trim()).length
+        const firstEmptyHdr = evSlots.findIndex(s => !s.name.trim())
+        return (
+          <div key={ev.id} id={'prod-ev-' + ev.id} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3 flex-row-reverse">
+              <div className="flex-1 min-w-0 text-right">
+                {editingEvent === ev.id ? (
+                  <div className="flex gap-2 flex-row-reverse" onClick={e=>e.stopPropagation()}>
+                    <input value={editEventVal.event_name||''} onChange={e=>setEditEventVal(p=>({...p,event_name:e.target.value}))}
+                      className="text-sm font-medium px-2 py-1 border border-[#E0197D] rounded-lg outline-none text-right flex-1"/>
+                    <input type="date" value={editEventVal.date||''} onChange={e=>setEditEventVal(p=>({...p,date:e.target.value}))}
+                      className="text-sm px-2 py-1 border border-gray-200 rounded-lg outline-none"/>
+                    <select value={editEventVal.venue||''} onChange={e=>setEditEventVal(p=>({...p,venue:e.target.value}))}
+                      className="text-sm px-2 py-1 border border-gray-200 rounded-lg outline-none">
+                      <option value="">אולם</option>
+                      {VENUES.map(v=><option key={v} value={v}>{v}</option>)}
+                    </select>
+                    <select value={editEventVal.type||''} onChange={e=>setEditEventVal(p=>({...p,type:e.target.value}))}
+                      className="text-sm px-2 py-1 border border-gray-200 rounded-lg outline-none">
+                      <option value="">קטגוריה</option>
+                      {eventTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                    <button onClick={saveEventEdit} className="text-[#E0197D] text-sm font-medium">שמור</button>
+                    <button onClick={()=>setEditingEvent(null)} className="text-gray-400 text-sm">ביטול</button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-[13px] font-semibold text-gray-800">{ev.event_name}</div>
+                    <div className="text-[11px] text-gray-400 mt-0.5 flex gap-2 justify-end flex-wrap">
+                      {ev.date && <span>{fmtDate(ev.date)}</span>}
+                      {ev.day && <span>יום {ev.day}</span>}
+                      {ev.venue && <span>{ev.venue}</span>}
+                      {ev.type && <span className={`px-1.5 py-0.5 rounded-full ${getTypeStyle(ev.type)}`}>{getTypeLabel(ev.type)}</span>}
+                      <span className="text-gray-300">·</span>
+                      <span>{filledCount}/{SLOTS} אנשים</span>
+                    </div>
+                    {/* רשימת אנשים גלויה תמיד — שם ניטרלי + נקודת צבע לסטטוס, לחיצה פותחת תפריט */}
+                    <div dir="rtl" className="flex gap-1.5 justify-start mt-1.5 flex-wrap md:flex-nowrap md:overflow-x-auto md:pb-1 [scrollbar-width:thin]" onClick={e => e.stopPropagation()}>
+                      {evSlots.map((slot, idx) => {
+                        if (!slot.name.trim() && idx !== firstEmptyHdr) return null
+                        const st = getStatus(slot.status)
+                        return (
+                          <div key={idx} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-full px-2 py-1 flex-shrink-0">
+                            <button onClick={(e) => {
+                                const r = e.currentTarget.getBoundingClientRect()
+                                setColorMenu(cm => (cm && cm.evId===ev.id && cm.idx===idx) ? null : { evId: ev.id, idx, x: r.left, y: r.bottom })
+                              }} title={st.label}
+                              className="w-4 h-4 rounded-full flex-shrink-0 ring-1 ring-black/10" style={{background: st.dot}}/>
+                            <input value={slot.name} onChange={e => updateSlotName(ev.id, idx, e.target.value)}
+                              onBlur={() => saveSlotName(ev.id, idx)} placeholder="+ שם"
+                              className="bg-transparent outline-none text-[12px] text-right w-14 focus:w-28 transition-all text-gray-700 placeholder:text-gray-400"/>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={e=>{e.stopPropagation();pushToCalendar(ev)}}
+                  className="text-gray-300 hover:text-[#E0197D] p-1" title="עדכן ביומן">
+                  <i className="ti ti-calendar-plus" style={{fontSize:13}}/></button>
+                <button onClick={e=>{e.stopPropagation();setEditingEvent(ev.id);setEditEventVal({event_name:ev.event_name,date:ev.date||'',day:ev.day||'',venue:ev.venue||'',type:ev.type||''})}}
+                  className="text-gray-300 hover:text-gray-600 p-1"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
+                <button onClick={e=>{e.stopPropagation();if(window.confirm('למחוק את האירוע?'))deleteEvent(ev.id)}}
+                  className="text-gray-300 hover:text-red-500 p-1"><i className="ti ti-trash" style={{fontSize:13}}/></button>
+              </div>
+            </div>
+          </div>
+        )
+  }
+
   return (
     <div className="max-w-7xl">
       <div className="flex justify-end gap-2 mb-4">
@@ -322,85 +417,46 @@ function ProductionInquiries() {
           </div>
         </div>
       )}
+      {events.length > 0 && (
+        <div className="flex items-center gap-2 mb-3 flex-row-reverse">
+          <button onClick={() => setView('active')}
+            className={`text-[12px] px-3 py-1.5 rounded-lg font-medium ${view === 'active' ? 'bg-[#E0197D] text-white' : 'bg-gray-100 text-gray-500 hover:text-[#E0197D]'}`}>
+            פעילות ({activeEvents.length})
+          </button>
+          <button onClick={() => setView('archive')}
+            className={`text-[12px] px-3 py-1.5 rounded-lg font-medium ${view === 'archive' ? 'bg-[#E0197D] text-white' : 'bg-gray-100 text-gray-500 hover:text-[#E0197D]'}`}>
+            ארכיון ({archivedAll.length})
+          </button>
+          {view === 'archive' && (
+            <input value={archiveSearch} onChange={e => setArchiveSearch(e.target.value)}
+              placeholder="חיפוש בארכיון..."
+              className="flex-1 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right"/>
+          )}
+        </div>
+      )}
       {events.length === 0 && !showNewEvent && (
         <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">
           אין אירועים — לחץ על "אירוע חדש" להתחלה
         </div>
       )}
-      {events.map(ev => {
-        const evSlots = slots[ev.id] || emptySlots()
-        const filledCount = evSlots.filter(s => s.name.trim()).length
-        const firstEmptyHdr = evSlots.findIndex(s => !s.name.trim())
-        return (
-          <div key={ev.id} id={'prod-ev-' + ev.id} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
-            <div className="flex items-center gap-3 px-4 py-3 flex-row-reverse">
-              <div className="flex-1 min-w-0 text-right">
-                {editingEvent === ev.id ? (
-                  <div className="flex gap-2 flex-row-reverse" onClick={e=>e.stopPropagation()}>
-                    <input value={editEventVal.event_name||''} onChange={e=>setEditEventVal(p=>({...p,event_name:e.target.value}))}
-                      className="text-sm font-medium px-2 py-1 border border-[#E0197D] rounded-lg outline-none text-right flex-1"/>
-                    <input type="date" value={editEventVal.date||''} onChange={e=>setEditEventVal(p=>({...p,date:e.target.value}))}
-                      className="text-sm px-2 py-1 border border-gray-200 rounded-lg outline-none"/>
-                    <select value={editEventVal.venue||''} onChange={e=>setEditEventVal(p=>({...p,venue:e.target.value}))}
-                      className="text-sm px-2 py-1 border border-gray-200 rounded-lg outline-none">
-                      <option value="">אולם</option>
-                      {VENUES.map(v=><option key={v} value={v}>{v}</option>)}
-                    </select>
-                    <select value={editEventVal.type||''} onChange={e=>setEditEventVal(p=>({...p,type:e.target.value}))}
-                      className="text-sm px-2 py-1 border border-gray-200 rounded-lg outline-none">
-                      <option value="">קטגוריה</option>
-                      {eventTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
-                    <button onClick={saveEventEdit} className="text-[#E0197D] text-sm font-medium">שמור</button>
-                    <button onClick={()=>setEditingEvent(null)} className="text-gray-400 text-sm">ביטול</button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="text-[13px] font-semibold text-gray-800">{ev.event_name}</div>
-                    <div className="text-[11px] text-gray-400 mt-0.5 flex gap-2 justify-end flex-wrap">
-                      {ev.date && <span>{fmtDate(ev.date)}</span>}
-                      {ev.day && <span>יום {ev.day}</span>}
-                      {ev.venue && <span>{ev.venue}</span>}
-                      {ev.type && <span className={`px-1.5 py-0.5 rounded-full ${getTypeStyle(ev.type)}`}>{getTypeLabel(ev.type)}</span>}
-                      <span className="text-gray-300">·</span>
-                      <span>{filledCount}/{SLOTS} אנשים</span>
-                    </div>
-                    {/* רשימת אנשים גלויה תמיד — שם ניטרלי + נקודת צבע לסטטוס, לחיצה פותחת תפריט */}
-                    <div dir="rtl" className="flex gap-1.5 justify-start mt-1.5 flex-wrap md:flex-nowrap md:overflow-x-auto md:pb-1 [scrollbar-width:thin]" onClick={e => e.stopPropagation()}>
-                      {evSlots.map((slot, idx) => {
-                        if (!slot.name.trim() && idx !== firstEmptyHdr) return null
-                        const st = getStatus(slot.status)
-                        return (
-                          <div key={idx} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-full px-2 py-1 flex-shrink-0">
-                            <button onClick={(e) => {
-                                const r = e.currentTarget.getBoundingClientRect()
-                                setColorMenu(cm => (cm && cm.evId===ev.id && cm.idx===idx) ? null : { evId: ev.id, idx, x: r.left, y: r.bottom })
-                              }} title={st.label}
-                              className="w-4 h-4 rounded-full flex-shrink-0 ring-1 ring-black/10" style={{background: st.dot}}/>
-                            <input value={slot.name} onChange={e => updateSlotName(ev.id, idx, e.target.value)}
-                              onBlur={() => saveSlotName(ev.id, idx)} placeholder="+ שם"
-                              className="bg-transparent outline-none text-[12px] text-right w-14 focus:w-28 transition-all text-gray-700 placeholder:text-gray-400"/>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="flex items-center gap-1">
-                <button onClick={e=>{e.stopPropagation();pushToCalendar(ev)}}
-                  className="text-gray-300 hover:text-[#E0197D] p-1" title="עדכן ביומן">
-                  <i className="ti ti-calendar-plus" style={{fontSize:13}}/></button>
-                <button onClick={e=>{e.stopPropagation();setEditingEvent(ev.id);setEditEventVal({event_name:ev.event_name,date:ev.date||'',day:ev.day||'',venue:ev.venue||'',type:ev.type||''})}}
-                  className="text-gray-300 hover:text-gray-600 p-1"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
-                <button onClick={e=>{e.stopPropagation();if(window.confirm('למחוק את האירוע?'))deleteEvent(ev.id)}}
-                  className="text-gray-300 hover:text-red-500 p-1"><i className="ti ti-trash" style={{fontSize:13}}/></button>
-              </div>
-            </div>
-          </div>
-        )
-      })}
-      {colorMenu && (
+      {view === 'active' && activeEvents.map(ev => RenderCard(ev))}
+      {view === 'active' && events.length > 0 && activeEvents.length === 0 && (
+        <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">אין אירועים פעילים</div>
+      )}
+      {view === 'archive' && monthGroups.map(g => (
+        <div key={g.key} className="mb-3">
+          <button onClick={() => setOpenMonths(p => ({ ...p, [g.key]: !p[g.key] }))}
+            className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl flex-row-reverse hover:bg-gray-100">
+            <span className="text-[13px] font-semibold text-gray-700">{g.label}</span>
+            <span className="text-[11px] text-gray-400">{g.events.length} אירועים</span>
+          </button>
+          {openMonths[g.key] && <div className="mt-2">{g.events.map(ev => RenderCard(ev))}</div>}
+        </div>
+      ))}
+      {view === 'archive' && monthGroups.length === 0 && (
+        <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">אין אירועים בארכיון</div>
+      )}
+            {colorMenu && (
         <>
           <div className="fixed inset-0 z-[9998]" onClick={() => setColorMenu(null)} />
           <div className="fixed z-[9999] bg-white border border-gray-200 rounded-xl p-1.5 flex flex-col gap-1 w-[170px]"
