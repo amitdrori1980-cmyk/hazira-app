@@ -11,6 +11,7 @@ const PANEL_EQUIP = 'equip'
 function EventsPageInner() {
   const searchParams = useSearchParams()
   const [events, setEvents]         = useState([])
+  const [showTrash, setShowTrash]   = useState(false)
   const [depts, setDepts]           = useState([])
   const [eventTypes, setEventTypes] = useState([])
   const [allCrew, setAllCrew]       = useState([])
@@ -116,6 +117,18 @@ function EventsPageInner() {
   }
 
   async function deleteEvent(id) {
+    const ts = new Date().toISOString()
+    const { error } = await supabase.from('events').update({ deleted_at: ts }).eq('id',id)
+    if (error) { alert('שגיאה במחיקה: ' + error.message); return }
+    setEvents(prev=>prev.map(e=>e.id===id?{...e,deleted_at:ts}:e))
+  }
+
+  async function restoreEvent(id) {
+    await supabase.from('events').update({ deleted_at: null }).eq('id',id)
+    setEvents(prev=>prev.map(e=>e.id===id?{...e,deleted_at:null}:e))
+  }
+
+  async function purgeEvent(id) {
     await supabase.from('events').delete().eq('id',id)
     setEvents(prev=>prev.filter(e=>e.id!==id))
   }
@@ -179,6 +192,9 @@ function EventsPageInner() {
     await supabase.from('event_equipment').update({quantity_needed:qty}).eq('event_id',eventId).eq('equipment_id',equipId)
     setEventEquip(prev=>({...prev,[eventId]:prev[eventId].map(r=>r.equipment_id===equipId?{...r,quantity_needed:qty}:r)}))
   }
+
+  const activeEvents = events.filter(e => !e.deleted_at)
+  const deletedEvents = events.filter(e => e.deleted_at)
 
   return (
     <div className="max-w-xl">
@@ -270,10 +286,28 @@ function EventsPageInner() {
 
       {/* Events list */}
       <div className="bg-white border border-gray-100 rounded-xl p-4">
-        <div className="text-[13px] font-medium text-gray-800 mb-3">כל האירועים</div>
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={()=>setShowTrash(v=>!v)} className="text-[12px] text-gray-400 hover:text-[#E0197D] flex items-center gap-1">
+            <i className="ti ti-trash" style={{fontSize:13}}/> {showTrash ? 'חזרה לאירועים' : 'סל מיחזור (' + deletedEvents.length + ')'}
+          </button>
+          <div className="text-[13px] font-medium text-gray-800">כל האירועים</div>
+        </div>
         {loading ? <div className="text-center text-sm text-gray-400 py-6">טוען...</div>
-        : events.length===0 ? <div className="text-center text-sm text-gray-400 py-6">אין אירועים</div>
-        : events.map(ev=>{
+        : showTrash ? (
+          deletedEvents.length===0 ? <div className="text-center text-sm text-gray-400 py-6">סל המיחזור ריק</div>
+          : deletedEvents.map(ev=>(
+            <div key={ev.id} className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
+              <div className="flex-1 text-right min-w-0">
+                <div className="text-[13px] text-gray-800 truncate">{ev.title}</div>
+                <div className="text-[11px] text-gray-400">{ev.date}</div>
+              </div>
+              <button onClick={()=>restoreEvent(ev.id)} className="text-[12px] text-[#E0197D] border border-[#E0197D] px-2 py-1 rounded-lg flex-shrink-0 hover:bg-[#FCE4F3]">שחזר</button>
+              <button onClick={()=>{if(window.confirm('למחוק לצמיתות? פעולה בלתי הפיכה.'))purgeEvent(ev.id)}} className="text-[12px] text-gray-400 hover:text-red-500 px-2 py-1 flex-shrink-0">מחק לצמיתות</button>
+            </div>
+          ))
+        )
+        : activeEvents.length===0 ? <div className="text-center text-sm text-gray-400 py-6">אין אירועים</div>
+        : activeEvents.map(ev=>{
           const [y,m,d]=ev.date.split('-').map(Number)
           const assignedCrew=(eventCrew[ev.id]||[]).map(id=>allCrew.find(c=>c.id===id)).filter(Boolean)
           const assignedEquip=eventEquip[ev.id]||[]
