@@ -145,7 +145,7 @@ function JapanContent() {
             <div className="text-[13px] md:text-[16px] font-semibold text-gray-800">יפן {cell}</div>
             <div className="text-[10px] md:text-[11px] text-gray-400 mt-0.5 md:mt-1">{count} שורות</div>
             {cellMeta[cell] && (
-              <div className="text-[8px] md:text-[10px] text-gray-300 mt-0.5 md:mt-1 leading-tight break-words">תאריך עדכון: {fmtUpdated(cellMeta[cell])}</div>
+              <div className="text-[8px] md:text-[10px] text-gray-700 mt-0.5 md:mt-1 leading-tight break-words">תאריך עדכון: {fmtUpdated(cellMeta[cell])}</div>
             )}
           </button>
         )
