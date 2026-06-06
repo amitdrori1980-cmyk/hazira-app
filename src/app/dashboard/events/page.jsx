@@ -314,44 +314,48 @@ function EventsPageInner() {
                 </div>
               ) : (
                 <div className="py-2.5">
-                  <div className="flex items-center gap-2 flex-row-reverse group">
-                    <div className="text-[11px] text-gray-400 w-20 text-right flex-shrink-0">
-                      {d} {HE_MONTHS[m-1]}{ev.time?', '+ev.time.slice(0,5):''}
+                  <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-2 md:flex-row-reverse group">
+                    <div className="flex items-start gap-2 flex-row-reverse min-w-0 md:flex-1">
+                      <div className="text-[11px] text-gray-400 w-16 md:w-20 text-right flex-shrink-0 pt-0.5">
+                        {d} {HE_MONTHS[m-1]}{ev.time?', '+ev.time.slice(0,5):''}
+                      </div>
+                      <div className="flex-1 text-right min-w-0">
+                        <div className="text-[13px] text-gray-800">{ev.title}</div>
+                        {ev.description&&<div className="text-[11px] text-gray-400">{ev.description}</div>}
+                        {ev.venue&&<div className="text-[11px] text-gray-500 flex items-center gap-1 flex-row-reverse justify-end"><i className="ti ti-map-pin" style={{fontSize:10,color:'#E0197D'}}/>{ev.venue}</div>}
+                        {ev.crew_notes&&(
+                          <div className="text-[11px] text-[#A0106A] bg-[#FCE4F3] rounded px-1.5 py-0.5 mt-0.5 inline-block max-w-full whitespace-pre-wrap text-right">
+                            📝 {ev.crew_notes}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex-1 text-right min-w-0">
-                      <div className="text-[13px] text-gray-800">{ev.title}</div>
-                      {ev.description&&<div className="text-[11px] text-gray-400">{ev.description}</div>}
-                      {ev.venue&&<div className="text-[11px] text-gray-500 flex items-center gap-1 flex-row-reverse justify-end"><i className="ti ti-map-pin" style={{fontSize:10,color:'#E0197D'}}/>{ev.venue}</div>}
-                      {ev.crew_notes&&(
-                        <div className="text-[11px] text-[#A0106A] bg-[#FCE4F3] rounded px-1.5 py-0.5 mt-0.5 inline-block">
-                          📝 {ev.crew_notes}
-                        </div>
-                      )}
+                    <div className="flex items-center gap-1.5 flex-row-reverse flex-wrap justify-end flex-shrink-0">
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${getTypeStyle(ev.type)}`}>
+                        {getTypeLabel(ev.type)}
+                      </span>
+                      <button onClick={()=>togglePanel(ev.id,PANEL_CREW)}
+                        title="צוות"
+                        className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition-colors flex-shrink-0 ${isOpen(ev.id,PANEL_CREW)?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+                        <i className="ti ti-users" style={{fontSize:11}}/>
+                        {assignedCrew.length}
+                      </button>
+                      <button onClick={()=>togglePanel(ev.id,PANEL_EQUIP)}
+                        title="ציוד"
+                        className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition-colors flex-shrink-0 ${isOpen(ev.id,PANEL_EQUIP)?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+                        <i className="ti ti-tool" style={{fontSize:11}}/>
+                        {assignedEquip.length}
+                      </button>
+                      <button onClick={()=>startDuplicate(ev)} className="text-gray-400 hover:text-[#E0197D] opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all flex-shrink-0 p-1">
+                        <i className="ti ti-copy" style={{fontSize:15}}/>
+                      </button>
+                      <button onClick={()=>startEdit(ev)} className="text-gray-400 hover:text-[#E0197D] opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all flex-shrink-0 p-1">
+                        <i className="ti ti-pencil" style={{fontSize:15}}/>
+                      </button>
+                      <button onClick={()=>{if(window.confirm('למחוק את האירוע "' + ev.title + '"?'))deleteEvent(ev.id)}} className="text-gray-400 hover:text-red-500 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all flex-shrink-0 p-1">
+                        <i className="ti ti-trash" style={{fontSize:15}}/>
+                      </button>
                     </div>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${getTypeStyle(ev.type)}`}>
-                      {getTypeLabel(ev.type)}
-                    </span>
-                    <button onClick={()=>togglePanel(ev.id,PANEL_CREW)}
-                      title="צוות"
-                      className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition-colors flex-shrink-0 ${isOpen(ev.id,PANEL_CREW)?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
-                      <i className="ti ti-users" style={{fontSize:11}}/>
-                      {assignedCrew.length}
-                    </button>
-                    <button onClick={()=>togglePanel(ev.id,PANEL_EQUIP)}
-                      title="ציוד"
-                      className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition-colors flex-shrink-0 ${isOpen(ev.id,PANEL_EQUIP)?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
-                      <i className="ti ti-tool" style={{fontSize:11}}/>
-                      {assignedEquip.length}
-                    </button>
-                    <button onClick={()=>startDuplicate(ev)} className="text-gray-200 hover:text-[#E0197D] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
-                      <i className="ti ti-copy" style={{fontSize:13}}/>
-                    </button>
-                    <button onClick={()=>startEdit(ev)} className="text-gray-200 hover:text-[#E0197D] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
-                      <i className="ti ti-pencil" style={{fontSize:13}}/>
-                    </button>
-                    <button onClick={()=>{if(window.confirm('למחוק את האירוע "' + ev.title + '"?'))deleteEvent(ev.id)}} className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
-                      <i className="ti ti-trash" style={{fontSize:13}}/>
-                    </button>
                   </div>
 
                   {isOpen(ev.id,PANEL_CREW)&&(
