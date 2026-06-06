@@ -32,7 +32,7 @@ function ProductionInquiries() {
   const [openEvent, setOpenEvent] = useState(null)
   const [loading, setLoading]     = useState(true)
   const [showNewEvent, setShowNewEvent] = useState(false)
-  const [newEvent, setNewEvent]         = useState({ event_name:'', date:'', day:'', venue:'' })
+  const [newEvent, setNewEvent]         = useState({ event_name:'', date:'', day:'', venue:'', type:'' })
   const [savingEvent, setSavingEvent]   = useState(false)
   const [editingEvent, setEditingEvent] = useState(null)
   const [editEventVal, setEditEventVal] = useState({})
@@ -44,6 +44,10 @@ function ProductionInquiries() {
   const [calEvents, setCalEvents] = useState([])
   const [importLoading, setImportLoading] = useState(false)
   const [importSearch, setImportSearch] = useState('')
+  const [eventTypes, setEventTypes] = useState([])
+
+  const getTypeStyle = v => { const t = eventTypes.find(t => t.value === v); return t ? t.color : 'bg-gray-100 text-gray-600' }
+  const getTypeLabel = v => { const t = eventTypes.find(t => t.value === v); return t ? t.label : v }
 
   useEffect(() => { load() }, [])
 
@@ -82,6 +86,9 @@ function ProductionInquiries() {
   async function load() {
     const { data: evs } = await supabase.from('production_events').select('*')
     setEvents((evs || []).slice().sort((a, b) => (a.date || '9999-12-31').localeCompare(b.date || '9999-12-31')))
+    const { data: ts } = await supabase.from('event_types').select('*').order('sort_order')
+    setEventTypes(ts || [])
+    if (ts && ts.length) setNewEvent(p => p.type ? p : { ...p, type: ts[0].value })
     if (evs?.length) {
       const { data: ppl } = await supabase.from('production_people').select('*').in('production_event_id', evs.map(e => e.id))
       const map = {}
@@ -102,11 +109,12 @@ function ProductionInquiries() {
     const { data } = await supabase.from('production_events').insert({
       event_name: newEvent.event_name.trim(), date: newEvent.date || null,
       day: newEvent.day || null, venue: newEvent.venue || null,
+      type: newEvent.type || null,
     }).select().single()
     if (data) {
       setEvents(prev => [...prev, data].sort((a,b) => (a.date||'9999-12-31').localeCompare(b.date||'9999-12-31')))
       setSlots(prev => ({ ...prev, [data.id]: emptySlots() }))
-      setNewEvent({ event_name:'', date:'', day:'', venue:'' })
+      setNewEvent({ event_name:'', date:'', day:'', venue:'', type:'' })
       setShowNewEvent(false)
       setOpenEvent(data.id)
     }
@@ -170,7 +178,7 @@ function ProductionInquiries() {
         title: ev.event_name,
         date: ev.date || null,
         time: null,
-        type: 'show',
+        type: ev.type || 'show',
         venue: ev.venue || null,
         crew_notes: crewList || null,
       })
@@ -299,6 +307,11 @@ function ProductionInquiries() {
               <option value="">בחר אולם</option>
               {VENUES.map(v=><option key={v} value={v}>{v}</option>)}
             </select>
+            <select value={newEvent.type} onChange={e=>setNewEvent(p=>({...p,type:e.target.value}))}
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] col-span-2">
+              <option value="">בחר קטגוריה</option>
+              {eventTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
           </div>
           <div className="flex gap-2">
             <button onClick={addEvent} disabled={savingEvent || !newEvent.event_name.trim()}
@@ -333,6 +346,11 @@ function ProductionInquiries() {
                       <option value="">אולם</option>
                       {VENUES.map(v=><option key={v} value={v}>{v}</option>)}
                     </select>
+                    <select value={editEventVal.type||''} onChange={e=>setEditEventVal(p=>({...p,type:e.target.value}))}
+                      className="text-sm px-2 py-1 border border-gray-200 rounded-lg outline-none">
+                      <option value="">קטגוריה</option>
+                      {eventTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
                     <button onClick={saveEventEdit} className="text-[#E0197D] text-sm font-medium">שמור</button>
                     <button onClick={()=>setEditingEvent(null)} className="text-gray-400 text-sm">ביטול</button>
                   </div>
@@ -343,6 +361,7 @@ function ProductionInquiries() {
                       {ev.date && <span>{fmtDate(ev.date)}</span>}
                       {ev.day && <span>יום {ev.day}</span>}
                       {ev.venue && <span>{ev.venue}</span>}
+                      {ev.type && <span className={`px-1.5 py-0.5 rounded-full ${getTypeStyle(ev.type)}`}>{getTypeLabel(ev.type)}</span>}
                       <span className="text-gray-300">·</span>
                       <span>{filledCount}/{SLOTS} אנשים</span>
                     </div>
@@ -372,7 +391,7 @@ function ProductionInquiries() {
                 <button onClick={e=>{e.stopPropagation();pushToCalendar(ev)}}
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="עדכן ביומן">
                   <i className="ti ti-calendar-plus" style={{fontSize:13}}/></button>
-                <button onClick={e=>{e.stopPropagation();setEditingEvent(ev.id);setEditEventVal({event_name:ev.event_name,date:ev.date||'',day:ev.day||'',venue:ev.venue||''})}}
+                <button onClick={e=>{e.stopPropagation();setEditingEvent(ev.id);setEditEventVal({event_name:ev.event_name,date:ev.date||'',day:ev.day||'',venue:ev.venue||'',type:ev.type||''})}}
                   className="text-gray-300 hover:text-gray-600 p-1"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
                 <button onClick={e=>{e.stopPropagation();if(window.confirm('למחוק את האירוע?'))deleteEvent(ev.id)}}
                   className="text-gray-300 hover:text-red-500 p-1"><i className="ti ti-trash" style={{fontSize:13}}/></button>
