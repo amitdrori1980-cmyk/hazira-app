@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -10,7 +10,6 @@ const PANEL_EQUIP = 'equip'
 
 function EventsPageInner() {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const [events, setEvents]         = useState([])
   const [depts, setDepts]           = useState([])
   const [eventTypes, setEventTypes] = useState([])
@@ -105,13 +104,13 @@ function EventsPageInner() {
     e.preventDefault()
     if(!form.title||!form.date) return
     setAdding(true)
-    const payload={...form, depts:form.depts.length?form.depts:depts, end_date:form.end_date||null, time:form.time||null}
+    const { depts:_depts, ...eventData } = form
+    const payload={...eventData, end_date:form.end_date||null, time:form.time||null}
     const {data,error}=await supabase.from('events').insert(payload).select().single()
-    if(!error){
-      setEvents(prev=>[...prev,data].sort((a,b)=>a.date.localeCompare(b.date)))
-      setEventCrew(prev=>({...prev,[data.id]:[]}))
-      setEventEquip(prev=>({...prev,[data.id]:[]}))
-    }
+    if(error){ alert('שגיאה בשמירת האירוע: '+error.message); setAdding(false); return }
+    setEvents(prev=>[...prev,data].sort((a,b)=>a.date.localeCompare(b.date)))
+    setEventCrew(prev=>({...prev,[data.id]:[]}))
+    setEventEquip(prev=>({...prev,[data.id]:[]}))
     setForm(f=>({...f,title:'',date:'',end_date:'',time:'',description:'',crew_notes:'',depts:[]}))
     setAdding(false)
   }
@@ -128,7 +127,7 @@ function EventsPageInner() {
   async function saveEdit(id) {
     const payload = {...editVal, end_date: editVal.end_date||null, time: editVal.time||null}
     const { error } = await supabase.from('events').update(payload).eq('id',id)
-    console.log('saveEdit error:', error, 'editVal:', editVal)
+    if(error){ alert('שגיאה בעדכון האירוע: '+error.message); return }
     setEvents(prev=>prev.map(e=>e.id===id?{...e,...payload}:e))
     setEditing(null)
   }
@@ -142,12 +141,12 @@ function EventsPageInner() {
     e.preventDefault()
     if (!dupForm.date) return
     setSavingDup(true)
-    const { data, error } = await supabase.from('events').insert({ ...dupForm, end_date: dupForm.end_date||null, time: dupForm.time||null }).select().single()
-    if (!error) {
-      setEvents(prev => [...prev, data].sort((a,b) => a.date.localeCompare(b.date)))
-      setEventCrew(prev => ({ ...prev, [data.id]: [] }))
-      setEventEquip(prev => ({ ...prev, [data.id]: [] }))
-    }
+    const { depts:_d, ...dupData } = dupForm
+    const { data, error } = await supabase.from('events').insert({ ...dupData, end_date: dupForm.end_date||null, time: dupForm.time||null }).select().single()
+    if (error) { alert('שגיאה בשכפול האירוע: '+error.message); setSavingDup(false); return }
+    setEvents(prev => [...prev, data].sort((a,b) => a.date.localeCompare(b.date)))
+    setEventCrew(prev => ({ ...prev, [data.id]: [] }))
+    setEventEquip(prev => ({ ...prev, [data.id]: [] }))
     setDuplicating(null)
     setSavingDup(false)
   }
@@ -343,11 +342,6 @@ function EventsPageInner() {
                       className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition-colors flex-shrink-0 ${isOpen(ev.id,PANEL_EQUIP)?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
                       <i className="ti ti-tool" style={{fontSize:11}}/>
                       {assignedEquip.length}
-                    </button>
-                    <button onClick={()=>router.push('/dashboard/production?inq='+encodeURIComponent(ev.title)+'&date='+(ev.date||'')+'&venue='+encodeURIComponent(ev.venue||''))}
-                      title="בדיקת פניות"
-                      className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border border-gray-200 text-gray-500 hover:border-[#E0197D] hover:text-[#E0197D] transition-colors flex-shrink-0">
-                      <i className="ti ti-clipboard-check" style={{fontSize:11}}/>
                     </button>
                     <button onClick={()=>startDuplicate(ev)} className="text-gray-200 hover:text-[#E0197D] opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
                       <i className="ti ti-copy" style={{fontSize:13}}/>
