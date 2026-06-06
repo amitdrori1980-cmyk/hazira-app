@@ -212,7 +212,7 @@ function ProductionInquiries() {
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-7xl">
       <div className="flex justify-end gap-2 mb-4">
         <button onClick={openImport}
           className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1">
@@ -346,7 +346,7 @@ function ProductionInquiries() {
                               className="w-4 h-4 rounded-full flex-shrink-0 ring-1 ring-black/10" style={{background: st.dot}}/>
                             <input value={slot.name} onChange={e => updateSlotName(ev.id, idx, e.target.value)}
                               onBlur={() => saveSlotName(ev.id, idx)} placeholder="+ שם"
-                              className="bg-transparent outline-none text-[12px] text-right w-16 focus:w-28 transition-all text-gray-700 placeholder:text-gray-400"/>
+                              className="bg-transparent outline-none text-[12px] text-right w-14 focus:w-28 transition-all text-gray-700 placeholder:text-gray-400"/>
                           </div>
                         )
                       })}
