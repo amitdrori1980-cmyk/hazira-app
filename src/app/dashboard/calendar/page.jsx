@@ -63,18 +63,28 @@ export default function CalendarPage() {
 
   // מעבר חודש בגלילה/החלקה מעל היומן
   const gridRef = useRef(null)
+  const wheelAcc = useRef(0)
+  const wheelTime = useRef(0)
   const wheelLock = useRef(false)
   useEffect(() => {
     const el = gridRef.current
     if (!el) return
     function onWheel(e) {
       const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
-      if (Math.abs(d) < 12) return
+      if (!d) return
       e.preventDefault()
       if (wheelLock.current) return
-      wheelLock.current = true
-      changeMonth(d > 0 ? 1 : -1)
-      setTimeout(() => { wheelLock.current = false }, 450)
+      const now = Date.now()
+      if (now - wheelTime.current > 300) wheelAcc.current = 0
+      wheelTime.current = now
+      wheelAcc.current += d
+      if (Math.abs(wheelAcc.current) >= 40) {
+        const dir = wheelAcc.current > 0 ? 1 : -1
+        wheelAcc.current = 0
+        wheelLock.current = true
+        changeMonth(dir)
+        setTimeout(() => { wheelLock.current = false }, 500)
+      }
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
