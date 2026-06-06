@@ -20,6 +20,10 @@ export default function CalendarPage() {
   const [editingEvent, setEditingEvent] = useState(null)
   const [editForm, setEditForm] = useState({})
   const [savingEdit, setSavingEdit] = useState(false)
+  const [eventTypes, setEventTypes] = useState([])
+
+  const getTypeStyle = v => { const t = eventTypes.find(t => t.value === v); return t ? t.color : 'bg-gray-100 text-gray-600' }
+  const getTypeLabel = v => { const t = eventTypes.find(t => t.value === v); return t ? t.label : v }
 
   useEffect(() => {
     async function load() {
@@ -32,6 +36,8 @@ export default function CalendarPage() {
       setEvents(data || [])
       const { data: vs } = await supabase.from('venues').select('name').order('sort_order')
       setVenues((vs||[]).map(v => v.name))
+      const { data: ts } = await supabase.from('event_types').select('*').order('sort_order')
+      setEventTypes(ts || [])
     }
     load()
   }, [])
@@ -203,7 +209,7 @@ export default function CalendarPage() {
                 {/* Desktop: scrollable list — shows ~3, scroll for the rest */}
                 <div className="hidden md:flex md:flex-col gap-0.5 flex-1 min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-width:thin]">
                   {dayEvs.map(e => (
-                    <div key={e.id} className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 truncate ${TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'} ${
+                    <div key={e.id} className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 truncate ${getTypeStyle(e.type)} ${
                       isMultiStart(e) ? 'rounded-r-full rounded-l-none pl-2' :
                       isMultiMid(e)   ? 'rounded-none px-2' :
                       isMultiEnd(e)   ? 'rounded-l-full rounded-r-none pr-2' :
@@ -257,8 +263,8 @@ export default function CalendarPage() {
                     <div className="text-[13px] font-medium text-right">{e.title}</div>
                     {e.description && <div className="text-[12px] text-gray-500 text-right mt-0.5">{e.description}</div>}
                     <div className="flex gap-2 justify-end mt-1 flex-wrap">
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full ${TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'}`}>
-                        {TYPE_LABEL[e.type] || e.type}
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full ${getTypeStyle(e.type)}`}>
+                        {getTypeLabel(e.type)}
                       </span>
                       {e.venue && <span className="text-[11px] text-gray-400">{e.venue}</span>}
                     </div>
@@ -299,8 +305,8 @@ export default function CalendarPage() {
                   className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
                 <select value={editForm.type||'show'} onChange={e=>setEditForm(p=>({...p,type:e.target.value}))}
                   className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]">
-                  {Object.entries({show:'הצגה',rehearsal:'חזרה',crew:'צוות',technical:'טכני',strike:'פירוק'}).map(([v,l])=>(
-                    <option key={v} value={v}>{l}</option>
+                  {eventTypes.map(t=>(
+                    <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
                 </select>
               </div>
