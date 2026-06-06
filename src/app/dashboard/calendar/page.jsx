@@ -24,6 +24,13 @@ export default function CalendarPage() {
 
   const getTypeStyle = v => { const t = eventTypes.find(t => t.value === v); return t ? t.color : 'bg-gray-100 text-gray-600' }
   const getTypeLabel = v => { const t = eventTypes.find(t => t.value === v); return t ? t.label : v }
+  const getTypeColors = v => {
+    const t = eventTypes.find(t => t.value === v)
+    const c = (t && t.color) || ''
+    const bg = (c.match(/bg-\[(#[0-9a-fA-F]+)\]/) || [])[1] || '#f3f4f6'
+    const text = (c.match(/text-\[(#[0-9a-fA-F]+)\]/) || [])[1] || '#4b5563'
+    return { bg, text }
+  }
 
   useEffect(() => {
     async function load() {
@@ -219,8 +226,8 @@ export default function CalendarPage() {
                 {wd.segs.map((seg, si) => (
                   <div key={seg.event.id + '-' + wi}
                     onClick={() => setSelectedDay(seg.event.date)}
-                    style={{ gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`, gridRow: seg.lane + 1 }}
-                    className={`min-w-0 min-h-[16px] text-[9px] md:text-[10px] leading-tight px-1.5 py-0.5 truncate cursor-pointer ${getTypeStyle(seg.event.type)} ${
+                    style={{ gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`, gridRow: seg.lane + 1, backgroundColor: getTypeColors(seg.event.type).bg, color: getTypeColors(seg.event.type).text }}
+                    className={`min-w-0 min-h-[16px] text-[9px] md:text-[10px] leading-tight px-1.5 py-0.5 truncate cursor-pointer ${
                       seg.isStart && seg.isEnd ? 'rounded' :
                       seg.isStart ? 'rounded-r-md rounded-l-none' :
                       seg.isEnd ? 'rounded-l-md rounded-r-none' :
@@ -273,7 +280,7 @@ export default function CalendarPage() {
                     <div className="text-[13px] font-medium text-right">{e.title}</div>
                     {e.description && <div className="text-[12px] text-gray-500 text-right mt-0.5">{e.description}</div>}
                     <div className="flex gap-2 justify-end mt-1 flex-wrap">
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full ${getTypeStyle(e.type)}`}>
+                      <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
                         {getTypeLabel(e.type)}
                       </span>
                       {e.venue && <span className="text-[11px] text-gray-400">{e.venue}</span>}
