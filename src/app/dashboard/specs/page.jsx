@@ -1025,6 +1025,8 @@ function ShowFoldersMode() {
   const [creatingFolder, setCreatingFolder] = useState(false)
   const [viewing, setViewing] = useState(null)
   const fileInputRef = useRef(null)
+  const [editingDrive, setEditingDrive] = useState(null)
+  const [driveInput, setDriveInput] = useState('')
 
   useEffect(() => { loadFolders() }, [])
 
@@ -1046,6 +1048,13 @@ function ShowFoldersMode() {
     setShowNewFolder(false)
     await loadFolders()
     setCreatingFolder(false)
+  }
+
+  async function saveDriveUrl(folder) {
+    const url = driveInput.trim()
+    await supabase.from('show_folders').update({ drive_url: url || null }).eq('id', folder.id)
+    setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, drive_url: url || null } : f))
+    setEditingDrive(null)
   }
 
   async function openFolderFiles(folder) {
@@ -1197,6 +1206,31 @@ function ShowFoldersMode() {
 
             {openFolder === folder.storage_key && (
               <div className="border-t border-gray-50">
+                <div className="px-4 py-2.5 bg-[#FFF8FC] border-b border-gray-50 flex items-center gap-2 flex-row-reverse">
+                  {editingDrive === folder.id ? (
+                    <>
+                      <input value={driveInput} onChange={e=>setDriveInput(e.target.value)} dir="ltr"
+                        onKeyDown={e=>e.key==='Enter'&&saveDriveUrl(folder)}
+                        placeholder="הדבק קישור לתיקיית Google Drive..." autoFocus
+                        className="flex-1 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#E0197D] text-left"/>
+                      <button onClick={()=>saveDriveUrl(folder)} className="text-[12px] bg-[#E0197D] text-white px-3 py-1.5 rounded-lg hover:bg-[#A0106A]">שמור</button>
+                      <button onClick={()=>setEditingDrive(null)} className="text-[12px] text-gray-400 px-2">ביטול</button>
+                    </>
+                  ) : folder.drive_url ? (
+                    <>
+                      <a href={folder.drive_url} target="_blank" rel="noopener noreferrer"
+                        className="flex-1 flex items-center gap-1.5 text-[12px] text-[#1a73e8] hover:underline flex-row-reverse text-right">
+                        <i className="ti ti-brand-google-drive" style={{fontSize:14}}/> פתח תיקייה בגוגל דרייב
+                      </a>
+                      <button onClick={()=>{setEditingDrive(folder.id);setDriveInput(folder.drive_url||'')}} className="text-[11px] text-gray-400 hover:text-[#E0197D]">ערוך</button>
+                    </>
+                  ) : (
+                    <button onClick={()=>{setEditingDrive(folder.id);setDriveInput('')}}
+                      className="flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-[#E0197D]">
+                      <i className="ti ti-brand-google-drive" style={{fontSize:14}}/> הוסף קישור לגוגל דרייב
+                    </button>
+                  )}
+                </div>
                 {loadingFiles && <div className="text-center text-[13px] text-gray-400 py-4">טוען...</div>}
                 {!loadingFiles && folderFiles[folder.storage_key]?.length === 0 && (
                   <div className="text-center text-[13px] text-gray-400 py-4">אין קבצים בתיקייה זו</div>
