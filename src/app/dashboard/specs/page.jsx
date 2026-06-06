@@ -1032,8 +1032,9 @@ function ShowFoldersMode() {
 
   async function loadFolders() {
     setLoading(true)
-    const { data } = await supabase.from('show_folders').select('*').order('created_at', { ascending: true })
-    setFolders(data || [])
+    const { data } = await supabase.from('show_folders').select('*')
+    const sorted = (data || []).slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'))
+    setFolders(sorted)
     setLoading(false)
   }
 
