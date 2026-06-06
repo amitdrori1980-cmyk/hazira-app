@@ -128,6 +128,8 @@ function CompareMode({ events, allItems, selectedEvent, selectEvent, specItems }
 
 function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompare }) {
   const [templates, setTemplates] = useState([])
+  const [deletedTemplates, setDeletedTemplates] = useState([])
+  const [showTrash, setShowTrash] = useState(false)
   const [checkedIds, setCheckedIds] = useState([])
   const [compareData, setCompareData] = useState(null)
   const [comparing, setComparing] = useState(false)
@@ -214,7 +216,8 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
 
   async function loadTemplates() {
     const { data } = await supabase.from('spec_templates').select('*').order('created_at', { ascending: false })
-    setTemplates(data || [])
+    setTemplates((data || []).filter(t => !t.deleted_at))
+    setDeletedTemplates((data || []).filter(t => t.deleted_at))
   }
 
   async function selectTemplate(id) {
@@ -239,10 +242,27 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
   }
 
   async function deleteTemplate(id) {
+    const ts = new Date().toISOString()
+    const { error } = await supabase.from('spec_templates').update({ deleted_at: ts }).eq('id', id)
+    if (error) { alert('שגיאה במחיקה: ' + error.message); return }
+    const t = templates.find(x => x.id === id)
+    setTemplates(prev => prev.filter(x => x.id !== id))
+    if (t) setDeletedTemplates(prev => [{ ...t, deleted_at: ts }, ...prev])
+    setCheckedIds(prev => prev.filter(x => x !== id))
+    if (selected === id) { setSelected(null); setTemplateItems([]) }
+  }
+
+  async function restoreTemplate(id) {
+    await supabase.from('spec_templates').update({ deleted_at: null }).eq('id', id)
+    const t = deletedTemplates.find(x => x.id === id)
+    setDeletedTemplates(prev => prev.filter(x => x.id !== id))
+    if (t) setTemplates(prev => [{ ...t, deleted_at: null }, ...prev])
+  }
+
+  async function purgeTemplate(id) {
     await supabase.from('spec_items').delete().eq('template_id', id)
     await supabase.from('spec_templates').delete().eq('id', id)
-    setTemplates(prev => prev.filter(t => t.id !== id))
-    if (selected === id) { setSelected(null); setTemplateItems([]) }
+    setDeletedTemplates(prev => prev.filter(x => x.id !== id))
   }
 
   function isInTemplate(itemId) {
@@ -302,8 +322,26 @@ function TemplatesMode({ allItems, categories, subcats, onLoadTemplate, onCompar
 
         {/* Template list */}
         <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-          <div className="text-[11px] font-semibold text-gray-500 px-3 py-2.5 bg-gray-50 border-b border-gray-100">מפרטים קיימים</div>
-          {templates.length === 0 ? (
+          <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 border-b border-gray-100">
+            <button onClick={()=>setShowTrash(v=>!v)} className="text-[10px] text-gray-400 hover:text-[#E0197D] flex items-center gap-1">
+              <i className="ti ti-trash" style={{fontSize:11}}/> {showTrash ? 'חזרה' : 'סל (' + deletedTemplates.length + ')'}
+            </button>
+            <span className="text-[11px] font-semibold text-gray-500">{showTrash ? 'סל מיחזור' : 'מפרטים קיימים'}</span>
+          </div>
+          {showTrash ? (
+            deletedTemplates.length === 0 ? (
+              <div className="text-center text-[12px] text-gray-400 py-4">סל המיחזור ריק</div>
+            ) : deletedTemplates.map(t => (
+              <div key={t.id} className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-50 last:border-0 flex-row-reverse">
+                <div className="flex-1 text-right min-w-0">
+                  <div className="text-[13px] font-medium text-gray-700 truncate">{t.name}</div>
+                  {t.description && <div className="text-[11px] text-gray-400 truncate">{t.description}</div>}
+                </div>
+                <button onClick={()=>restoreTemplate(t.id)} className="text-[11px] text-[#E0197D] border border-[#E0197D] px-2 py-1 rounded-lg flex-shrink-0 hover:bg-[#FCE4F3]">שחזר</button>
+                <button onClick={()=>{if(window.confirm('למחוק לצמיתות? פעולה בלתי הפיכה.'))purgeTemplate(t.id)}} className="text-[11px] text-gray-400 hover:text-red-500 px-1.5 py-1 flex-shrink-0">לצמיתות</button>
+              </div>
+            ))
+          ) : templates.length === 0 ? (
             <div className="text-center text-[12px] text-gray-400 py-4">אין מפרטים עדיין</div>
           ) : templates.map(t => (
             <div key={t.id}
