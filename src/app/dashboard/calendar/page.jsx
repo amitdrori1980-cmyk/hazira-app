@@ -98,7 +98,7 @@ export default function CalendarPage() {
       const dx = t.clientX - st.x, dy = t.clientY - st.y
       if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
         wheelLock.current = true
-        changeMonth(dx < 0 ? 1 : -1)
+        changeMonth(dx > 0 ? 1 : -1)
         setTimeout(() => { wheelLock.current = false }, 500)
       }
     }
