@@ -245,10 +245,6 @@ export default function VenuesPage() {
                       onChange={() => toggleFileSelect(venue, f.name)}
                       className="w-4 h-4 accent-[#E0197D] flex-shrink-0 cursor-pointer"
                     />
-                    {/* PDF icon - fixed */}
-                    <div className="w-9 h-9 bg-[#FCE4F3] rounded-lg flex items-center justify-center flex-shrink-0">
-                      <i className="ti ti-file-type-pdf text-[#E0197D]" style={{fontSize:18}}/>
-                    </div>
                     {/* Name - shrinks to fit */}
                     <div className="flex-1 text-right min-w-0 overflow-hidden">
                       <div className="text-[13px] font-medium text-gray-800 truncate">{f.name}</div>
