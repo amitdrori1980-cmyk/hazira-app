@@ -27,6 +27,12 @@ export default function OperationsPage() {
   const [savingShift, setSavingShift] = useState(false)
   const [openInq, setOpenInq] = useState(null)
   const [teamSubTab, setTeamSubTab] = useState('inquiry')
+  const [boardRows, setBoardRows] = useState([])
+  const [boardSlots, setBoardSlots] = useState([])
+  const [showEvents, setShowEvents] = useState([])
+  const [boardAddFor, setBoardAddFor] = useState(false)
+  const [boardImportSearch, setBoardImportSearch] = useState('')
+  const [boardManual, setBoardManual] = useState({ event_name: '', date: '' })
 
   useEffect(() => { load() }, [])
 
@@ -56,6 +62,12 @@ export default function OperationsPage() {
     const { data: summaryData } = await supabase.from('operations_summaries').select('*, items:operations_summary_items(*)').order('created_at', { ascending: false })
     setSummaries(summaryData || [])
     setShifts(shiftData || [])
+    const { data: brows } = await supabase.from('operations_board_rows').select('*').is('deleted_at', null).order('date')
+    const { data: bslots } = await supabase.from('operations_board_slots').select('*').order('position')
+    const { data: showEv } = await supabase.from('events').select('id,title,date,time,type').eq('type', 'show').order('date')
+    setBoardRows(brows || [])
+    setBoardSlots(bslots || [])
+    setShowEvents(showEv || [])
     setLoading(false)
   }
 
@@ -232,6 +244,62 @@ export default function OperationsPage() {
     setInquiries(prev => prev.map(i => i.id === id ? { ...i, status } : i))
   }
 
+  const BOARD_CATS = [{ key: 'bar', label: 'בר / קופה' }, { key: 'evening', label: 'ניהול ערב' }, { key: 'other', label: 'אחר' }]
+  const HE_DAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳']
+  function dayName(ds) { if (!ds) return ''; const [y, m, d] = ds.split('-').map(Number); return HE_DAYS[new Date(y, m - 1, d).getDay()] }
+
+  async function addBoardRow({ event_id = null, event_name, date = null, time = '' }) {
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data, error } = await supabase.from('operations_board_rows').insert({
+      event_id, event_name, date, time, bar_open_time: '', created_by: user?.id
+    }).select().single()
+    if (error) { alert('שגיאה: ' + error.message); return }
+    if (data) setBoardRows(prev => [...prev, data])
+    setBoardAddFor(false); setBoardImportSearch(''); setBoardManual({ event_name: '', date: '' })
+  }
+
+  async function updateBoardRow(id, field, value) {
+    await supabase.from('operations_board_rows').update({ [field]: value }).eq('id', id)
+    setBoardRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r))
+  }
+
+  async function deleteBoardRow(id) {
+    if (!confirm('למחוק שורה זו?')) return
+    await supabase.from('operations_board_rows').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+    setBoardRows(prev => prev.filter(r => r.id !== id))
+  }
+
+  async function addSlot(rowId, category) {
+    const pos = boardSlots.filter(s => s.row_id === rowId && s.category === category).length
+    const { data, error } = await supabase.from('operations_board_slots').insert({
+      row_id: rowId, category, position: pos, member_id: null, status: 'none', selected: false
+    }).select().single()
+    if (error) { alert('שגיאה: ' + error.message); return }
+    if (data) setBoardSlots(prev => [...prev, data])
+  }
+
+  async function setSlotMember(slotId, memberId) {
+    const mid = memberId || null
+    await supabase.from('operations_board_slots').update({ member_id: mid, status: 'none', selected: false }).eq('id', slotId)
+    setBoardSlots(prev => prev.map(s => s.id === slotId ? { ...s, member_id: mid, status: 'none', selected: false } : s))
+  }
+
+  async function removeSlot(slotId) {
+    await supabase.from('operations_board_slots').delete().eq('id', slotId)
+    setBoardSlots(prev => prev.filter(s => s.id !== slotId))
+  }
+
+  async function setSlotStatus(slotId, status) {
+    await supabase.from('operations_board_slots').update({ status }).eq('id', slotId)
+    setBoardSlots(prev => prev.map(s => s.id === slotId ? { ...s, status } : s))
+  }
+
+  async function toggleSelected(slot) {
+    const val = !slot.selected
+    await supabase.from('operations_board_slots').update({ selected: val }).eq('id', slot.id)
+    setBoardSlots(prev => prev.map(s => s.id === slot.id ? { ...s, selected: val } : s))
+  }
+
   const selEv = events.find(e => e.id === selectedEvent)
   const anySelected = crew.some(c => selectedCrew[c.id])
   const selectedCount = crew.filter(c => selectedCrew[c.id]).length
@@ -248,6 +316,10 @@ export default function OperationsPage() {
         <button onClick={() => setTab('messages')}
           className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'messages' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
           פניות {inquiries.filter(i=>i.status==='pending').length > 0 && <span className="mr-1 bg-white text-[#E0197D] rounded-full px-1.5 text-[10px] font-bold">{inquiries.filter(i=>i.status==='pending').length}</span>}
+        </button>
+        <button onClick={() => setTab('board')}
+          className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'board' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
+          שיבוץ תפעול
         </button>
         <button onClick={() => setTab('summary')}
           className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'summary' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
@@ -293,6 +365,136 @@ export default function OperationsPage() {
             )}
             <button onClick={() => setOpenInq(null)} className="w-full mt-3 text-[12px] text-gray-400 hover:text-gray-600">סגור</button>
           </div>
+        </div>
+      )}
+
+      {tab === 'board' && (
+        <div>
+          {isManager && (
+            <div className="mb-4">
+              {!boardAddFor ? (
+                <button onClick={() => setBoardAddFor(true)}
+                  className="bg-[#E0197D] text-white text-[13px] px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1">
+                  <i className="ti ti-plus" style={{fontSize:14}}/> הוסף שורה
+                </button>
+              ) : (
+                <div className="bg-white border border-gray-100 rounded-xl p-4 max-w-lg">
+                  <div className="flex items-center justify-between mb-3 flex-row-reverse">
+                    <div className="text-[13px] font-medium text-gray-700">הוסף שורה</div>
+                    <button onClick={() => setBoardAddFor(false)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{fontSize:16}}/></button>
+                  </div>
+                  <div className="text-[11px] font-semibold text-gray-500 mb-1 text-right">מתוך אירועי מופע</div>
+                  <input value={boardImportSearch} onChange={e => setBoardImportSearch(e.target.value)}
+                    placeholder="חיפוש מופע..." dir="rtl"
+                    className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2"/>
+                  <div className="max-h-48 overflow-y-auto flex flex-col gap-1 mb-4">
+                    {showEvents.filter(ev => !boardImportSearch || (ev.title || '').includes(boardImportSearch)).map(ev => (
+                      <div key={ev.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg flex-row-reverse">
+                        <div className="flex-1 text-right min-w-0">
+                          <div className="text-[13px] text-gray-800 truncate">{ev.title}</div>
+                          <div className="text-[11px] text-gray-400">{fmtDate(ev.date)}</div>
+                        </div>
+                        <button onClick={() => addBoardRow({ event_id: ev.id, event_name: ev.title, date: ev.date, time: ev.time || '' })}
+                          className="text-[12px] bg-[#E0197D] text-white px-3 py-1.5 rounded-lg flex-shrink-0 hover:bg-[#A0106A]">הוסף</button>
+                      </div>
+                    ))}
+                    {showEvents.length === 0 && <div className="text-center text-[12px] text-gray-400 py-3">אין אירועי מופע</div>}
+                  </div>
+                  <div className="text-[11px] font-semibold text-gray-500 mb-1 text-right">או הוספה ידנית</div>
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <input value={boardManual.event_name} onChange={e => setBoardManual(v => ({ ...v, event_name: e.target.value }))} placeholder="שם אירוע" dir="rtl" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] text-right"/>
+                    <input type="date" value={boardManual.date} onChange={e => setBoardManual(v => ({ ...v, date: e.target.value }))} className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D]"/>
+                  </div>
+                  <button onClick={() => boardManual.event_name.trim() && addBoardRow({ event_name: boardManual.event_name.trim(), date: boardManual.date || null })}
+                    className="w-full text-[13px] border border-[#E0197D] text-[#E0197D] py-2 rounded-lg hover:bg-[#FCE4F3]">הוסף ידנית</button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(() => {
+            const rows = isManager ? boardRows : boardRows.filter(r => boardSlots.some(s => s.row_id === r.id && s.member_id === myMember?.id))
+            if (rows.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין שורות — לחץ "הוסף שורה"' : 'אין שיבוצים עבורך'}</div>
+            return rows.map(row => (
+              <div key={row.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-3">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between flex-row-reverse gap-2">
+                  <div className="text-right min-w-0">
+                    <div className="text-[14px] font-semibold text-gray-800 truncate">{row.event_name}</div>
+                    <div className="text-[11px] text-gray-400 flex gap-2 justify-end flex-wrap">
+                      {row.date && <span>{fmtDate(row.date)}</span>}
+                      {row.date && <span>יום {dayName(row.date)}</span>}
+                    </div>
+                  </div>
+                  {isManager && <button onClick={() => deleteBoardRow(row.id)} className="text-gray-300 hover:text-red-500 flex-shrink-0"><i className="ti ti-trash" style={{fontSize:14}}/></button>}
+                </div>
+                <div className="px-4 py-2 border-b border-gray-50 flex gap-3 justify-end flex-wrap text-[12px]">
+                  <label className="flex items-center gap-1 flex-row-reverse text-gray-500">שעה
+                    <input value={row.time || ''} onChange={e => updateBoardRow(row.id, 'time', e.target.value)} disabled={!isManager} placeholder="--:--" dir="rtl"
+                      className="w-20 text-right bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none focus:border-[#E0197D] disabled:bg-transparent disabled:border-transparent"/>
+                  </label>
+                  <label className="flex items-center gap-1 flex-row-reverse text-gray-500">פתיחת בר/קופה
+                    <input value={row.bar_open_time || ''} onChange={e => updateBoardRow(row.id, 'bar_open_time', e.target.value)} disabled={!isManager} placeholder="--:--" dir="rtl"
+                      className="w-20 text-right bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none focus:border-[#E0197D] disabled:bg-transparent disabled:border-transparent"/>
+                  </label>
+                </div>
+                <div className="p-3 flex flex-col gap-3">
+                  {BOARD_CATS.map(cat => {
+                    const slots = boardSlots.filter(s => s.row_id === row.id && s.category === cat.key).sort((a, b) => a.position - b.position)
+                    return (
+                      <div key={cat.key}>
+                        <div className="text-[11px] font-semibold text-gray-500 mb-1.5 text-right">{cat.label}</div>
+                        <div className="flex flex-wrap gap-1.5 justify-end">
+                          {slots.map(slot => {
+                            const member = crew.find(c => c.id === slot.member_id)
+                            const mine = myMember && slot.member_id === myMember.id
+                            const bg = slot.status === 'approved' ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                              : slot.status === 'rejected' ? 'bg-red-100 text-red-700 border-red-300'
+                              : 'bg-gray-50 text-gray-600 border-gray-200'
+                            return (
+                              <div key={slot.id} className={`border rounded-lg px-2 py-1.5 flex flex-col items-center gap-1 min-w-[88px] ${bg} ${slot.selected ? 'ring-2 ring-[#E0197D]' : ''}`}>
+                                {isManager ? (
+                                  <select value={slot.member_id || ''} onChange={e => setSlotMember(slot.id, e.target.value)} dir="rtl"
+                                    className="bg-transparent outline-none text-[12px] text-center font-medium w-full">
+                                    <option value="">בחר...</option>
+                                    {crew.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+                                  </select>
+                                ) : (
+                                  <div className="text-[12px] font-medium text-center">{member?.full_name || '—'}</div>
+                                )}
+                                {mine ? (
+                                  <div className="flex gap-1">
+                                    <button onClick={() => setSlotStatus(slot.id, slot.status === 'approved' ? 'none' : 'approved')} title="אישור"
+                                      className="w-5 h-5 rounded-full bg-yellow-400 border border-yellow-500 hover:scale-110 transition-transform"/>
+                                    <button onClick={() => setSlotStatus(slot.id, slot.status === 'rejected' ? 'none' : 'rejected')} title="דחייה"
+                                      className="w-5 h-5 rounded-full bg-red-500 border border-red-600 hover:scale-110 transition-transform"/>
+                                  </div>
+                                ) : (
+                                  <div className="text-[10px]">{slot.status === 'approved' ? 'אישר/ה' : slot.status === 'rejected' ? 'דחה/תה' : 'ממתין/ה'}</div>
+                                )}
+                                {isManager && (
+                                  <div className="flex gap-1 items-center">
+                                    <button onClick={() => toggleSelected(slot)} title="נבחר"
+                                      className={`text-[9px] px-1.5 py-0.5 rounded border ${slot.selected ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'text-gray-400 border-gray-300 hover:border-[#E0197D]'}`}>
+                                      {slot.selected ? '✓ נבחר' : 'בחר'}
+                                    </button>
+                                    <button onClick={() => removeSlot(slot.id)} className="text-gray-300 hover:text-red-500"><i className="ti ti-x" style={{fontSize:11}}/></button>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                          {isManager && (
+                            <button onClick={() => addSlot(row.id, cat.key)}
+                              className="border border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D] rounded-lg px-3 py-1.5 text-[12px] min-w-[88px]">+ הוסף</button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))
+          })()}
         </div>
       )}
 
