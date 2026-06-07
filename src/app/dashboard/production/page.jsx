@@ -1308,7 +1308,7 @@ function GeneralSchedulesMode() {
                 )}
                 <div className="overflow-x-auto"><table className="w-full border-collapse" style={{tableLayout:"auto"}}>
                   <colgroup>
-                    <col style={{width:'110px',minWidth:'110px'}}/>
+                    <col style={{width:'150px',minWidth:'150px'}}/>
                     <col/>
                     <col/>
                     <col/>
@@ -1316,7 +1316,7 @@ function GeneralSchedulesMode() {
                   </colgroup>
                   <thead>
                     <tr className="bg-[#E0197D] text-white text-[11px] font-semibold">
-                      <th className="px-3 py-2 text-right font-semibold whitespace-nowrap" style={{width:"90px"}}>שעה</th>
+                      <th className="px-3 py-2 text-right font-semibold whitespace-nowrap" style={{width:"150px"}}>שעה</th>
                       <th className="px-3 py-2 text-right font-semibold border-r border-red-700">מה</th>
                       <th className="px-3 py-2 text-right font-semibold border-r border-red-700">מי</th>
                       <th className="px-3 py-2 text-right font-semibold border-r border-red-700">הערות</th>
@@ -1329,7 +1329,7 @@ function GeneralSchedulesMode() {
                 )}
                 {schRows.map((row, idx) => (
                   <tr key={row.id} className={`border-b border-gray-50 group ${idx%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
-                    <td className="border-l border-gray-100 px-3 py-2 whitespace-nowrap text-[12px] font-mono text-right" style={{width:'110px',minWidth:'110px'}}>
+                    <td className="border-l border-gray-100 px-3 py-2 whitespace-nowrap text-[12px] font-mono text-right" style={{width:'150px',minWidth:'150px'}}>
                       <input value={row.time||''} onChange={e => updateRow(sch.id, row.id, 'time', e.target.value)}
                         className="w-full bg-transparent outline-none text-right font-mono"/>
                     </td>
