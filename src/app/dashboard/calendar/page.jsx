@@ -70,23 +70,6 @@ export default function CalendarPage() {
   useEffect(() => {
     const el = gridRef.current
     if (!el) return
-    function onWheel(e) {
-      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
-      if (!d) return
-      e.preventDefault()
-      if (wheelLock.current) return
-      const now = Date.now()
-      if (now - wheelTime.current > 300) wheelAcc.current = 0
-      wheelTime.current = now
-      wheelAcc.current += d
-      if (Math.abs(wheelAcc.current) >= 40) {
-        const dir = wheelAcc.current > 0 ? 1 : -1
-        wheelAcc.current = 0
-        wheelLock.current = true
-        changeMonth(dir)
-        setTimeout(() => { wheelLock.current = false }, 500)
-      }
-    }
     function onTouchStart(e) {
       touchStart.current = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null
     }
@@ -102,11 +85,9 @@ export default function CalendarPage() {
         setTimeout(() => { wheelLock.current = false }, 500)
       }
     }
-    el.addEventListener('wheel', onWheel, { passive: false })
     el.addEventListener('touchstart', onTouchStart, { passive: true })
     el.addEventListener('touchend', onTouchEnd, { passive: true })
     return () => {
-      el.removeEventListener('wheel', onWheel)
       el.removeEventListener('touchstart', onTouchStart)
       el.removeEventListener('touchend', onTouchEnd)
     }
