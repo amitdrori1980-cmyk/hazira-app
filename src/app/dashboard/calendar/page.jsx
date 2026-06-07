@@ -288,7 +288,7 @@ export default function CalendarPage() {
                         isToday ? 'bg-[#FCE4F3] border-transparent' :
                         'border-transparent hover:bg-gray-50'
                       } ${c.inMonth ? '' : 'opacity-30'}`}>
-                      <div className={`text-center ${viewMode === 'week' ? 'text-[20px]' : 'text-[11px] md:text-[12px]'} font-medium ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
+                      <div className={`text-center ${viewMode === 'week' ? 'text-[11px] md:text-[20px]' : 'text-[11px] md:text-[12px]'} font-medium ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
                     </div>
                   )
                 })}
@@ -298,13 +298,13 @@ export default function CalendarPage() {
                   <div key={seg.event.id + '-' + wi}
                     onClick={() => setSelectedDay(seg.event.date)}
                     style={{ gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`, gridRow: seg.lane + 1, backgroundColor: getTypeColors(seg.event.type).bg, color: getTypeColors(seg.event.type).text }}
-                    className={`min-w-0 ${viewMode === 'week' ? 'min-h-[30px] text-[16px]' : 'min-h-[16px] text-[9px] md:text-[10px]'} leading-tight px-1.5 py-0.5 truncate cursor-pointer ${
+                    className={`min-w-0 ${viewMode === 'week' ? 'min-h-[16px] md:min-h-[30px] text-[9px] md:text-[16px]' : 'min-h-[16px] text-[9px] md:text-[10px]'} leading-tight px-1.5 py-0.5 overflow-hidden whitespace-nowrap md:text-ellipsis cursor-pointer ${
                       seg.isStart && seg.isEnd ? 'rounded' :
                       seg.isStart ? 'rounded-r-md rounded-l-none' :
                       seg.isEnd ? 'rounded-l-md rounded-r-none' :
                       'rounded-none'
                     }`}>
-                    {seg.isStart ? <>{seg.event.time ? seg.event.time.slice(0,5) + ' ' : ''}{seg.event.title}</> : ''}
+                    {seg.isStart ? <><span className="md:hidden">{(seg.event.title || '').split(' ')[0]}</span><span className="hidden md:inline">{seg.event.time ? seg.event.time.slice(0,5) + ' ' : ''}{seg.event.title}</span></> : ''}
                   </div>
                 ))}
               </div>
