@@ -15,6 +15,8 @@ export default function CalendarPage() {
   const [calYear, setCalYear] = useState(new Date().getFullYear())
   const [calMonth, setCalMonth] = useState(new Date().getMonth())
   const [selectedDay, setSelectedDay] = useState(null)
+  const [viewMode, setViewMode] = useState('month')
+  const [weekAnchor, setWeekAnchor] = useState(null)
   const [venues, setVenues] = useState([])
   const [selectedVenue, setSelectedVenue] = useState('all')
   const [editingEvent, setEditingEvent] = useState(null)
@@ -61,6 +63,29 @@ export default function CalendarPage() {
     setCalMonth(m); setCalYear(y); setSelectedDay(null)
   }
 
+  function buildWeekCells(anchorDs) {
+    const [ay, am, ad] = anchorDs.split('-').map(Number)
+    const base = new Date(ay, am - 1, ad)
+    base.setDate(base.getDate() - base.getDay())
+    const wk = []
+    for (let j = 0; j < 7; j++) {
+      const dt = new Date(base); dt.setDate(base.getDate() + j)
+      wk.push({ d: dt.getDate(), ds: dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate()), inMonth: true })
+    }
+    return wk
+  }
+
+  function navigate(dir) {
+    if (viewMode === 'week') {
+      const a = weekAnchor || selectedDay || todayDs
+      const [ay, am, ad] = a.split('-').map(Number)
+      const dt = new Date(ay, am - 1, ad); dt.setDate(dt.getDate() + dir * 7)
+      setWeekAnchor(dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate()))
+    } else {
+      changeMonth(dir)
+    }
+  }
+
   // מעבר חודש בגלילה/החלקה מעל היומן
   const gridRef = useRef(null)
   const wheelAcc = useRef(0)
@@ -103,16 +128,24 @@ export default function CalendarPage() {
 
   // ---- בניית שבועות + פסים מתפרסים לאירועים מתמשכים ----
   const todayDs = dateStr(today.getFullYear(), today.getMonth(), today.getDate())
-  const weeks = []
-  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7
-  for (let i = 0; i < totalCells; i += 7) {
-    const wk = []
-    for (let j = 0; j < 7; j++) {
-      const dt = new Date(calYear, calMonth, (i + j) - firstDay + 1)
-      wk.push({ d: dt.getDate(), ds: dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate()), inMonth: dt.getMonth() === calMonth && dt.getFullYear() === calYear })
+  const wkAnchor = weekAnchor || selectedDay || todayDs
+  let weeks = []
+  if (viewMode === 'week') {
+    weeks = [buildWeekCells(wkAnchor)]
+  } else {
+    const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7
+    for (let i = 0; i < totalCells; i += 7) {
+      const wk = []
+      for (let j = 0; j < 7; j++) {
+        const dt = new Date(calYear, calMonth, (i + j) - firstDay + 1)
+        wk.push({ d: dt.getDate(), ds: dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate()), inMonth: dt.getMonth() === calMonth && dt.getFullYear() === calYear })
+      }
+      weeks.push(wk)
     }
-    weeks.push(wk)
   }
+  const weekLabel = weeks[0]
+    ? `${weeks[0][0].d} ${HE_MONTHS[Number(weeks[0][0].ds.split('-')[1]) - 1]} – ${weeks[0][6].d} ${HE_MONTHS[Number(weeks[0][6].ds.split('-')[1]) - 1]}`
+    : ''
   const weekData = weeks.map(week => {
     const wStart = week[0].ds, wEnd = week[6].ds
     const segs = filteredEvents
@@ -196,19 +229,25 @@ export default function CalendarPage() {
     <div className="w-full">
       <div ref={gridRef} className="bg-white border border-gray-100 rounded-xl p-5 mb-3">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <button onClick={() => changeMonth(-1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">
-            ‹ הקודם
-          </button>
-          <span className="text-base font-semibold text-[#E0197D]">
-            {HE_MONTHS[calMonth]} {calYear}
-          </span>
-          <button onClick={() => changeMonth(1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">
-            הבא ›
-          </button>
+        <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
           <button onClick={exportExcel} className="text-sm text-gray-500 hover:text-green-600 px-3 py-1 border border-gray-200 rounded-lg flex items-center gap-1">
             <i className="ti ti-table-export" style={{fontSize:13}}/> ייצוא
           </button>
+          <div className="flex items-center gap-1">
+            <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-[#E0197D] p-1 rounded-lg hover:bg-gray-50">
+              <i className="ti ti-chevron-right" style={{fontSize:20}}/>
+            </button>
+            <span className="text-base font-semibold text-[#E0197D] text-center min-w-[130px]">
+              {viewMode === 'week' ? weekLabel : `${HE_MONTHS[calMonth]} ${calYear}`}
+            </span>
+            <button onClick={() => navigate(1)} className="text-gray-400 hover:text-[#E0197D] p-1 rounded-lg hover:bg-gray-50">
+              <i className="ti ti-chevron-left" style={{fontSize:20}}/>
+            </button>
+          </div>
+          <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+            <button onClick={() => setViewMode('month')} className={`text-[12px] px-3 py-1 ${viewMode === 'month' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>חודשי</button>
+            <button onClick={() => { setViewMode('week'); setWeekAnchor(selectedDay || todayDs) }} className={`text-[12px] px-3 py-1 ${viewMode === 'week' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>שבועי</button>
+          </div>
         </div>
 
         {/* Venue filter */}
@@ -254,7 +293,7 @@ export default function CalendarPage() {
                   )
                 })}
               </div>
-              <div className="grid grid-cols-7 gap-x-1.5 gap-y-0.5 mt-0.5" style={{ gridTemplateRows: `repeat(${wd.laneCount}, minmax(18px, auto))`, minHeight: '3.4rem' }}>
+              <div className="grid grid-cols-7 gap-x-1.5 gap-y-0.5 mt-0.5" style={{ gridTemplateRows: `repeat(${wd.laneCount}, minmax(18px, auto))`, minHeight: viewMode === 'week' ? '6rem' : '3.4rem' }}>
                 {wd.segs.map((seg, si) => (
                   <div key={seg.event.id + '-' + wi}
                     onClick={() => setSelectedDay(seg.event.date)}
