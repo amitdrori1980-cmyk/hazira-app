@@ -909,7 +909,7 @@ function ProductionSchedule({ profile }) {
                   )}
                 </div>
               </div>
-              <div className={`grid gap-0 bg-[#E0197D] text-white text-[12px] font-semibold no-print ${isManager?'grid-cols-[120px_2fr_1.5fr_1fr_40px]':'grid-cols-[120px_2fr_1.5fr_1fr]'}`}>
+              <div className={`grid gap-0 bg-[#E0197D] text-white text-[12px] font-semibold no-print ${isManager?'grid-cols-[150px_2fr_1.5fr_1fr_40px]':'grid-cols-[150px_2fr_1.5fr_1fr]'}`}>
                 <div className="px-3 py-2.5 text-right">שעה</div>
                 <div className="px-3 py-2.5 text-right border-r border-red-700">מה</div>
                 <div className="px-3 py-2.5 text-right border-r border-red-700">מי</div>
@@ -923,11 +923,11 @@ function ProductionSchedule({ profile }) {
               )}
               {rows.map((row, index) => (
                 <div key={row.id}
-                  className={`grid gap-0 border-b border-gray-50 group ${isManager?'grid-cols-[120px_2fr_1.5fr_1fr_40px]':'grid-cols-[120px_2fr_1.5fr_1fr]'} ${index%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
+                  className={`grid gap-0 border-b border-gray-50 group ${isManager?'grid-cols-[150px_2fr_1.5fr_1fr_40px]':'grid-cols-[150px_2fr_1.5fr_1fr]'} ${index%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
                   {isManager ? (
                     <>
-                      <textarea value={row.time||''} onChange={e=>updateRow(row.id,'time',e.target.value)}
-                        className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 font-mono resize-none w-full leading-5" rows={1}/>
+                      <textarea value={row.time||''} onChange={e=>updateRow(row.id,'time',e.target.value)} wrap="off"
+                        className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 font-mono resize-none w-full leading-5 whitespace-nowrap" rows={1}/>
                       <textarea value={row.what||''} onChange={e=>updateRow(row.id,'what',e.target.value)}
                         className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 resize-none w-full leading-5" rows={Math.max(1,Math.ceil((row.what||'').length/30))}/>
                       <textarea value={row.who||''} onChange={e=>updateRow(row.id,'who',e.target.value)}
@@ -948,7 +948,7 @@ function ProductionSchedule({ profile }) {
                     </>
                   ) : (
                     <>
-                      <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 font-mono text-[#E0197D] font-medium">{row.time && row.time !== "00:00" ? row.time : ""}</div>
+                      <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 font-mono text-[#E0197D] font-medium whitespace-nowrap">{row.time && row.time !== "00:00" ? row.time : ""}</div>
                       <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 break-words">{row.what || ""}</div>
                       <div className="px-3 py-2.5 text-[13px] text-right border-l border-gray-100 text-gray-600 break-words">{row.who || ""}</div>
                       <div className="px-3 py-2.5 text-[13px] text-right text-gray-400 break-words">{row.notes || ""}</div>
