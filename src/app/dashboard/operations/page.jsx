@@ -358,6 +358,31 @@ export default function OperationsPage() {
     if (data) setBoardSlots(prev => [...prev, ...data])
   }
 
+  async function fillRowsByRoles(rowIds) {
+    const ids = Array.isArray(rowIds) ? rowIds : [rowIds]
+    const toInsert = []
+    ids.forEach(rowId => {
+      const existing = boardSlots.filter(s => s.row_id === rowId)
+      crew.forEach(c => {
+        const cat = catForRole(c.role)
+        if (!cat) return
+        if (existing.some(s => s.category === cat && s.member_id === c.id)) return
+        const pos = existing.filter(s => s.category === cat).length + toInsert.filter(s => s.row_id === rowId && s.category === cat).length
+        toInsert.push({ row_id: rowId, category: cat, position: pos, member_id: c.id, status: 'none', selected: false })
+      })
+    })
+    if (!toInsert.length) return 0
+    const { data } = await supabase.from('operations_board_slots').insert(toInsert).select()
+    if (data) setBoardSlots(prev => [...prev, ...data])
+    return toInsert.length
+  }
+
+  async function fillAllByRoles() {
+    if (!boardRows.length) return
+    const n = await fillRowsByRoles(boardRows.map(r => r.id))
+    if (!n) alert('כל הצוות כבר משובץ בקטגוריות לפי התפקידים')
+  }
+
   async function addBoardRow({ event_id = null, event_name, date = null, time = '' }) {
     const { data: { user } } = await supabase.auth.getUser()
     const { data, error } = await supabase.from('operations_board_rows').insert({
@@ -499,10 +524,18 @@ export default function OperationsPage() {
           {isManager && (
             <div className="mb-4">
               {!boardAddFor ? (
-                <button onClick={() => setBoardAddFor(true)}
-                  className="bg-[#E0197D] text-white text-[13px] px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1">
-                  <i className="ti ti-plus" style={{fontSize:14}}/> הוסף שורה
-                </button>
+                <div className="flex items-center gap-2 flex-row-reverse">
+                  <button onClick={() => setBoardAddFor(true)}
+                    className="bg-[#E0197D] text-white text-[13px] px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1">
+                    <i className="ti ti-plus" style={{fontSize:14}}/> הוסף שורה
+                  </button>
+                  {boardRows.length > 0 && (
+                    <button onClick={fillAllByRoles}
+                      className="text-[13px] px-4 py-2 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1">
+                      <i className="ti ti-users" style={{fontSize:14}}/> מלא צוות לפי תפקידים
+                    </button>
+                  )}
+                </div>
               ) : (
                 <div className="bg-white border border-gray-100 rounded-xl p-4 max-w-lg">
                   <div className="flex items-center justify-between mb-3 flex-row-reverse">
@@ -564,7 +597,12 @@ export default function OperationsPage() {
                         ) : (row.time && <span className="whitespace-nowrap">{row.time}</span>)}
                       </div>
                     </div>
-                    {isManager && <button onClick={() => deleteBoardRow(row.id)} className="text-gray-300 hover:text-red-500 flex-shrink-0"><i className="ti ti-trash" style={{fontSize:13}}/></button>}
+                    {isManager && (
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button onClick={() => fillRowsByRoles(row.id)} title="מלא צוות לפי תפקידים" className="text-gray-300 hover:text-[#E0197D]"><i className="ti ti-users-plus" style={{fontSize:14}}/></button>
+                        <button onClick={() => deleteBoardRow(row.id)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:13}}/></button>
+                      </div>
+                    )}
                   </div>
                   {BOARD_CATS.map(cat => {
                     const slots = boardSlots.filter(s => s.row_id === row.id && s.category === cat.key).sort((a, b) => a.position - b.position)
