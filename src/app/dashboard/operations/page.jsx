@@ -245,7 +245,7 @@ export default function OperationsPage() {
     setInquiries(prev => prev.map(i => i.id === id ? { ...i, status } : i))
   }
 
-  const BOARD_CATS = [{ key: 'bar', label: 'בר / קופה' }, { key: 'evening', label: 'ניהול ערב' }, { key: 'other', label: 'אחר' }]
+  const BOARD_CATS = [{ key: 'bar', label: 'בר / קופה', min: 3, w: 'w-[240px]' }, { key: 'evening', label: 'ניהול ערב', min: 3, w: 'w-[240px]' }, { key: 'other', label: 'אחר', min: 2, w: 'w-[172px]' }]
 
   async function addBoardRow({ event_id = null, event_name, date = null, time = '' }) {
     const { data: { user } } = await supabase.auth.getUser()
@@ -432,8 +432,9 @@ export default function OperationsPage() {
                   </div>
                   {BOARD_CATS.map(cat => {
                     const slots = boardSlots.filter(s => s.row_id === row.id && s.category === cat.key).sort((a, b) => a.position - b.position)
+                    const pad = Math.max(0, cat.min - slots.length)
                     return (
-                      <div key={cat.key} className="px-4 py-2.5 border-l-2 border-gray-200 min-w-[120px]">
+                      <div key={cat.key} className={`px-4 py-2.5 border-l-2 border-gray-200 flex-shrink-0 ${cat.w}`}>
                         <div className="text-[11px] font-semibold text-gray-400 text-right mb-1.5">{cat.label}</div>
                         <div className="flex flex-row-reverse flex-wrap gap-1.5 justify-start">
                           {slots.map(slot => {
@@ -444,14 +445,22 @@ export default function OperationsPage() {
                               : 'bg-gray-100 text-gray-600'
                             return (
                               <button key={slot.id} disabled={!canOpen} onClick={() => setColorMenu(slot)}
-                                className={`px-2.5 py-1 rounded text-[14px] whitespace-nowrap ${bg} ${slot.selected ? 'ring-2 ring-[#E0197D]' : ''} ${canOpen ? 'hover:opacity-80' : ''}`}>
+                                className={`w-[64px] text-center truncate px-1 py-1 rounded text-[14px] ${bg} ${slot.selected ? 'ring-2 ring-[#E0197D]' : ''} ${canOpen ? 'hover:opacity-80' : ''}`}>
                                 {member ? member.full_name.split(' ')[0] : 'בחר'}
                               </button>
                             )
                           })}
-                          {isManager && (
+                          {Array.from({ length: pad }).map((_, i) => (
+                            isManager ? (
+                              <button key={'ph' + i} onClick={() => addSlot(row.id, cat.key)}
+                                className="w-[64px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-300 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
+                            ) : (
+                              <div key={'ph' + i} className="w-[64px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-200 text-gray-200">—</div>
+                            )
+                          ))}
+                          {isManager && pad === 0 && (
                             <button onClick={() => addSlot(row.id, cat.key)}
-                              className="px-2.5 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
+                              className="w-[64px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
                           )}
                         </div>
                       </div>
