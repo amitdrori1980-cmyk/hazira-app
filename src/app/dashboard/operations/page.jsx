@@ -443,7 +443,7 @@ export default function OperationsPage() {
             return rows.map(row => (
               <div key={row.id} className="bg-white border border-gray-100 rounded-xl overflow-x-auto mb-2">
                 <div className="flex items-stretch w-max min-w-full text-[12px]">
-                  <div className="sticky right-0 z-10 bg-white px-4 py-2.5 border-l-2 border-gray-200 min-w-[240px] flex items-center justify-between gap-2">
+                  <div className="sticky right-0 z-10 bg-white px-4 py-2.5 border-l-2 border-gray-200 min-w-[320px] flex items-center justify-between gap-2">
                     <div className="text-right min-w-0">
                       <div className="text-[14px] font-semibold text-gray-800 truncate">{row.event_name}</div>
                       <div className="text-[12px] text-gray-500 flex gap-2 justify-end items-center flex-wrap mt-0.5">
