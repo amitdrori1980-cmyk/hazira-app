@@ -246,8 +246,6 @@ export default function OperationsPage() {
   }
 
   const BOARD_CATS = [{ key: 'bar', label: 'בר / קופה' }, { key: 'evening', label: 'ניהול ערב' }, { key: 'other', label: 'אחר' }]
-  const HE_DAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳']
-  function dayName(ds) { if (!ds) return ''; const [y, m, d] = ds.split('-').map(Number); return HE_DAYS[new Date(y, m - 1, d).getDay()] }
 
   async function addBoardRow({ event_id = null, event_name, date = null, time = '' }) {
     const { data: { user } } = await supabase.auth.getUser()
@@ -416,24 +414,26 @@ export default function OperationsPage() {
           {(() => {
             const rows = isManager ? boardRows : boardRows.filter(r => boardSlots.some(s => s.row_id === r.id && s.member_id === myMember?.id))
             if (rows.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין שורות — לחץ "הוסף שורה"' : 'אין שיבוצים עבורך'}</div>
-            const shortDate = ds => { if (!ds) return ''; const [y, m, d] = ds.split('-'); return `${+d}/${+m}` }
             return rows.map(row => (
               <div key={row.id} className="bg-white border border-gray-100 rounded-xl overflow-x-auto mb-2">
                 <div className="flex flex-row-reverse items-stretch min-w-max text-[12px]">
-                  <div className="px-3 py-2 border-l border-gray-100 text-right min-w-[130px] flex items-center justify-between gap-1">
-                    <span className="font-semibold text-gray-800 truncate">{row.event_name}</span>
+                  <div className="sticky right-0 z-10 bg-white px-3 py-2 border-l-2 border-gray-200 min-w-[160px] flex items-center justify-between gap-2">
+                    <div className="text-right min-w-0">
+                      <div className="text-[14px] font-semibold text-gray-800 truncate">{row.event_name}</div>
+                      <div className="text-[12px] text-gray-500 flex gap-2 justify-end items-center flex-wrap mt-0.5">
+                        {row.date && <span className="whitespace-nowrap">{fmtDate(row.date)}</span>}
+                        {isManager ? (
+                          <input value={row.time || ''} onChange={e => updateBoardRow(row.id, 'time', e.target.value)} placeholder="שעה" dir="rtl"
+                            className="w-12 text-center bg-gray-50 rounded outline-none focus:bg-gray-100 text-[12px]"/>
+                        ) : (row.time && <span className="whitespace-nowrap">{row.time}</span>)}
+                      </div>
+                    </div>
                     {isManager && <button onClick={() => deleteBoardRow(row.id)} className="text-gray-300 hover:text-red-500 flex-shrink-0"><i className="ti ti-trash" style={{fontSize:13}}/></button>}
-                  </div>
-                  <div className="px-2 py-2 border-l border-gray-100 text-center text-gray-500 min-w-[52px] flex items-center justify-center">{shortDate(row.date)}</div>
-                  <div className="px-2 py-2 border-l border-gray-100 text-center text-gray-500 min-w-[34px] flex items-center justify-center">{dayName(row.date)}</div>
-                  <div className="px-1 py-2 border-l border-gray-100 min-w-[58px] flex items-center justify-center">
-                    <input value={row.time || ''} onChange={e => updateBoardRow(row.id, 'time', e.target.value)} disabled={!isManager} placeholder="שעה" dir="rtl"
-                      className="w-full text-center bg-transparent outline-none disabled:text-gray-700 focus:bg-gray-50 rounded text-[14px]"/>
                   </div>
                   {BOARD_CATS.map(cat => {
                     const slots = boardSlots.filter(s => s.row_id === row.id && s.category === cat.key).sort((a, b) => a.position - b.position)
                     return (
-                      <div key={cat.key} className="px-2 py-1.5 border-l border-gray-100 min-w-[110px]">
+                      <div key={cat.key} className="px-2 py-1.5 border-l-2 border-gray-200 min-w-[110px]">
                         <div className="text-[11px] font-semibold text-gray-400 text-right mb-1.5">{cat.label}</div>
                         <div className="flex flex-row-reverse flex-wrap gap-1.5 justify-start">
                           {slots.map(slot => {
