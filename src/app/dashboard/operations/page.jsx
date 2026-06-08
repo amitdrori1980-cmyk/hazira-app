@@ -416,7 +416,7 @@ export default function OperationsPage() {
             if (rows.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין שורות — לחץ "הוסף שורה"' : 'אין שיבוצים עבורך'}</div>
             return rows.map(row => (
               <div key={row.id} className="bg-white border border-gray-100 rounded-xl overflow-x-auto mb-2">
-                <div className="flex flex-row-reverse items-stretch w-max min-w-full text-[12px]">
+                <div className="flex items-stretch w-max min-w-full text-[12px]">
                   <div className="sticky right-0 z-10 bg-white px-4 py-2.5 border-l-2 border-gray-200 min-w-[160px] flex items-center justify-between gap-2">
                     <div className="text-right min-w-0">
                       <div className="text-[14px] font-semibold text-gray-800 truncate">{row.event_name}</div>
