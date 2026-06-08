@@ -33,6 +33,7 @@ export default function OperationsPage() {
   const [boardAddFor, setBoardAddFor] = useState(false)
   const [boardImportSearch, setBoardImportSearch] = useState('')
   const [boardManual, setBoardManual] = useState({ event_name: '', date: '' })
+  const [boardRange, setBoardRange] = useState({ from: '', to: '' })
   const [colorMenu, setColorMenu] = useState(null)
 
   useEffect(() => { load() }, [])
@@ -257,6 +258,22 @@ export default function OperationsPage() {
     setBoardAddFor(false); setBoardImportSearch(''); setBoardManual({ event_name: '', date: '' })
   }
 
+  async function addBoardRange() {
+    const { from, to } = boardRange
+    if (!from || !to) return
+    const lo = from <= to ? from : to
+    const hi = from <= to ? to : from
+    const existingIds = new Set(boardRows.map(r => r.event_id).filter(Boolean))
+    const toAdd = showEvents.filter(ev => ev.date && ev.date >= lo && ev.date <= hi && !existingIds.has(ev.id))
+    if (toAdd.length === 0) { alert('אין מופעים חדשים בטווח'); return }
+    const { data: { user } } = await supabase.auth.getUser()
+    const rows = toAdd.map(ev => ({ event_id: ev.id, event_name: ev.title, date: ev.date, time: ev.time || '', bar_open_time: '', created_by: user?.id }))
+    const { data, error } = await supabase.from('operations_board_rows').insert(rows).select()
+    if (error) { alert('שגיאה: ' + error.message); return }
+    if (data) setBoardRows(prev => [...prev, ...data])
+    setBoardAddFor(false); setBoardRange({ from: '', to: '' })
+  }
+
   async function updateBoardRow(id, field, value) {
     await supabase.from('operations_board_rows').update({ [field]: value }).eq('id', id)
     setBoardRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r))
@@ -399,6 +416,15 @@ export default function OperationsPage() {
                     ))}
                     {showEvents.length === 0 && <div className="text-center text-[12px] text-gray-400 py-3">אין אירועי מופע</div>}
                   </div>
+                  <div className="text-[11px] font-semibold text-gray-500 mb-1 text-right">או כל המופעים בטווח תאריכים</div>
+                  <div className="flex items-center gap-2 mb-2 flex-row-reverse">
+                    <span className="text-[11px] text-gray-400">מ-</span>
+                    <input type="date" value={boardRange.from} onChange={e => setBoardRange(v => ({ ...v, from: e.target.value }))} className="flex-1 text-sm px-2 py-2 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D]"/>
+                    <span className="text-[11px] text-gray-400">עד</span>
+                    <input type="date" value={boardRange.to} onChange={e => setBoardRange(v => ({ ...v, to: e.target.value }))} className="flex-1 text-sm px-2 py-2 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D]"/>
+                  </div>
+                  <button onClick={addBoardRange} disabled={!boardRange.from || !boardRange.to}
+                    className="w-full text-[13px] bg-[#E0197D] text-white py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50 mb-4">הוסף את כל המופעים בטווח</button>
                   <div className="text-[11px] font-semibold text-gray-500 mb-1 text-right">או הוספה ידנית</div>
                   <div className="grid grid-cols-2 gap-2 mb-2">
                     <input value={boardManual.event_name} onChange={e => setBoardManual(v => ({ ...v, event_name: e.target.value }))} placeholder="שם אירוע" dir="rtl" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] text-right"/>
