@@ -991,12 +991,12 @@ export default function OperationsPage() {
             if (groups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">אין סידור עבודה עדיין. בחר נבחרים בשיבוץ תפעול ולחץ "העבר לסידור עבודה"</div>
             return groups.map((g, gi) => (
               <div key={gi} className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-3">
-                <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between flex-row-reverse">
-                  <div className="text-right">
+                <div dir="rtl" className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                  <div className="text-right flex-1 min-w-0">
                     <div className="text-[13px] font-semibold text-gray-800">{g.event_title}</div>
                     <div className="text-[11px] text-gray-400">{(() => { if (!g.event_date) return ''; const [y,m,d] = g.event_date.split('-'); const HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; return `${+d} ${HE[+m-1]} ${y}` })()}</div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <div className="text-[11px] text-gray-400">{g.items.length} עובדים</div>
                     {isManager && (
                       <button onClick={() => { setSummary(v => ({ ...v, event_id: g.items[0]?.event_id || '', event_title: g.event_title, event_date: g.event_date })); setTab('summary') }}
@@ -1018,7 +1018,7 @@ export default function OperationsPage() {
                   </div>
                 ) : (shiftNotes[g.key] && <div className="px-4 pt-3 text-[12px] text-gray-600 text-right whitespace-pre-wrap">{shiftNotes[g.key]}</div>)}
                 <div className="overflow-x-auto">
-                  <div className="flex flex-row-reverse flex-wrap p-3 gap-3">
+                  <div dir="rtl" className="flex flex-wrap justify-start p-3 gap-3">
                     {g.items.map(s => (
                       <div key={s.id} className="flex flex-col items-stretch px-3 py-2.5 border border-gray-100 rounded-xl w-[170px] relative">
                         {isManager && <button onClick={() => deleteShift(s.id)}
