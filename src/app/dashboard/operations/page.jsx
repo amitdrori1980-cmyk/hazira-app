@@ -26,6 +26,7 @@ export default function OperationsPage() {
   const [editingSummary, setEditingSummary] = useState(null)
   const [summaries, setSummaries] = useState([])
   const [shifts, setShifts] = useState([])
+  const [shiftNotes, setShiftNotes] = useState({})
   const [savingShift, setSavingShift] = useState(false)
   const [openInq, setOpenInq] = useState(null)
   const [teamSubTab, setTeamSubTab] = useState('inquiry')
@@ -72,6 +73,9 @@ export default function OperationsPage() {
     setBoardRows(brows || [])
     setBoardSlots(bslots || [])
     setShowEvents(showEv || [])
+    const { data: sn } = await supabase.from('operations_shift_event_notes').select('*')
+    const snMap = {}; (sn || []).forEach(r => { snMap[r.event_key] = r.notes })
+    setShiftNotes(snMap)
     setLoading(false)
   }
 
@@ -235,6 +239,11 @@ export default function OperationsPage() {
     const ids = items.map(s => s.id)
     await supabase.from('operations_shifts').delete().in('id', ids)
     setShifts(prev => prev.filter(s => !ids.includes(s.id)))
+  }
+
+  async function saveShiftNote(key, notes) {
+    setShiftNotes(prev => ({ ...prev, [key]: notes }))
+    await supabase.from('operations_shift_event_notes').upsert({ event_key: key, notes, updated_at: new Date().toISOString() }, { onConflict: 'event_key' })
   }
 
   async function transferToShifts(row) {
@@ -975,7 +984,7 @@ export default function OperationsPage() {
             const grouped = {}
             shifts.forEach(s => {
               const key = s.event_id || (s.event_title + '|' + s.event_date)
-              if (!grouped[key]) grouped[key] = { event_title: s.event_title, event_date: s.event_date, items: [] }
+              if (!grouped[key]) grouped[key] = { key, event_title: s.event_title, event_date: s.event_date, items: [] }
               grouped[key].items.push(s)
             })
             const groups = Object.values(grouped).sort((a, b) => (a.event_date || '').localeCompare(b.event_date || ''))
@@ -989,25 +998,38 @@ export default function OperationsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="text-[11px] text-gray-400">{g.items.length} עובדים</div>
+                    {isManager && (
+                      <button onClick={() => { setSummary(v => ({ ...v, event_id: g.items[0]?.event_id || '', event_title: g.event_title, event_date: g.event_date })); setTab('summary') }}
+                        className="text-[11px] border border-[#E0197D] text-[#E0197D] px-2.5 py-1 rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1 whitespace-nowrap">
+                        <i className="ti ti-clipboard-text" style={{fontSize:12}}/> סיכום אירוע
+                      </button>
+                    )}
                     {isManager && <button onClick={() => deleteShiftGroup(g.items)}
                       className="text-gray-300 hover:text-red-500 p-1">
                       <i className="ti ti-trash" style={{fontSize:13}}/>
                     </button>}
                   </div>
                 </div>
+                {isManager ? (
+                  <div className="px-3 pt-3">
+                    <textarea key={g.key + '-evnotes'} defaultValue={shiftNotes[g.key] || ''} onBlur={e => saveShiftNote(g.key, e.target.value)}
+                      placeholder="הערות כלליות לאירוע..." rows={2} dir="rtl"
+                      className="w-full text-[12px] px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] resize-none bg-gray-50 text-right"/>
+                  </div>
+                ) : (shiftNotes[g.key] && <div className="px-4 pt-3 text-[12px] text-gray-600 text-right whitespace-pre-wrap">{shiftNotes[g.key]}</div>)}
                 <div className="overflow-x-auto">
                   <div className="flex flex-row-reverse flex-wrap p-3 gap-3">
                     {g.items.map(s => (
-                      <div key={s.id} className="flex flex-col items-center px-3 py-2.5 border border-gray-100 rounded-xl w-[170px] relative">
+                      <div key={s.id} className="flex flex-col items-stretch px-3 py-2.5 border border-gray-100 rounded-xl w-[170px] relative">
                         {isManager && <button onClick={() => deleteShift(s.id)}
                           className="absolute top-1 left-1 text-gray-200 hover:text-red-500">
                           <i className="ti ti-x" style={{fontSize:11}}/>
                         </button>}
-                        <div className="text-[12px] font-medium text-gray-700 text-center mb-2 mt-1">
+                        <div className="text-[12px] font-medium text-gray-700 text-right mb-2 mt-1 pl-4">
                           {crew.find(c=>c.id===s.member_id)?.full_name || '—'}
                         </div>
                         <select value={s.role || ''} onChange={e => updateShiftRole(s.id, e.target.value)}
-                          className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full text-center bg-gray-50" dir="rtl">
+                          className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full text-right bg-gray-50" dir="rtl">
                           <option value="">תפקיד...</option>
                           <option value="בר">בר</option>
                           <option value="קופה">קופה</option>
