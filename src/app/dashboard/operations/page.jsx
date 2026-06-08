@@ -245,7 +245,7 @@ export default function OperationsPage() {
     setInquiries(prev => prev.map(i => i.id === id ? { ...i, status } : i))
   }
 
-  const BOARD_CATS = [{ key: 'bar', label: 'בר / קופה', min: 3, w: 'w-[240px]' }, { key: 'evening', label: 'ניהול ערב', min: 3, w: 'w-[240px]' }, { key: 'other', label: 'אחר', min: 2, w: 'w-[172px]' }]
+  const BOARD_CATS = [{ key: 'bar', label: 'בר / קופה', min: 5, w: 'w-[380px]' }, { key: 'evening', label: 'ניהול ערב', min: 3, w: 'w-[240px]' }, { key: 'other', label: 'אחר', min: 2, w: 'w-[172px]' }]
 
   async function addBoardRow({ event_id = null, event_name, date = null, time = '' }) {
     const { data: { user } } = await supabase.auth.getUser()
