@@ -230,6 +230,35 @@ export default function OperationsPage() {
     setShifts(prev => prev.filter(s => s.event_id !== eventId))
   }
 
+  async function deleteShiftGroup(items) {
+    if (!confirm('למחוק את כל העובדים של האירוע מהסידור?')) return
+    const ids = items.map(s => s.id)
+    await supabase.from('operations_shifts').delete().in('id', ids)
+    setShifts(prev => prev.filter(s => !ids.includes(s.id)))
+  }
+
+  async function transferToShifts(row) {
+    const selectedSlots = boardSlots.filter(s => s.row_id === row.id && s.selected && s.member_id)
+    if (!selectedSlots.length) { alert('לא נבחרו אנשי צוות. סמן "הוספה לסידור" במשבצות שתרצה להעביר.'); return }
+    const sameEvent = s => row.event_id ? s.event_id === row.event_id : (s.event_title === row.event_name && s.event_date === row.date)
+    const existing = shifts.filter(sameEvent)
+    const stale = existing.filter(s => s.event_title !== row.event_name || s.event_date !== row.date)
+    if (stale.length) {
+      await supabase.from('operations_shifts').update({ event_title: row.event_name, event_date: row.date }).in('id', stale.map(s => s.id))
+      setShifts(prev => prev.map(s => stale.some(x => x.id === s.id) ? { ...s, event_title: row.event_name, event_date: row.date } : s))
+    }
+    const existingMembers = new Set(existing.map(s => s.member_id))
+    const roleLabel = cat => cat === 'bar' ? 'בר / קופה' : cat === 'evening' ? 'ניהול ערב' : 'אחר'
+    const toInsert = selectedSlots.filter(s => !existingMembers.has(s.member_id)).map(s => ({
+      event_id: row.event_id, event_title: row.event_name, event_date: row.date, member_id: s.member_id, role: roleLabel(s.category)
+    }))
+    if (!toInsert.length) { alert('כל הנבחרים כבר נמצאים בסידור העבודה לאירוע הזה.'); return }
+    const { data, error } = await supabase.from('operations_shifts').insert(toInsert).select()
+    if (error) { alert('שגיאה: ' + error.message); return }
+    if (data) setShifts(prev => [...prev, ...data])
+    alert('הועברו ' + toInsert.length + ' אנשי צוות לסידור העבודה.')
+  }
+
   async function updateShiftRole(id, role) {
     await supabase.from('operations_shifts').update({ role }).eq('id', id)
     setShifts(prev => prev.map(s => s.id === id ? { ...s, role } : s))
@@ -596,6 +625,12 @@ export default function OperationsPage() {
                             className="w-12 text-center bg-gray-50 rounded outline-none focus:bg-gray-100 text-[12px]"/>
                         ) : (row.time && <span className="whitespace-nowrap">{row.time}</span>)}
                       </div>
+                      {isManager && (
+                        <button onClick={() => transferToShifts(row)}
+                          className="mt-1.5 text-[11px] bg-[#E0197D] text-white px-2.5 py-1 rounded-lg hover:bg-[#A0106A] flex items-center gap-1 w-max">
+                          <i className="ti ti-arrow-left" style={{fontSize:12}}/> העבר לסידור עבודה
+                        </button>
+                      )}
                     </div>
                     {isManager && (
                       <div className="flex items-center gap-1 flex-shrink-0">
@@ -640,6 +675,14 @@ export default function OperationsPage() {
                       </div>
                     )
                   })}
+                  <div className="px-4 py-2.5 flex-1 min-w-[220px]">
+                    <div className="text-[11px] font-semibold text-gray-400 text-right mb-1.5">הערות</div>
+                    {isManager ? (
+                      <textarea key={row.id + '-bnotes'} defaultValue={row.notes || ''} onBlur={e => updateBoardRow(row.id, 'notes', e.target.value)}
+                        placeholder="הערות חופשי..." rows={2} dir="rtl"
+                        className="w-full text-[13px] px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] resize-none bg-gray-50 text-right"/>
+                    ) : (row.notes && <div className="text-[13px] text-gray-600 text-right whitespace-pre-wrap">{row.notes}</div>)}
+                  </div>
                 </div>
               </div>
             ))
@@ -931,12 +974,12 @@ export default function OperationsPage() {
           {(() => {
             const grouped = {}
             shifts.forEach(s => {
-              const key = s.event_id
+              const key = s.event_id || (s.event_title + '|' + s.event_date)
               if (!grouped[key]) grouped[key] = { event_title: s.event_title, event_date: s.event_date, items: [] }
               grouped[key].items.push(s)
             })
-            const groups = Object.values(grouped)
-            if (groups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">אין סידור עבודה עדיין. בחר עובדים מטאב הפניות</div>
+            const groups = Object.values(grouped).sort((a, b) => (a.event_date || '').localeCompare(b.event_date || ''))
+            if (groups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">אין סידור עבודה עדיין. בחר נבחרים בשיבוץ תפעול ולחץ "העבר לסידור עבודה"</div>
             return groups.map((g, gi) => (
               <div key={gi} className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-3">
                 <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between flex-row-reverse">
@@ -946,7 +989,7 @@ export default function OperationsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="text-[11px] text-gray-400">{g.items.length} עובדים</div>
-                    {isManager && <button onClick={() => deleteEventShifts(g.items[0]?.event_id)}
+                    {isManager && <button onClick={() => deleteShiftGroup(g.items)}
                       className="text-gray-300 hover:text-red-500 p-1">
                       <i className="ti ti-trash" style={{fontSize:13}}/>
                     </button>}
