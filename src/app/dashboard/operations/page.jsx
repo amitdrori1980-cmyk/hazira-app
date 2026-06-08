@@ -886,9 +886,9 @@ export default function OperationsPage() {
       )}
 
       {tab === 'team' && isManager && (
-        <div className="max-w-xl">
+        <div>
           {/* sub-tabs */}
-          <div className="flex flex-row-reverse gap-1 mb-4 bg-gray-100 rounded-xl p-1">
+          <div className="flex flex-row-reverse gap-1 mb-4 bg-gray-100 rounded-xl p-1 max-w-xl">
             <button onClick={() => setTeamSubTab('inquiry')}
               className={`flex-1 text-[12px] py-1.5 rounded-lg font-medium transition-colors ${teamSubTab === 'inquiry' ? 'bg-white text-[#E0197D] shadow-sm' : 'text-gray-500'}`}>
               בדיקת פניות
@@ -947,7 +947,7 @@ export default function OperationsPage() {
             </div>
           )}
           {teamSubTab === 'crew' && (
-        <div>
+        <div className="max-w-4xl">
           <div className="bg-white border border-gray-100 rounded-xl overflow-x-auto">
             <table className="w-full text-[13px] text-right" dir="rtl">
               <thead>
