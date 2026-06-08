@@ -428,18 +428,14 @@ export default function OperationsPage() {
                   <div className="px-2 py-2 border-l border-gray-100 text-center text-gray-500 min-w-[34px] flex items-center justify-center">{dayName(row.date)}</div>
                   <div className="px-1 py-2 border-l border-gray-100 min-w-[58px] flex items-center justify-center">
                     <input value={row.time || ''} onChange={e => updateBoardRow(row.id, 'time', e.target.value)} disabled={!isManager} placeholder="שעה" dir="rtl"
-                      className="w-full text-center bg-transparent outline-none disabled:text-gray-500 focus:bg-gray-50 rounded"/>
-                  </div>
-                  <div className="px-1 py-2 border-l border-gray-100 min-w-[64px] flex items-center justify-center">
-                    <input value={row.bar_open_time || ''} onChange={e => updateBoardRow(row.id, 'bar_open_time', e.target.value)} disabled={!isManager} placeholder="בר/קופה" dir="rtl"
-                      className="w-full text-center bg-transparent outline-none disabled:text-gray-500 focus:bg-gray-50 rounded text-[11px]"/>
+                      className="w-full text-center bg-transparent outline-none disabled:text-gray-700 focus:bg-gray-50 rounded text-[14px]"/>
                   </div>
                   {BOARD_CATS.map(cat => {
                     const slots = boardSlots.filter(s => s.row_id === row.id && s.category === cat.key).sort((a, b) => a.position - b.position)
                     return (
                       <div key={cat.key} className="px-2 py-1.5 border-l border-gray-100 min-w-[110px]">
-                        <div className="text-[9px] font-semibold text-gray-400 text-center mb-1">{cat.label}</div>
-                        <div className="flex flex-row-reverse flex-wrap gap-1 justify-center">
+                        <div className="text-[11px] font-semibold text-gray-400 text-right mb-1.5">{cat.label}</div>
+                        <div className="flex flex-row-reverse flex-wrap gap-1.5 justify-start">
                           {slots.map(slot => {
                             const member = crew.find(c => c.id === slot.member_id)
                             const canOpen = isManager || (myMember && slot.member_id === myMember.id)
@@ -448,14 +444,14 @@ export default function OperationsPage() {
                               : 'bg-gray-100 text-gray-600'
                             return (
                               <button key={slot.id} disabled={!canOpen} onClick={() => setColorMenu(slot)}
-                                className={`px-2 py-1 rounded text-[11px] whitespace-nowrap ${bg} ${slot.selected ? 'ring-2 ring-[#E0197D]' : ''} ${canOpen ? 'hover:opacity-80' : ''}`}>
+                                className={`px-2.5 py-1 rounded text-[14px] whitespace-nowrap ${bg} ${slot.selected ? 'ring-2 ring-[#E0197D]' : ''} ${canOpen ? 'hover:opacity-80' : ''}`}>
                                 {member ? member.full_name.split(' ')[0] : 'בחר'}
                               </button>
                             )
                           })}
                           {isManager && (
                             <button onClick={() => addSlot(row.id, cat.key)}
-                              className="px-2 py-1 rounded text-[11px] border border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
+                              className="px-2.5 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
                           )}
                         </div>
                       </div>
