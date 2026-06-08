@@ -1,10 +1,12 @@
 'use client'
 import { useEffect, useState } from 'react'
+import * as XLSX from 'xlsx'
 import { supabase } from '@/lib/supabase'
 
 export default function OperationsPage() {
   const [tab, setTab] = useState('team')
   const [crew, setCrew] = useState([])
+  const [importingCrew, setImportingCrew] = useState(false)
   const [events, setEvents] = useState([])
   const [selectedEvent, setSelectedEvent] = useState('')
   const [selectedCrew, setSelectedCrew] = useState({})
@@ -139,6 +141,51 @@ export default function OperationsPage() {
     if (!confirm('להסיר מהרשימה?')) return
     await supabase.from('operations_crew').update({ active: false }).eq('id', id)
     setCrew(prev => prev.filter(c => c.id !== id))
+  }
+
+  async function importCrewExcel(e) {
+    const file = e.target.files?.[0]; e.target.value = ''
+    if (!file) return
+    setImportingCrew(true)
+    try {
+      const buf = await file.arrayBuffer()
+      const wb = XLSX.read(buf, { type: 'array' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }).filter(r => r.some(c => String(c).trim() !== ''))
+      if (rows.length < 2) { alert('הקובץ ריק או חסר נתונים'); setImportingCrew(false); return }
+      const header = rows[0].map(h => String(h).trim())
+      let ci = {
+        first: header.findIndex(h => h.includes('שם') && !h.includes('משפחה')),
+        last: header.findIndex(h => h.includes('משפחה')),
+        r1: header.findIndex(h => h.includes('תפקיד 1') || h === 'תפקיד'),
+        r2: header.findIndex(h => h.includes('תפקיד 2')),
+        r3: header.findIndex(h => h.includes('תפקיד 3')),
+        email: header.findIndex(h => h.includes('מייל') || h.includes('אימייל') || h.toLowerCase().includes('mail')),
+        password: header.findIndex(h => h.includes('סיסמה') || h.toLowerCase().includes('pass'))
+      }
+      let dataRows
+      if (ci.email === -1 || ci.first === -1) { ci = { first: 0, last: 1, r1: 2, r2: 3, r3: 4, email: 5, password: 6 }; dataRows = rows }
+      else { dataRows = rows.slice(1) }
+      const get = (r, i) => i >= 0 ? String(r[i] || '').trim() : ''
+      let ok = 0, fail = 0, skipped = 0
+      const added = []
+      for (const r of dataRows) {
+        const full_name = [get(r, ci.first), get(r, ci.last)].filter(Boolean).join(' ')
+        const role = [get(r, ci.r1), get(r, ci.r2), get(r, ci.r3)].filter(Boolean).join(', ')
+        const email = get(r, ci.email), password = get(r, ci.password)
+        if (!full_name || !email || !password) { skipped++; continue }
+        try {
+          const res = await fetch('/api/create-crew-user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ full_name, role, email, password }) })
+          const json = await res.json()
+          if (json.error) { fail++ } else { added.push(json.member); ok++ }
+        } catch { fail++ }
+      }
+      if (added.length) setCrew(prev => [...prev, ...added])
+      alert('יובאו ' + ok + ' אנשי צוות.' + (skipped ? ' דולגו ' + skipped + ' (חסר שם/מייל/סיסמה).' : '') + (fail ? ' נכשלו ' + fail + '.' : ''))
+    } catch (err) {
+      alert('שגיאה בקריאת הקובץ: ' + err.message)
+    }
+    setImportingCrew(false)
   }
 
   async function toggleShift(inq) {
@@ -948,10 +995,17 @@ export default function OperationsPage() {
           )}
           {teamSubTab === 'crew' && (
         <div className="max-w-4xl">
+          <div className="flex items-center justify-between mb-3 flex-row-reverse">
+            <label className={`text-[13px] px-4 py-2 rounded-lg flex items-center gap-1.5 ${importingCrew ? 'bg-gray-200 text-gray-400' : 'bg-[#E0197D] text-white hover:bg-[#A0106A] cursor-pointer'}`}>
+              <i className="ti ti-file-spreadsheet" style={{fontSize:14}}/> {importingCrew ? 'מייבא...' : 'ייבוא מאקסל'}
+              <input type="file" accept=".xlsx,.xls" className="hidden" onChange={importCrewExcel} disabled={importingCrew}/>
+            </label>
+            <div className="text-[12px] text-gray-400">{crew.length} אנשי צוות</div>
+          </div>
           <div className="bg-white border border-gray-100 rounded-xl overflow-x-auto">
             <table className="w-full text-[13px] text-right" dir="rtl">
               <thead>
-                <tr className="bg-gray-50 text-gray-500 text-[12px]">
+                <tr className="bg-gray-50 text-gray-500 text-[13px]">
                   <th className="px-3 py-2 font-semibold">שם</th>
                   <th className="px-3 py-2 font-semibold">שם משפחה</th>
                   <th className="px-3 py-2 font-semibold">תפקיד 1</th>
@@ -967,11 +1021,11 @@ export default function OperationsPage() {
                   const f = memberFields(member)
                   return (
                     <tr key={member.id} className="border-t border-gray-100">
-                      <td className="px-2 py-1"><input value={f.first} onChange={e => editMember(member.id, 'first', e.target.value)} onBlur={() => persistMember(member)} className="w-24 px-2 py-1 rounded outline-none focus:bg-gray-50" dir="rtl"/></td>
-                      <td className="px-2 py-1"><input value={f.last} onChange={e => editMember(member.id, 'last', e.target.value)} onBlur={() => persistMember(member)} className="w-24 px-2 py-1 rounded outline-none focus:bg-gray-50" dir="rtl"/></td>
-                      <td className="px-2 py-1"><input value={f.r1} onChange={e => editMember(member.id, 'r1', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded outline-none focus:bg-gray-50" dir="rtl"/></td>
-                      <td className="px-2 py-1"><input value={f.r2} onChange={e => editMember(member.id, 'r2', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded outline-none focus:bg-gray-50" dir="rtl"/></td>
-                      <td className="px-2 py-1"><input value={f.r3} onChange={e => editMember(member.id, 'r3', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded outline-none focus:bg-gray-50" dir="rtl"/></td>
+                      <td className="px-2 py-1"><input value={f.first} onChange={e => editMember(member.id, 'first', e.target.value)} onBlur={() => persistMember(member)} className="w-24 px-2 py-1 rounded outline-none focus:bg-gray-50 text-[13px]" dir="rtl"/></td>
+                      <td className="px-2 py-1"><input value={f.last} onChange={e => editMember(member.id, 'last', e.target.value)} onBlur={() => persistMember(member)} className="w-24 px-2 py-1 rounded outline-none focus:bg-gray-50 text-[13px]" dir="rtl"/></td>
+                      <td className="px-2 py-1"><input value={f.r1} onChange={e => editMember(member.id, 'r1', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded outline-none focus:bg-gray-50 text-[13px]" dir="rtl"/></td>
+                      <td className="px-2 py-1"><input value={f.r2} onChange={e => editMember(member.id, 'r2', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded outline-none focus:bg-gray-50 text-[13px]" dir="rtl"/></td>
+                      <td className="px-2 py-1"><input value={f.r3} onChange={e => editMember(member.id, 'r3', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded outline-none focus:bg-gray-50 text-[13px]" dir="rtl"/></td>
                       <td className="px-3 py-1 text-gray-500 whitespace-nowrap">{member.email || '—'}</td>
                       <td className="px-3 py-1 text-gray-300">••••••</td>
                       <td className="px-2 py-1"><button onClick={() => removeMember(member.id)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:13}}/></button></td>
@@ -979,14 +1033,14 @@ export default function OperationsPage() {
                   )
                 })}
                 <tr className="border-t-2 border-gray-200 bg-gray-50">
-                  <td className="px-2 py-1.5"><input value={newMember.first_name} onChange={e => setNewMember(v => ({ ...v, first_name: e.target.value }))} placeholder="שם" className="w-24 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D]" dir="rtl"/></td>
-                  <td className="px-2 py-1.5"><input value={newMember.last_name} onChange={e => setNewMember(v => ({ ...v, last_name: e.target.value }))} placeholder="שם משפחה" className="w-24 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D]" dir="rtl"/></td>
-                  <td className="px-2 py-1.5"><input value={newMember.role1} onChange={e => setNewMember(v => ({ ...v, role1: e.target.value }))} placeholder="תפקיד 1" className="w-20 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D]" dir="rtl"/></td>
-                  <td className="px-2 py-1.5"><input value={newMember.role2} onChange={e => setNewMember(v => ({ ...v, role2: e.target.value }))} placeholder="תפקיד 2" className="w-20 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D]" dir="rtl"/></td>
-                  <td className="px-2 py-1.5"><input value={newMember.role3} onChange={e => setNewMember(v => ({ ...v, role3: e.target.value }))} placeholder="תפקיד 3" className="w-20 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D]" dir="rtl"/></td>
-                  <td className="px-2 py-1.5"><input value={newMember.email} onChange={e => setNewMember(v => ({ ...v, email: e.target.value }))} placeholder="מייל *" className="w-40 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D]" dir="rtl"/></td>
-                  <td className="px-2 py-1.5"><input type="password" value={newMember.password} onChange={e => setNewMember(v => ({ ...v, password: e.target.value }))} placeholder="סיסמה *" className="w-28 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D]" dir="rtl"/></td>
-                  <td className="px-2 py-1.5"><button onClick={addMember} disabled={adding} className="text-[12px] bg-[#E0197D] text-white px-3 py-1.5 rounded-lg disabled:opacity-50 whitespace-nowrap">{adding ? '...' : 'הוסף'}</button></td>
+                  <td className="px-2 py-1.5"><input value={newMember.first_name} onChange={e => setNewMember(v => ({ ...v, first_name: e.target.value }))} placeholder="שם" className="w-24 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><input value={newMember.last_name} onChange={e => setNewMember(v => ({ ...v, last_name: e.target.value }))} placeholder="שם משפחה" className="w-24 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><input value={newMember.role1} onChange={e => setNewMember(v => ({ ...v, role1: e.target.value }))} placeholder="תפקיד 1" className="w-20 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><input value={newMember.role2} onChange={e => setNewMember(v => ({ ...v, role2: e.target.value }))} placeholder="תפקיד 2" className="w-20 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><input value={newMember.role3} onChange={e => setNewMember(v => ({ ...v, role3: e.target.value }))} placeholder="תפקיד 3" className="w-20 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><input value={newMember.email} onChange={e => setNewMember(v => ({ ...v, email: e.target.value }))} placeholder="מייל *" className="w-40 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><input type="password" value={newMember.password} onChange={e => setNewMember(v => ({ ...v, password: e.target.value }))} placeholder="סיסמה *" className="w-28 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><button onClick={addMember} disabled={adding} className="text-[13px] bg-[#E0197D] text-white px-3 py-1.5 rounded-lg disabled:opacity-50 whitespace-nowrap">{adding ? '...' : 'הוסף'}</button></td>
                 </tr>
               </tbody>
             </table>
