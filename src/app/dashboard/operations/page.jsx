@@ -33,6 +33,7 @@ export default function OperationsPage() {
   const [boardAddFor, setBoardAddFor] = useState(false)
   const [boardImportSearch, setBoardImportSearch] = useState('')
   const [boardManual, setBoardManual] = useState({ event_name: '', date: '' })
+  const [colorMenu, setColorMenu] = useState(null)
 
   useEffect(() => { load() }, [])
 
@@ -415,77 +416,46 @@ export default function OperationsPage() {
           {(() => {
             const rows = isManager ? boardRows : boardRows.filter(r => boardSlots.some(s => s.row_id === r.id && s.member_id === myMember?.id))
             if (rows.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין שורות — לחץ "הוסף שורה"' : 'אין שיבוצים עבורך'}</div>
+            const shortDate = ds => { if (!ds) return ''; const [y, m, d] = ds.split('-'); return `${+d}/${+m}` }
             return rows.map(row => (
-              <div key={row.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-3">
-                <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between flex-row-reverse gap-2">
-                  <div className="text-right min-w-0">
-                    <div className="text-[14px] font-semibold text-gray-800 truncate">{row.event_name}</div>
-                    <div className="text-[11px] text-gray-400 flex gap-2 justify-end flex-wrap">
-                      {row.date && <span>{fmtDate(row.date)}</span>}
-                      {row.date && <span>יום {dayName(row.date)}</span>}
-                    </div>
+              <div key={row.id} className="bg-white border border-gray-100 rounded-xl overflow-x-auto mb-2">
+                <div className="flex flex-row-reverse items-stretch min-w-max text-[12px]">
+                  <div className="px-3 py-2 border-l border-gray-100 text-right min-w-[130px] flex items-center justify-between gap-1">
+                    <span className="font-semibold text-gray-800 truncate">{row.event_name}</span>
+                    {isManager && <button onClick={() => deleteBoardRow(row.id)} className="text-gray-300 hover:text-red-500 flex-shrink-0"><i className="ti ti-trash" style={{fontSize:13}}/></button>}
                   </div>
-                  {isManager && <button onClick={() => deleteBoardRow(row.id)} className="text-gray-300 hover:text-red-500 flex-shrink-0"><i className="ti ti-trash" style={{fontSize:14}}/></button>}
-                </div>
-                <div className="px-4 py-2 border-b border-gray-50 flex gap-3 justify-end flex-wrap text-[12px]">
-                  <label className="flex items-center gap-1 flex-row-reverse text-gray-500">שעה
-                    <input value={row.time || ''} onChange={e => updateBoardRow(row.id, 'time', e.target.value)} disabled={!isManager} placeholder="--:--" dir="rtl"
-                      className="w-20 text-right bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none focus:border-[#E0197D] disabled:bg-transparent disabled:border-transparent"/>
-                  </label>
-                  <label className="flex items-center gap-1 flex-row-reverse text-gray-500">פתיחת בר/קופה
-                    <input value={row.bar_open_time || ''} onChange={e => updateBoardRow(row.id, 'bar_open_time', e.target.value)} disabled={!isManager} placeholder="--:--" dir="rtl"
-                      className="w-20 text-right bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none focus:border-[#E0197D] disabled:bg-transparent disabled:border-transparent"/>
-                  </label>
-                </div>
-                <div className="p-3 flex flex-col gap-3">
+                  <div className="px-2 py-2 border-l border-gray-100 text-center text-gray-500 min-w-[52px] flex items-center justify-center">{shortDate(row.date)}</div>
+                  <div className="px-2 py-2 border-l border-gray-100 text-center text-gray-500 min-w-[34px] flex items-center justify-center">{dayName(row.date)}</div>
+                  <div className="px-1 py-2 border-l border-gray-100 min-w-[58px] flex items-center justify-center">
+                    <input value={row.time || ''} onChange={e => updateBoardRow(row.id, 'time', e.target.value)} disabled={!isManager} placeholder="שעה" dir="rtl"
+                      className="w-full text-center bg-transparent outline-none disabled:text-gray-500 focus:bg-gray-50 rounded"/>
+                  </div>
+                  <div className="px-1 py-2 border-l border-gray-100 min-w-[64px] flex items-center justify-center">
+                    <input value={row.bar_open_time || ''} onChange={e => updateBoardRow(row.id, 'bar_open_time', e.target.value)} disabled={!isManager} placeholder="בר/קופה" dir="rtl"
+                      className="w-full text-center bg-transparent outline-none disabled:text-gray-500 focus:bg-gray-50 rounded text-[11px]"/>
+                  </div>
                   {BOARD_CATS.map(cat => {
                     const slots = boardSlots.filter(s => s.row_id === row.id && s.category === cat.key).sort((a, b) => a.position - b.position)
                     return (
-                      <div key={cat.key}>
-                        <div className="text-[11px] font-semibold text-gray-500 mb-1.5 text-right">{cat.label}</div>
-                        <div className="flex flex-wrap gap-1.5 justify-end">
+                      <div key={cat.key} className="px-2 py-1.5 border-l border-gray-100 min-w-[110px]">
+                        <div className="text-[9px] font-semibold text-gray-400 text-center mb-1">{cat.label}</div>
+                        <div className="flex flex-row-reverse flex-wrap gap-1 justify-center">
                           {slots.map(slot => {
                             const member = crew.find(c => c.id === slot.member_id)
-                            const mine = myMember && slot.member_id === myMember.id
-                            const bg = slot.status === 'approved' ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                              : slot.status === 'rejected' ? 'bg-red-100 text-red-700 border-red-300'
-                              : 'bg-gray-50 text-gray-600 border-gray-200'
+                            const canOpen = isManager || (myMember && slot.member_id === myMember.id)
+                            const bg = slot.status === 'approved' ? 'bg-yellow-200 text-yellow-900'
+                              : slot.status === 'rejected' ? 'bg-red-200 text-red-800'
+                              : 'bg-gray-100 text-gray-600'
                             return (
-                              <div key={slot.id} className={`border rounded-lg px-2 py-1.5 flex flex-col items-center gap-1 min-w-[88px] ${bg} ${slot.selected ? 'ring-2 ring-[#E0197D]' : ''}`}>
-                                {isManager ? (
-                                  <select value={slot.member_id || ''} onChange={e => setSlotMember(slot.id, e.target.value)} dir="rtl"
-                                    className="bg-transparent outline-none text-[12px] text-center font-medium w-full">
-                                    <option value="">בחר...</option>
-                                    {crew.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
-                                  </select>
-                                ) : (
-                                  <div className="text-[12px] font-medium text-center">{member?.full_name || '—'}</div>
-                                )}
-                                {mine ? (
-                                  <div className="flex gap-1">
-                                    <button onClick={() => setSlotStatus(slot.id, slot.status === 'approved' ? 'none' : 'approved')} title="אישור"
-                                      className="w-5 h-5 rounded-full bg-yellow-400 border border-yellow-500 hover:scale-110 transition-transform"/>
-                                    <button onClick={() => setSlotStatus(slot.id, slot.status === 'rejected' ? 'none' : 'rejected')} title="דחייה"
-                                      className="w-5 h-5 rounded-full bg-red-500 border border-red-600 hover:scale-110 transition-transform"/>
-                                  </div>
-                                ) : (
-                                  <div className="text-[10px]">{slot.status === 'approved' ? 'אישר/ה' : slot.status === 'rejected' ? 'דחה/תה' : 'ממתין/ה'}</div>
-                                )}
-                                {isManager && (
-                                  <div className="flex gap-1 items-center">
-                                    <button onClick={() => toggleSelected(slot)} title="נבחר"
-                                      className={`text-[9px] px-1.5 py-0.5 rounded border ${slot.selected ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'text-gray-400 border-gray-300 hover:border-[#E0197D]'}`}>
-                                      {slot.selected ? '✓ נבחר' : 'בחר'}
-                                    </button>
-                                    <button onClick={() => removeSlot(slot.id)} className="text-gray-300 hover:text-red-500"><i className="ti ti-x" style={{fontSize:11}}/></button>
-                                  </div>
-                                )}
-                              </div>
+                              <button key={slot.id} disabled={!canOpen} onClick={() => setColorMenu(slot)}
+                                className={`px-2 py-1 rounded text-[11px] whitespace-nowrap ${bg} ${slot.selected ? 'ring-2 ring-[#E0197D]' : ''} ${canOpen ? 'hover:opacity-80' : ''}`}>
+                                {member ? member.full_name.split(' ')[0] : 'בחר'}
+                              </button>
                             )
                           })}
                           {isManager && (
                             <button onClick={() => addSlot(row.id, cat.key)}
-                              className="border border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D] rounded-lg px-3 py-1.5 text-[12px] min-w-[88px]">+ הוסף</button>
+                              className="px-2 py-1 rounded text-[11px] border border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
                           )}
                         </div>
                       </div>
@@ -495,6 +465,55 @@ export default function OperationsPage() {
               </div>
             ))
           })()}
+
+          {colorMenu && (
+            <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setColorMenu(null)}>
+              <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs p-5" onClick={e => e.stopPropagation()} dir="rtl">
+                <div className="text-[13px] font-semibold text-gray-700 text-center mb-4">
+                  {crew.find(c => c.id === colorMenu.member_id)?.full_name || 'משבצת ריקה'}
+                </div>
+                {isManager && (
+                  <div className="mb-4">
+                    <div className="text-[11px] text-gray-400 mb-1">שיוך אדם</div>
+                    <select value={colorMenu.member_id || ''} onChange={e => { const v = e.target.value || null; setSlotMember(colorMenu.id, e.target.value); setColorMenu(m => ({ ...m, member_id: v, status: 'none', selected: false })) }}
+                      className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]">
+                      <option value="">בחר...</option>
+                      {crew.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+                    </select>
+                  </div>
+                )}
+                {(isManager || (myMember && colorMenu.member_id === myMember.id)) && (
+                  <>
+                    <div className="text-[11px] text-gray-400 mb-2 text-center">בחר/י סטטוס</div>
+                    <div className="flex justify-center gap-5 mb-1">
+                      <button onClick={() => { setSlotStatus(colorMenu.id, 'approved'); setColorMenu(null) }} title="אישור"
+                        className="w-12 h-12 rounded-full bg-yellow-400 border-2 border-yellow-500 hover:scale-110 transition-transform"/>
+                      <button onClick={() => { setSlotStatus(colorMenu.id, 'rejected'); setColorMenu(null) }} title="דחייה"
+                        className="w-12 h-12 rounded-full bg-red-500 border-2 border-red-600 hover:scale-110 transition-transform"/>
+                      <button onClick={() => { setSlotStatus(colorMenu.id, 'none'); setColorMenu(null) }} title="נקה"
+                        className="w-12 h-12 rounded-full bg-white border-2 border-gray-300 hover:scale-110 transition-transform"/>
+                    </div>
+                    <div className="flex justify-center gap-5 text-[10px] text-gray-400">
+                      <span className="w-12 text-center">אישור</span>
+                      <span className="w-12 text-center">דחייה</span>
+                      <span className="w-12 text-center">נקה</span>
+                    </div>
+                  </>
+                )}
+                {isManager && (
+                  <div className="flex gap-2 mt-4">
+                    <button onClick={() => { toggleSelected(colorMenu); setColorMenu(m => ({ ...m, selected: !m.selected })) }}
+                      className={`flex-1 text-[12px] py-2 rounded-lg border ${colorMenu.selected ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'text-gray-500 border-gray-300'}`}>
+                      {colorMenu.selected ? '✓ נבחר' : 'סמן כנבחר'}
+                    </button>
+                    <button onClick={() => { removeSlot(colorMenu.id); setColorMenu(null) }}
+                      className="text-[12px] py-2 px-3 rounded-lg border border-gray-300 text-red-500">הסר</button>
+                  </div>
+                )}
+                <button onClick={() => setColorMenu(null)} className="w-full mt-3 text-[12px] text-gray-400 hover:text-gray-600">סגור</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
