@@ -12,7 +12,7 @@ export default function OperationsPage() {
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(true)
   const [isManager, setIsManager] = useState(false)
-  const [newMember, setNewMember] = useState({ full_name: '', role: '', phone: '', email: '', password: '' })
+  const [newMember, setNewMember] = useState({ first_name: '', last_name: '', role1: '', role2: '', role3: '', email: '', password: '' })
   const [adding, setAdding] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [inquiries, setInquiries] = useState([])
@@ -97,17 +97,41 @@ export default function OperationsPage() {
     return d.toLocaleDateString('he-IL') + ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
   }
 
+  function memberFields(m) {
+    const parts = (m.full_name || '').trim().split(' ')
+    const roles = (m.role || '').split(',').map(s => s.trim())
+    return { first: parts[0] || '', last: parts.slice(1).join(' '), r1: roles[0] || '', r2: roles[1] || '', r3: roles[2] || '' }
+  }
+  function composeMember(f) {
+    return {
+      full_name: [f.first, f.last].map(s => (s || '').trim()).filter(Boolean).join(' '),
+      role: [f.r1, f.r2, f.r3].map(s => (s || '').trim()).filter(Boolean).join(', ')
+    }
+  }
+  function editMember(id, key, value) {
+    setCrew(prev => prev.map(m => {
+      if (m.id !== id) return m
+      const f = memberFields(m); f[key] = value
+      return { ...m, ...composeMember(f) }
+    }))
+  }
+  async function persistMember(m) {
+    await supabase.from('operations_crew').update({ full_name: m.full_name, role: m.role }).eq('id', m.id)
+  }
+
   async function addMember() {
-    if (!newMember.full_name.trim() || !newMember.email || !newMember.password) return alert('שם, אימייל וסיסמה הם שדות חובה')
+    const full_name = [newMember.first_name, newMember.last_name].map(s => s.trim()).filter(Boolean).join(' ')
+    const role = [newMember.role1, newMember.role2, newMember.role3].map(s => s.trim()).filter(Boolean).join(', ')
+    if (!full_name || !newMember.email || !newMember.password) return alert('שם, מייל וסיסמה הם שדות חובה')
     setAdding(true)
     const res = await fetch('/api/create-crew-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newMember)
+      body: JSON.stringify({ full_name, role, email: newMember.email, password: newMember.password })
     })
     const json = await res.json()
     if (json.error) { alert('שגיאה: ' + json.error) }
-    else { setCrew(prev => [...prev, json.member]); setNewMember({ full_name: '', role: '', phone: '', email: '', password: '' }); setShowAdd(false) }
+    else { setCrew(prev => [...prev, json.member]); setNewMember({ first_name: '', last_name: '', role1: '', role2: '', role3: '', email: '', password: '' }) }
     setAdding(false)
   }
 
@@ -248,13 +272,36 @@ export default function OperationsPage() {
 
   const BOARD_CATS = [{ key: 'bar', label: 'בר / קופה', min: 5, w: 'w-[380px]' }, { key: 'evening', label: 'ניהול ערב', min: 3, w: 'w-[240px]' }, { key: 'other', label: 'אחר', min: 2, w: 'w-[172px]' }]
 
+  function catForRole(role) {
+    const r = (role || '')
+    if (r.includes('ניהול') || r.includes('ערב')) return 'evening'
+    if (r.includes('קופ') || r.includes('בר')) return 'bar'
+    return null
+  }
+
+  function roleSlotsFor(rowId) {
+    const byCat = { bar: [], evening: [] }
+    crew.forEach(c => { const cat = catForRole(c.role); if (cat) byCat[cat].push(c) })
+    const slots = []
+    Object.keys(byCat).forEach(cat => byCat[cat].forEach((c, i) => slots.push({ row_id: rowId, category: cat, position: i, member_id: c.id, status: 'none', selected: false })))
+    return slots
+  }
+
+  async function autoFillRowSlots(rowIds) {
+    const ids = Array.isArray(rowIds) ? rowIds : [rowIds]
+    const slotRows = ids.flatMap(id => roleSlotsFor(id))
+    if (!slotRows.length) return
+    const { data } = await supabase.from('operations_board_slots').insert(slotRows).select()
+    if (data) setBoardSlots(prev => [...prev, ...data])
+  }
+
   async function addBoardRow({ event_id = null, event_name, date = null, time = '' }) {
     const { data: { user } } = await supabase.auth.getUser()
     const { data, error } = await supabase.from('operations_board_rows').insert({
       event_id, event_name, date, time, bar_open_time: '', created_by: user?.id
     }).select().single()
     if (error) { alert('שגיאה: ' + error.message); return }
-    if (data) setBoardRows(prev => [...prev, data])
+    if (data) { setBoardRows(prev => [...prev, data]); await autoFillRowSlots(data.id) }
     setBoardAddFor(false); setBoardImportSearch(''); setBoardManual({ event_name: '', date: '' })
   }
 
@@ -270,7 +317,7 @@ export default function OperationsPage() {
     const rows = toAdd.map(ev => ({ event_id: ev.id, event_name: ev.title, date: ev.date, time: ev.time || '', bar_open_time: '', created_by: user?.id }))
     const { data, error } = await supabase.from('operations_board_rows').insert(rows).select()
     if (error) { alert('שגיאה: ' + error.message); return }
-    if (data) setBoardRows(prev => [...prev, ...data])
+    if (data) { setBoardRows(prev => [...prev, ...data]); await autoFillRowSlots(data.map(r => r.id)) }
     setBoardAddFor(false); setBoardRange({ from: '', to: '' })
   }
 
@@ -900,50 +947,51 @@ export default function OperationsPage() {
             </div>
           )}
           {teamSubTab === 'crew' && (
-        <div className="max-w-xl">
-          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-4">
-            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-              <button onClick={() => setShowAdd(!showAdd)}
-                className="text-[12px] text-[#E0197D] flex items-center gap-1">
-                <i className="ti ti-plus" style={{fontSize:13}}/> הוסף
-              </button>
-              <div className="text-[12px] font-semibold text-gray-700">צוות תפעול</div>
-            </div>
-            {showAdd && (
-              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex flex-col gap-2">
-                <input value={newMember.full_name} onChange={e => setNewMember(v=>({...v,full_name:e.target.value}))}
-                  placeholder="שם מלא *" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D]" dir="rtl"/>
-                <input value={newMember.role} onChange={e => setNewMember(v=>({...v,role:e.target.value}))}
-                  placeholder="תפקיד" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none" dir="rtl"/>
-                <input value={newMember.phone} onChange={e => setNewMember(v=>({...v,phone:e.target.value}))}
-                  placeholder="טלפון" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none" dir="rtl"/>
-                <input value={newMember.email} onChange={e => setNewMember(v=>({...v,email:e.target.value}))}
-                  placeholder="אימייל *" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none" dir="rtl"/>
-                <input type="password" value={newMember.password} onChange={e => setNewMember(v=>({...v,password:e.target.value}))}
-                  placeholder="סיסמה *" className="text-sm px-3 py-2 border border-gray-200 rounded-lg outline-none" dir="rtl"/>
-                <div className="flex gap-2 justify-end">
-                  <button onClick={() => setShowAdd(false)} className="text-sm text-gray-400 px-3 py-1.5">ביטול</button>
-                  <button onClick={addMember} disabled={adding}
-                    className="text-sm bg-[#E0197D] text-white px-4 py-1.5 rounded-lg">הוסף</button>
-                </div>
-              </div>
-            )}
-            {crew.length === 0 && !showAdd && (
-              <div className="text-center text-[13px] text-gray-400 py-6">אין אנשי צוות עדיין</div>
-            )}
-            {crew.map(member => (
-              <div key={member.id} className="flex items-center justify-between px-4 py-3 border-b border-gray-50 last:border-0 flex-row-reverse">
-                <div className="text-right">
-                  <div className="text-[13px] font-medium text-gray-700">{member.full_name}</div>
-                  {member.role && <div className="text-[11px] text-gray-400">{member.role}</div>}
-                  {member.phone && <div className="text-[11px] text-gray-400">{member.phone}</div>}
-                </div>
-                <button onClick={() => removeMember(member.id)} className="text-gray-300 hover:text-red-500">
-                  <i className="ti ti-trash" style={{fontSize:13}}/>
-                </button>
-              </div>
-            ))}
+        <div>
+          <div className="bg-white border border-gray-100 rounded-xl overflow-x-auto">
+            <table className="w-full text-[13px] text-right" dir="rtl">
+              <thead>
+                <tr className="bg-gray-50 text-gray-500 text-[12px]">
+                  <th className="px-3 py-2 font-semibold">שם</th>
+                  <th className="px-3 py-2 font-semibold">שם משפחה</th>
+                  <th className="px-3 py-2 font-semibold">תפקיד 1</th>
+                  <th className="px-3 py-2 font-semibold">תפקיד 2</th>
+                  <th className="px-3 py-2 font-semibold">תפקיד 3</th>
+                  <th className="px-3 py-2 font-semibold">מייל</th>
+                  <th className="px-3 py-2 font-semibold">סיסמה</th>
+                  <th className="px-2 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {crew.map(member => {
+                  const f = memberFields(member)
+                  return (
+                    <tr key={member.id} className="border-t border-gray-100">
+                      <td className="px-2 py-1"><input value={f.first} onChange={e => editMember(member.id, 'first', e.target.value)} onBlur={() => persistMember(member)} className="w-24 px-2 py-1 rounded outline-none focus:bg-gray-50" dir="rtl"/></td>
+                      <td className="px-2 py-1"><input value={f.last} onChange={e => editMember(member.id, 'last', e.target.value)} onBlur={() => persistMember(member)} className="w-24 px-2 py-1 rounded outline-none focus:bg-gray-50" dir="rtl"/></td>
+                      <td className="px-2 py-1"><input value={f.r1} onChange={e => editMember(member.id, 'r1', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded outline-none focus:bg-gray-50" dir="rtl"/></td>
+                      <td className="px-2 py-1"><input value={f.r2} onChange={e => editMember(member.id, 'r2', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded outline-none focus:bg-gray-50" dir="rtl"/></td>
+                      <td className="px-2 py-1"><input value={f.r3} onChange={e => editMember(member.id, 'r3', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded outline-none focus:bg-gray-50" dir="rtl"/></td>
+                      <td className="px-3 py-1 text-gray-500 whitespace-nowrap">{member.email || '—'}</td>
+                      <td className="px-3 py-1 text-gray-300">••••••</td>
+                      <td className="px-2 py-1"><button onClick={() => removeMember(member.id)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:13}}/></button></td>
+                    </tr>
+                  )
+                })}
+                <tr className="border-t-2 border-gray-200 bg-gray-50">
+                  <td className="px-2 py-1.5"><input value={newMember.first_name} onChange={e => setNewMember(v => ({ ...v, first_name: e.target.value }))} placeholder="שם" className="w-24 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><input value={newMember.last_name} onChange={e => setNewMember(v => ({ ...v, last_name: e.target.value }))} placeholder="שם משפחה" className="w-24 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><input value={newMember.role1} onChange={e => setNewMember(v => ({ ...v, role1: e.target.value }))} placeholder="תפקיד 1" className="w-20 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><input value={newMember.role2} onChange={e => setNewMember(v => ({ ...v, role2: e.target.value }))} placeholder="תפקיד 2" className="w-20 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><input value={newMember.role3} onChange={e => setNewMember(v => ({ ...v, role3: e.target.value }))} placeholder="תפקיד 3" className="w-20 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><input value={newMember.email} onChange={e => setNewMember(v => ({ ...v, email: e.target.value }))} placeholder="מייל *" className="w-40 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><input type="password" value={newMember.password} onChange={e => setNewMember(v => ({ ...v, password: e.target.value }))} placeholder="סיסמה *" className="w-28 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><button onClick={addMember} disabled={adding} className="text-[12px] bg-[#E0197D] text-white px-3 py-1.5 rounded-lg disabled:opacity-50 whitespace-nowrap">{adding ? '...' : 'הוסף'}</button></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
+          <div className="text-[11px] text-gray-400 mt-2 text-right">שם פרטי+משפחה והתפקידים נשמרים אוטומטית בעריכה. מייל וסיסמה נקבעים רק בהוספת איש צוות חדש.</div>
         </div>
           )}
         </div>
