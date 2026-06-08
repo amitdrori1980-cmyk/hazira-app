@@ -663,18 +663,17 @@ export default function OperationsPage() {
                 )}
                 {(isManager || (myMember && colorMenu.member_id === myMember.id)) && (
                   <>
-                    <div className="text-[11px] text-gray-400 mb-2 text-center">בחר/י סטטוס</div>
                     <div className="flex justify-center gap-5 mb-1">
-                      <button onClick={() => { setSlotStatus(colorMenu.id, 'approved'); setColorMenu(null) }} title="אישור"
+                      <button onClick={() => { setSlotStatus(colorMenu.id, 'approved'); setColorMenu(null) }} title="יכולה"
                         className="w-12 h-12 rounded-full bg-yellow-400 border-2 border-yellow-500 hover:scale-110 transition-transform"/>
-                      <button onClick={() => { setSlotStatus(colorMenu.id, 'rejected'); setColorMenu(null) }} title="דחייה"
+                      <button onClick={() => { setSlotStatus(colorMenu.id, 'rejected'); setColorMenu(null) }} title="לא יכולה"
                         className="w-12 h-12 rounded-full bg-red-500 border-2 border-red-600 hover:scale-110 transition-transform"/>
                       <button onClick={() => { setSlotStatus(colorMenu.id, 'none'); setColorMenu(null) }} title="נקה"
                         className="w-12 h-12 rounded-full bg-white border-2 border-gray-300 hover:scale-110 transition-transform"/>
                     </div>
                     <div className="flex justify-center gap-5 text-[10px] text-gray-400">
-                      <span className="w-12 text-center">אישור</span>
-                      <span className="w-12 text-center">דחייה</span>
+                      <span className="w-12 text-center">יכולה</span>
+                      <span className="w-12 text-center">לא יכולה</span>
                       <span className="w-12 text-center">נקה</span>
                     </div>
                   </>
@@ -683,13 +682,13 @@ export default function OperationsPage() {
                   <div className="flex gap-2 mt-4">
                     <button onClick={() => { toggleSelected(colorMenu); setColorMenu(m => ({ ...m, selected: !m.selected })) }}
                       className={`flex-1 text-[12px] py-2 rounded-lg border ${colorMenu.selected ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'text-gray-500 border-gray-300'}`}>
-                      {colorMenu.selected ? '✓ נבחר' : 'סמן כנבחר'}
+                      {colorMenu.selected ? '✓ נוסף לסידור' : 'הוספה לסידור'}
                     </button>
                     <button onClick={() => { removeSlot(colorMenu.id); setColorMenu(null) }}
                       className="text-[12px] py-2 px-3 rounded-lg border border-gray-300 text-red-500">הסר</button>
                   </div>
                 )}
-                <button onClick={() => setColorMenu(null)} className="w-full mt-3 text-[12px] text-gray-400 hover:text-gray-600">סגור</button>
+                <button onClick={() => setColorMenu(null)} className="w-full mt-3 text-[12px] text-gray-400 hover:text-gray-600">שמירה</button>
               </div>
             </div>
           )}
