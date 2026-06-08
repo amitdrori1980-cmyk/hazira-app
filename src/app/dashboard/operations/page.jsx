@@ -167,21 +167,37 @@ export default function OperationsPage() {
       if (ci.email === -1 || ci.first === -1) { ci = { first: 0, last: 1, r1: 2, r2: 3, r3: 4, email: 5, password: 6 }; dataRows = rows }
       else { dataRows = rows.slice(1) }
       const get = (r, i) => i >= 0 ? String(r[i] || '').trim() : ''
-      let ok = 0, fail = 0, skipped = 0
+      const allEmails = dataRows.map(r => get(r, ci.email)).filter(Boolean)
+      const { data: existingRows } = await supabase.from('operations_crew').select('*').in('email', allEmails)
+      const byEmail = {}; (existingRows || []).forEach(m => { if (m.email) byEmail[m.email.toLowerCase()] = m })
+      let ok = 0, reactivated = 0, skipped = 0
       const added = []
+      const failed = []
       for (const r of dataRows) {
         const full_name = [get(r, ci.first), get(r, ci.last)].filter(Boolean).join(' ')
         const role = [get(r, ci.r1), get(r, ci.r2), get(r, ci.r3)].filter(Boolean).join(', ')
         const email = get(r, ci.email), password = get(r, ci.password)
         if (!full_name || !email || !password) { skipped++; continue }
+        const ex = byEmail[email.toLowerCase()]
+        if (ex) {
+          const { data: upd, error: uerr } = await supabase.from('operations_crew').update({ active: true, full_name, role }).eq('id', ex.id).select().single()
+          if (uerr) failed.push(full_name + ' — ' + uerr.message)
+          else { added.push(upd); reactivated++ }
+          continue
+        }
         try {
           const res = await fetch('/api/create-crew-user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ full_name, role, email, password }) })
           const json = await res.json()
-          if (json.error) { fail++ } else { added.push(json.member); ok++ }
-        } catch { fail++ }
+          if (json.error) failed.push(full_name + ' — ' + String(json.error))
+          else { added.push(json.member); ok++ }
+        } catch (err) { failed.push(full_name + ' — שגיאת רשת') }
       }
-      if (added.length) setCrew(prev => [...prev, ...added])
-      alert('יובאו ' + ok + ' אנשי צוות.' + (skipped ? ' דולגו ' + skipped + ' (חסר שם/מייל/סיסמה).' : '') + (fail ? ' נכשלו ' + fail + '.' : ''))
+      if (added.length) setCrew(prev => { const map = {}; prev.forEach(m => map[m.id] = m); added.forEach(m => map[m.id] = m); return Object.values(map) })
+      let summary = 'יובאו ' + ok + ' אנשי צוות חדשים.'
+      if (reactivated) summary += ' ' + reactivated + ' קיימים עודכנו/הופעלו מחדש.'
+      if (skipped) summary += ' דולגו ' + skipped + ' (שורות ללא שם/מייל/סיסמה).'
+      if (failed.length) summary += '\n\nנכשלו ' + failed.length + ':\n' + failed.map(x => '• ' + x).join('\n')
+      alert(summary)
     } catch (err) {
       alert('שגיאה בקריאת הקובץ: ' + err.message)
     }
