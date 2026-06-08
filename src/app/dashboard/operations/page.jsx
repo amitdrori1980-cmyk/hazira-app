@@ -371,7 +371,7 @@ export default function OperationsPage() {
     setInquiries(prev => prev.map(i => i.id === id ? { ...i, status } : i))
   }
 
-  const BOARD_CATS = [{ key: 'bar', label: 'בר / קופה', min: 5, w: 'w-[380px]' }, { key: 'evening', label: 'ניהול ערב', min: 4, w: 'w-[308px]' }, { key: 'other', label: 'אחר', min: 2, w: 'w-[172px]' }]
+  const BOARD_CATS = [{ key: 'bar', label: 'בר / קופה', min: 5, w: 'w-[340px] md:w-[420px]' }, { key: 'evening', label: 'ניהול ערב', min: 4, w: 'w-[280px] md:w-[348px]' }, { key: 'other', label: 'אחר', min: 2, w: 'w-[156px] md:w-[196px]' }]
 
   function catForRole(role) {
     const r = (role || '')
@@ -622,9 +622,9 @@ export default function OperationsPage() {
             const rows = isManager ? boardRows : boardRows.filter(r => boardSlots.some(s => s.row_id === r.id && s.member_id === myMember?.id))
             if (rows.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין שורות — לחץ "הוסף שורה"' : 'אין שיבוצים עבורך'}</div>
             return rows.map(row => (
-              <div key={row.id} className="bg-white border border-gray-100 rounded-xl overflow-x-auto mb-2">
+              <div key={row.id} className="bg-white border border-black/20 rounded-xl overflow-x-auto mb-3">
                 <div className="flex items-stretch w-max min-w-full text-[12px]">
-                  <div className="sticky right-0 z-10 bg-white px-4 py-2.5 border-l-2 border-gray-200 min-w-[320px] flex items-center justify-between gap-2">
+                  <div className="sticky right-0 z-10 bg-white px-4 py-2.5 border-l-2 border-gray-200 min-w-[240px] md:min-w-[360px] flex items-center justify-between gap-2">
                     <div className="text-right min-w-0">
                       <div className="text-[14px] font-semibold text-gray-800 truncate">{row.event_name}</div>
                       <div className="text-[12px] text-gray-500 flex gap-2 justify-end items-center flex-wrap mt-0.5">
@@ -663,7 +663,7 @@ export default function OperationsPage() {
                               : 'bg-gray-100 text-gray-600'
                             return (
                               <button key={slot.id} disabled={!canOpen} onClick={() => setColorMenu(slot)}
-                                className={`w-[64px] text-center truncate px-1 py-1 rounded text-[14px] ${bg} ${slot.selected ? 'ring-2 ring-[#E0197D]' : ''} ${canOpen ? 'hover:opacity-80' : ''}`}>
+                                className={`w-[56px] md:w-[72px] text-center truncate px-1 py-1 rounded text-[14px] ${bg} ${slot.selected ? 'ring-2 ring-[#E0197D]' : ''} ${canOpen ? 'hover:opacity-80' : ''}`}>
                                 {member ? member.full_name.split(' ')[0] : 'בחר'}
                               </button>
                             )
@@ -671,14 +671,14 @@ export default function OperationsPage() {
                           {Array.from({ length: pad }).map((_, i) => (
                             isManager ? (
                               <button key={'ph' + i} onClick={() => addSlot(row.id, cat.key)}
-                                className="w-[64px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-300 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
+                                className="w-[56px] md:w-[72px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-300 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
                             ) : (
-                              <div key={'ph' + i} className="w-[64px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-200 text-gray-200">—</div>
+                              <div key={'ph' + i} className="w-[56px] md:w-[72px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-200 text-gray-200">—</div>
                             )
                           ))}
                           {isManager && pad === 0 && (
                             <button onClick={() => addSlot(row.id, cat.key)}
-                              className="w-[64px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
+                              className="w-[56px] md:w-[72px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
                           )}
                         </div>
                       </div>
