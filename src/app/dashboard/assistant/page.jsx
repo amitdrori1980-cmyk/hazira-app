@@ -15,7 +15,7 @@ const CATEGORIES = [
   { id:'crew',      label:'צוות',     icon:'ti-users' },
   { id:'equipment', label:'ציוד',     icon:'ti-tool' },
   { id:'tasks',     label:'משימות',   icon:'ti-checkbox' },
-  { id:'storage',   label:'אכסון',    icon:'ti-map-pin' },
+  { id:'storage',   label:'אחסון',    icon:'ti-map-pin' },
 ]
 
 export default function SearchPage() {
@@ -201,7 +201,7 @@ export default function SearchPage() {
         <div className="bg-white border border-gray-100 rounded-xl p-8 text-center">
           <i className="ti ti-search text-gray-200" style={{fontSize:40}}/>
           <div className="text-[13px] text-gray-400 mt-3">חפש בכל הנתונים של הזירה</div>
-          <div className="text-[11px] text-gray-300 mt-1">אירועים · צוות · ציוד · משימות · אכסון</div>
+          <div className="text-[11px] text-gray-300 mt-1">אירועים · צוות · ציוד · משימות · אחסון</div>
         </div>
       )}
     </div>

@@ -59,7 +59,7 @@ export default function StorageContent() {
     ws['!cols'] = [{ wch: 30 }, { wch: 20 }, { wch: 35 }]
     const wb = XLSX.utils.book_new()
     wb.Workbook = { Views: [{ RTL: true }] }
-    XLSX.utils.book_append_sheet(wb, ws, 'אכסון')
+    XLSX.utils.book_append_sheet(wb, ws, 'אחסון')
     XLSX.writeFile(wb, 'storage.xlsx')
   }
 

@@ -75,7 +75,7 @@ const EXPORTS = [
   { id:'tasks',     label:'משימות',         icon:'ti-checkbox' },
   { id:'crew',      label:'צוות',           icon:'ti-users' },
   { id:'equipment', label:'ציוד',           icon:'ti-tool' },
-  { id:'storage',   label:'אכסון',          icon:'ti-map-pin' },
+  { id:'storage',   label:'אחסון',          icon:'ti-map-pin' },
   { id:'messages',  label:'הודעות',         icon:'ti-bell' },
   { id:'specs',     label:'מפרט אירוע',     icon:'ti-file-description' },
 ]
@@ -134,7 +134,7 @@ export default function ExportPage() {
       const { data } = await supabase.from('storage_items').select('*').order('name')
       headers = ['פריט','מיקום','הערות']
       rows = (data||[]).map(s => [s.name, s.location||'', s.notes||''])
-      sheetName = 'אכסון'; fileName = 'hazira_storage'
+      sheetName = 'אחסון'; fileName = 'hazira_storage'
     }
     else if (type === 'messages') {
       const { data } = await supabase.from('messages').select('*, sender:sender_id(full_name)').order('created_at', { ascending: false })

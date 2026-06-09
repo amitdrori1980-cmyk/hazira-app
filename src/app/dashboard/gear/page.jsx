@@ -16,7 +16,7 @@ export default function GearPage() {
     <div>
       <div className="flex gap-2 mb-4 border-b border-gray-100 pb-2 flex-wrap">
         {tabBtn('equipment', 'ציוד')}
-        {tabBtn('storage', 'אכסון')}
+        {tabBtn('storage', 'אחסון')}
         {tabBtn('japan', 'יפן')}
         {tabBtn('aya', 'איה')}
         {tabBtn('napa', 'נאפה')}
