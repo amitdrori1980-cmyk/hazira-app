@@ -40,7 +40,28 @@ export default function OperationsPage() {
   const [boardRange, setBoardRange] = useState({ from: '', to: '' })
   const [colorMenu, setColorMenu] = useState(null)
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    const isEditing = () => ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
+    const safeLoad = () => { if (!document.hidden && !isEditing()) load() }
+    const onFocus = () => { if (!isEditing()) load() }
+    const onVis = () => { if (!document.hidden && !isEditing()) load() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVis)
+    const poll = setInterval(safeLoad, 15000)
+    const ch = supabase.channel('operations-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'operations_board_rows' }, safeLoad)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'operations_board_slots' }, safeLoad)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'operations_shifts' }, safeLoad)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'operations_shift_event_notes' }, safeLoad)
+      .subscribe()
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVis)
+      clearInterval(poll)
+      supabase.removeChannel(ch)
+    }
+  }, [])
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
