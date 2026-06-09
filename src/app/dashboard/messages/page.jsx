@@ -309,6 +309,9 @@ export default function MessagesPage() {
                   <span className="text-[13px] font-semibold text-[#4338ca]">בדיקת תאריך</span>
                   <span className="text-[11px] text-gray-400 mr-auto">{m.sender?.full_name || 'מנהל'}</span>
                 </div>
+                {(m.sender_id === profile?.uid || profile?.is_manager) && (
+                  <div className="text-[12px] text-gray-600 mb-2">אל: <span className="font-medium text-gray-800">{crew.find(c=>c.id===m.to_crew_id)?.full_name || '—'}</span></div>
+                )}
                 <div className="bg-white rounded-lg p-3 mb-3">
                   <div className="text-[13px] font-medium text-gray-800">{m.event_data?.event_title}</div>
                   <div className="text-[12px] text-gray-600">{fmtShort(m.event_data?.event_date)} {m.event_data?.event_time?.slice(0,5)}</div>
