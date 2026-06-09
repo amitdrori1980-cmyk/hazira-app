@@ -458,6 +458,13 @@ export default function OperationsPage() {
     setBoardRows(prev => prev.filter(r => r.id !== id))
   }
 
+  async function sendRowToCrew(row) {
+    const val = !row.sent_to_crew
+    const ts = val ? new Date().toISOString() : null
+    await supabase.from('operations_board_rows').update({ sent_to_crew: val, sent_at: ts }).eq('id', row.id)
+    setBoardRows(prev => prev.map(r => r.id === row.id ? { ...r, sent_to_crew: val, sent_at: ts } : r))
+  }
+
   async function addSlot(rowId, category) {
     const pos = boardSlots.filter(s => s.row_id === rowId && s.category === category).length
     const { data, error } = await supabase.from('operations_board_slots').insert({
@@ -615,7 +622,7 @@ export default function OperationsPage() {
           )}
 
           {(() => {
-            const rows = isManager ? boardRows : boardRows.filter(r => boardSlots.some(s => s.row_id === r.id && s.member_id === myMember?.id))
+            const rows = isManager ? boardRows : boardRows.filter(r => r.sent_to_crew && boardSlots.some(s => s.row_id === r.id && s.member_id === myMember?.id))
             if (rows.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין שורות — לחץ "הוסף שורה"' : 'אין שיבוצים עבורך'}</div>
             return rows.map(row => (
               <div key={row.id} className="bg-white border border-black/20 rounded-xl overflow-x-auto mb-3">
@@ -631,10 +638,16 @@ export default function OperationsPage() {
                         ) : (row.time && <span className="whitespace-nowrap">{row.time}</span>)}
                       </div>
                       {isManager && (
-                        <button onClick={() => transferToShifts(row)}
-                          className="mt-1.5 text-[11px] bg-[#E0197D] text-white px-2.5 py-1 rounded-lg hover:bg-[#A0106A] flex items-center gap-1 w-max">
-                          <i className="ti ti-arrow-left" style={{fontSize:12}}/> העבר לסידור עבודה
-                        </button>
+                        <div className="flex flex-col gap-1.5 mt-1.5 items-end">
+                          <button onClick={() => sendRowToCrew(row)}
+                            className={`text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1 w-max ${row.sent_to_crew ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3]'}`}>
+                            <i className={`ti ${row.sent_to_crew ? 'ti-check' : 'ti-send'}`} style={{fontSize:12}}/> {row.sent_to_crew ? 'נשלח לצוות' : 'שלח לצוות'}
+                          </button>
+                          <button onClick={() => transferToShifts(row)}
+                            className="text-[11px] bg-[#E0197D] text-white px-2.5 py-1 rounded-lg hover:bg-[#A0106A] flex items-center gap-1 w-max">
+                            <i className="ti ti-arrow-left" style={{fontSize:12}}/> העבר לסידור עבודה
+                          </button>
+                        </div>
                       )}
                     </div>
                     {isManager && (
@@ -645,10 +658,12 @@ export default function OperationsPage() {
                     )}
                   </div>
                   {BOARD_CATS.map(cat => {
-                    const slots = boardSlots.filter(s => s.row_id === row.id && s.category === cat.key).sort((a, b) => a.position - b.position)
-                    const pad = Math.max(0, cat.min - slots.length)
+                    const allSlots = boardSlots.filter(s => s.row_id === row.id && s.category === cat.key).sort((a, b) => a.position - b.position)
+                    const slots = isManager ? allSlots : allSlots.filter(s => myMember && s.member_id === myMember.id)
+                    if (!isManager && slots.length === 0) return null
+                    const pad = isManager ? Math.max(0, cat.min - allSlots.length) : 0
                     return (
-                      <div key={cat.key} className={`px-4 py-2.5 border-b md:border-b-0 md:border-l-2 border-gray-200 md:flex-shrink-0 ${cat.w}`}>
+                      <div key={cat.key} className={`px-4 py-2.5 border-b md:border-b-0 md:border-l-2 border-gray-200 md:flex-shrink-0 ${isManager ? cat.w : 'w-full md:w-auto'}`}>
                         <div className="text-[11px] font-semibold text-gray-400 text-right mb-1.5">{cat.label}</div>
                         <div className="flex flex-row-reverse flex-wrap gap-1.5 justify-start">
                           {slots.map(slot => {
@@ -665,12 +680,8 @@ export default function OperationsPage() {
                             )
                           })}
                           {Array.from({ length: pad }).map((_, i) => (
-                            isManager ? (
-                              <button key={'ph' + i} onClick={() => addSlot(row.id, cat.key)}
-                                className="w-[56px] md:w-[72px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-300 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
-                            ) : (
-                              <div key={'ph' + i} className="w-[56px] md:w-[72px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-200 text-gray-200">—</div>
-                            )
+                            <button key={'ph' + i} onClick={() => addSlot(row.id, cat.key)}
+                              className="w-[56px] md:w-[72px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-300 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
                           ))}
                           {isManager && pad === 0 && (
                             <button onClick={() => addSlot(row.id, cat.key)}
