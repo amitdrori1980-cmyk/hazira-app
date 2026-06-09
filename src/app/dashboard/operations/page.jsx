@@ -990,7 +990,7 @@ export default function OperationsPage() {
             const groups = Object.values(grouped).sort((a, b) => (a.event_date || '').localeCompare(b.event_date || ''))
             if (groups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">אין סידור עבודה עדיין. בחר נבחרים בשיבוץ תפעול ולחץ "העבר לסידור עבודה"</div>
             return groups.map((g, gi) => (
-              <div key={gi} className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-3">
+              <div key={gi} className="bg-white border border-black/20 shadow-sm rounded-xl overflow-hidden mb-5">
                 <div dir="rtl" className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
                   <div className="text-right flex-1 min-w-0">
                     <div className="text-[13px] font-semibold text-gray-800">{g.event_title}</div>
