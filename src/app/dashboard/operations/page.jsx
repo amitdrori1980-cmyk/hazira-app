@@ -27,6 +27,7 @@ export default function OperationsPage() {
   const [summaries, setSummaries] = useState([])
   const [shifts, setShifts] = useState([])
   const [shiftNotes, setShiftNotes] = useState({})
+  const [shiftPub, setShiftPub] = useState({})
   const [savingShift, setSavingShift] = useState(false)
   const [openInq, setOpenInq] = useState(null)
   const [teamSubTab, setTeamSubTab] = useState('inquiry')
@@ -74,8 +75,9 @@ export default function OperationsPage() {
     setBoardSlots(bslots || [])
     setShowEvents(showEv || [])
     const { data: sn } = await supabase.from('operations_shift_event_notes').select('*')
-    const snMap = {}; (sn || []).forEach(r => { snMap[r.event_key] = r.notes })
+    const snMap = {}; const pubMap = {}; (sn || []).forEach(r => { snMap[r.event_key] = r.notes; pubMap[r.event_key] = !!r.published })
     setShiftNotes(snMap)
+    setShiftPub(pubMap)
     setLoading(false)
   }
 
@@ -244,6 +246,13 @@ export default function OperationsPage() {
   async function saveShiftNote(key, notes) {
     setShiftNotes(prev => ({ ...prev, [key]: notes }))
     await supabase.from('operations_shift_event_notes').upsert({ event_key: key, notes, updated_at: new Date().toISOString() }, { onConflict: 'event_key' })
+  }
+
+  async function publishSchedule(key) {
+    const val = !shiftPub[key]
+    const ts = val ? new Date().toISOString() : null
+    setShiftPub(prev => ({ ...prev, [key]: val }))
+    await supabase.from('operations_shift_event_notes').upsert({ event_key: key, published: val, published_at: ts, updated_at: new Date().toISOString() }, { onConflict: 'event_key' })
   }
 
   async function transferToShifts(row) {
@@ -720,7 +729,7 @@ export default function OperationsPage() {
                     </select>
                   </div>
                 )}
-                {(isManager || (myMember && colorMenu.member_id === myMember.id)) && (
+                {(!isManager && myMember && colorMenu.member_id === myMember.id) && (
                   <>
                     <div className="flex justify-center gap-5 mb-1">
                       <button onClick={() => { setSlotStatus(colorMenu.id, 'approved'); setColorMenu(null) }} title="יכולה"
@@ -866,8 +875,9 @@ export default function OperationsPage() {
               if (!grouped[key]) grouped[key] = { key, event_title: s.event_title, event_date: s.event_date, items: [] }
               grouped[key].items.push(s)
             })
-            const groups = Object.values(grouped).sort((a, b) => (a.event_date || '').localeCompare(b.event_date || ''))
-            if (groups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">אין סידור עבודה עדיין. בחר נבחרים בשיבוץ תפעול ולחץ "העבר לסידור עבודה"</div>
+            let groups = Object.values(grouped).sort((a, b) => (a.event_date || '').localeCompare(b.event_date || ''))
+            if (!isManager) groups = groups.filter(g => shiftPub[g.key])
+            if (groups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין סידור עבודה עדיין. בחר נבחרים בשיבוץ תפעול ולחץ "העבר לסידור עבודה"' : 'אין סידורי עבודה שפורסמו'}</div>
             return groups.map((g, gi) => (
               <div key={gi} className="bg-white border border-black/20 shadow-sm rounded-xl overflow-hidden mb-5">
                 <div dir="rtl" className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
@@ -877,6 +887,12 @@ export default function OperationsPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <div className="text-[11px] text-gray-400">{g.items.length} עובדים</div>
+                    {isManager && (
+                      <button onClick={() => publishSchedule(g.key)}
+                        className={`text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1 whitespace-nowrap ${shiftPub[g.key] ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-[#E0197D] text-white hover:bg-[#A0106A]'}`}>
+                        <i className={`ti ${shiftPub[g.key] ? 'ti-check' : 'ti-send'}`} style={{fontSize:12}}/> {shiftPub[g.key] ? 'פורסם' : 'פרסם'}
+                      </button>
+                    )}
                     {isManager && (
                       <button onClick={() => { setSummary(v => ({ ...v, event_id: g.items[0]?.event_id || '', event_title: g.event_title, event_date: g.event_date })); setTab('summary') }}
                         className="text-[11px] border border-[#E0197D] text-[#E0197D] px-2.5 py-1 rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1 whitespace-nowrap">
@@ -907,16 +923,20 @@ export default function OperationsPage() {
                         <div className="text-[12px] font-medium text-gray-700 text-right mb-2 mt-1 pl-4">
                           {crew.find(c=>c.id===s.member_id)?.full_name || '—'}
                         </div>
-                        <select value={s.role || ''} onChange={e => updateShiftRole(s.id, e.target.value)}
-                          className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full text-right bg-gray-50" dir="rtl">
-                          <option value="">תפקיד...</option>
-                          <option value="בר">בר</option>
-                          <option value="קופה">קופה</option>
-                          <option value="ניהול ערב">ניהול ערב</option>
-                        </select>
-                        <textarea key={s.id + '-notes'} defaultValue={s.notes || ''} onBlur={e => updateShiftNotes(s.id, e.target.value)}
-                          placeholder="הערות..." rows={2} dir="rtl"
-                          className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full resize-none mt-1 bg-gray-50"/>
+                        {isManager ? (
+                          <select value={s.role || ''} onChange={e => updateShiftRole(s.id, e.target.value)}
+                            className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full text-right bg-gray-50" dir="rtl">
+                            <option value="">תפקיד...</option>
+                            <option value="בר">בר</option>
+                            <option value="קופה">קופה</option>
+                            <option value="ניהול ערב">ניהול ערב</option>
+                          </select>
+                        ) : (s.role && <div className="text-[11px] text-gray-500 text-right">{s.role}</div>)}
+                        {isManager ? (
+                          <textarea key={s.id + '-notes'} defaultValue={s.notes || ''} onBlur={e => updateShiftNotes(s.id, e.target.value)}
+                            placeholder="הערות..." rows={2} dir="rtl"
+                            className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full resize-none mt-1 bg-gray-50"/>
+                        ) : (s.notes && <div className="text-[11px] text-gray-500 text-right whitespace-pre-wrap mt-1">{s.notes}</div>)}
                       </div>
                     ))}
                   </div>
