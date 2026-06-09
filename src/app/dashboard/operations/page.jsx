@@ -1020,7 +1020,7 @@ export default function OperationsPage() {
                 <div className="overflow-x-auto">
                   <div dir="rtl" className="flex flex-wrap justify-start p-3 gap-3">
                     {g.items.map(s => (
-                      <div key={s.id} className="flex flex-col items-stretch px-3 py-2.5 border border-gray-100 rounded-xl w-[170px] relative">
+                      <div key={s.id} className="flex flex-col items-stretch px-3 py-2.5 border border-black/15 shadow-sm rounded-xl w-[170px] relative">
                         {isManager && <button onClick={() => deleteShift(s.id)}
                           className="absolute top-1 left-1 text-gray-200 hover:text-red-500">
                           <i className="ti ti-x" style={{fontSize:11}}/>
