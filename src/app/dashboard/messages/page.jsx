@@ -8,6 +8,8 @@ const PRI_COLOR = {
   'רגיל':  'bg-[#E3F0FF] text-[#1A4A8A]',
 }
 
+const fmtShort = (d) => { if (!d) return ''; const p = String(d).split('-'); return p.length<3 ? d : p[2] + '/' + p[1] + '/' + p[0].slice(2) }
+
 export default function MessagesPage() {
   const [messages, setMessages] = useState([])
   const [profile, setProfile]   = useState(null)
@@ -63,7 +65,7 @@ export default function MessagesPage() {
       await supabase.from('messages').update({ read: true }).in('id', unreadIds)
     }
     const today = new Date().toISOString().slice(0,10)
-    const { data: evs } = await supabase.from('events').select('id,title,date,time').gte('date', today).order('date').limit(50)
+    const { data: evs } = await supabase.from('events').select('id,title,date,time').gte('date', today).order('date')
     setEvents(evs || [])
     setLoading(false)
   }
@@ -138,7 +140,7 @@ export default function MessagesPage() {
       sender_id: profile.uid,
       to_crew_id: dateCheckForm.to_crew_id,
       to_user: member?.user_id || null,
-      body: `בדיקת תאריך: ${event?.title} — ${event?.date}`,
+      body: `בדיקת תאריך: ${event?.title} — ${fmtShort(event?.date)}`,
       topic: 'date_check',
       event_data: { event_id: event?.id, event_title: event?.title, event_date: event?.date, event_time: event?.time, notes: dateCheckForm.notes },
       read: false,
@@ -217,7 +219,7 @@ export default function MessagesPage() {
               <select value={dateCheckForm.event_id} onChange={e=>setDateCheckForm(p=>({...p,event_id:e.target.value}))}
                 required className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]">
                 <option value="">בחר אירוע...</option>
-                {events.map(ev=><option key={ev.id} value={ev.id}>{ev.date} — {ev.title}</option>)}
+                {events.map(ev=><option key={ev.id} value={ev.id}>{fmtShort(ev.date)} — {ev.title}</option>)}
               </select>
               <textarea value={dateCheckForm.notes} onChange={e=>setDateCheckForm(p=>({...p,notes:e.target.value}))}
                 placeholder="הערות (אופציונלי)" rows={3}
@@ -303,7 +305,7 @@ export default function MessagesPage() {
                 </div>
                 <div className="bg-white rounded-lg p-3 mb-3">
                   <div className="text-[13px] font-medium text-gray-800">{m.event_data?.event_title}</div>
-                  <div className="text-[12px] text-gray-600">{m.event_data?.event_date} {m.event_data?.event_time?.slice(0,5)}</div>
+                  <div className="text-[12px] text-gray-600">{fmtShort(m.event_data?.event_date)} {m.event_data?.event_time?.slice(0,5)}</div>
                   {m.event_data?.notes && <div className="text-[12px] text-gray-600 mt-1">{m.event_data.notes}</div>}
                 </div>
                 {(
