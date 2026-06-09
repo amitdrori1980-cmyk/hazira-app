@@ -20,6 +20,7 @@ export default function MessagesPage() {
   const [form, setForm] = useState({ body:'', target_type:'all', to_dept:'', to_crew_id:'', priority:'רגיל' })
   const [showDateCheck, setShowDateCheck] = useState(false)
   const [dateCheckForm, setDateCheckForm] = useState({ to_crew_id:'', event_id:'', notes:'' })
+  const [eventSearch, setEventSearch] = useState('')
   const [events, setEvents] = useState([])
   const [sendingDateCheck, setSendingDateCheck] = useState(false)
   const [openReplies, setOpenReplies] = useState({})
@@ -216,11 +217,16 @@ export default function MessagesPage() {
                 <option value="">בחר עובד...</option>
                 {crew.map(m=><option key={m.id} value={m.id}>{m.full_name}</option>)}
               </select>
-              <select value={dateCheckForm.event_id} onChange={e=>setDateCheckForm(p=>({...p,event_id:e.target.value}))}
-                required className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]">
-                <option value="">בחר אירוע...</option>
-                {events.map(ev=><option key={ev.id} value={ev.id}>{fmtShort(ev.date)} — {ev.title}</option>)}
-              </select>
+              <input value={eventSearch} onChange={e=>setEventSearch(e.target.value)} placeholder="חיפוש אירוע..." className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]"/>
+              <div className="max-h-44 overflow-y-auto border border-gray-200 rounded-xl bg-gray-50">
+                {events.filter(ev=>{const q=eventSearch.trim();return !q || ((ev.title||'')+' '+fmtShort(ev.date)+' '+(ev.date||'')).includes(q)}).map(ev=>(
+                  <button type="button" key={ev.id} onClick={()=>setDateCheckForm(p=>({...p,event_id:ev.id}))}
+                    className={`w-full text-right px-3 py-2 text-[13px] border-b border-gray-100 last:border-0 hover:bg-white ${dateCheckForm.event_id===ev.id?'bg-[#FCE4F3] text-[#E0197D] font-medium':'text-gray-700'}`}>
+                    <span className="text-gray-400 text-[12px]">{fmtShort(ev.date)}</span> {ev.title}
+                  </button>
+                ))}
+                {events.filter(ev=>{const q=eventSearch.trim();return !q || ((ev.title||'')+' '+fmtShort(ev.date)+' '+(ev.date||'')).includes(q)}).length===0 && <div className="text-center text-[12px] text-gray-400 py-3">אין אירועים</div>}
+              </div>
               <textarea value={dateCheckForm.notes} onChange={e=>setDateCheckForm(p=>({...p,notes:e.target.value}))}
                 placeholder="הערות (אופציונלי)" rows={3}
                 className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D] resize-none"/>
