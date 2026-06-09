@@ -12,6 +12,7 @@ function EventsPageInner() {
   const searchParams = useSearchParams()
   const [events, setEvents]         = useState([])
   const [showTrash, setShowTrash]   = useState(false)
+  const [hidePast, setHidePast]     = useState(false)
   const [depts, setDepts]           = useState([])
   const [eventTypes, setEventTypes] = useState([])
   const [allCrew, setAllCrew]       = useState([])
@@ -195,6 +196,9 @@ function EventsPageInner() {
 
   const activeEvents = events.filter(e => !e.deleted_at)
   const deletedEvents = events.filter(e => e.deleted_at)
+  const _todayStr = new Date().toISOString().slice(0,10)
+  const pastCount = activeEvents.filter(e => e.date < _todayStr).length
+  const visibleEvents = hidePast ? activeEvents.filter(e => e.date >= _todayStr) : activeEvents
 
   return (
     <div className="max-w-xl">
@@ -287,9 +291,16 @@ function EventsPageInner() {
       {/* Events list */}
       <div className="bg-white border border-gray-100 rounded-xl p-4">
         <div className="flex items-center justify-between mb-3">
-          <button onClick={()=>setShowTrash(v=>!v)} className="text-[12px] text-gray-400 hover:text-[#E0197D] flex items-center gap-1">
-            <i className="ti ti-trash" style={{fontSize:13}}/> {showTrash ? 'חזרה לאירועים' : 'סל מיחזור (' + deletedEvents.length + ')'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={()=>setShowTrash(v=>!v)} className="text-[12px] text-gray-400 hover:text-[#E0197D] flex items-center gap-1">
+              <i className="ti ti-trash" style={{fontSize:13}}/> {showTrash ? 'חזרה לאירועים' : 'סל מיחזור (' + deletedEvents.length + ')'}
+            </button>
+            {!showTrash && pastCount > 0 && (
+              <button onClick={()=>setHidePast(v=>!v)} className="text-[12px] text-gray-400 hover:text-[#E0197D] flex items-center gap-1">
+                <i className={hidePast ? 'ti ti-eye' : 'ti ti-eye-off'} style={{fontSize:13}}/> {hidePast ? ('הצג עבר (' + pastCount + ')') : ('כווץ עבר (' + pastCount + ')')}
+              </button>
+            )}
+          </div>
           <div className="text-[13px] font-medium text-gray-800">כל האירועים</div>
         </div>
         {loading ? <div className="text-center text-sm text-gray-400 py-6">טוען...</div>
@@ -307,7 +318,7 @@ function EventsPageInner() {
           ))
         )
         : activeEvents.length===0 ? <div className="text-center text-sm text-gray-400 py-6">אין אירועים</div>
-        : activeEvents.map(ev=>{
+        : visibleEvents.map(ev=>{
           const [y,m,d]=ev.date.split('-').map(Number)
           const assignedCrew=(eventCrew[ev.id]||[]).map(id=>allCrew.find(c=>c.id===id)).filter(Boolean)
           const assignedEquip=eventEquip[ev.id]||[]
