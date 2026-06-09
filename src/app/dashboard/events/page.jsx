@@ -475,7 +475,7 @@ function EventsPageInner() {
             className="w-11 h-11 rounded-full bg-[#E0197D] text-white shadow-lg hover:bg-[#A0106A] flex items-center justify-center">
             <i className="ti ti-calendar-event" style={{fontSize:18}}/>
           </button>
-          <button onClick={() => window.scrollTo({ top:0, behavior:'smooth' })}
+          <button onClick={() => { const el = document.getElementById('add-event-form'); let p = el ? el.parentElement : null; while (p) { const oy = getComputedStyle(p).overflowY; if ((oy === 'auto' || oy === 'scroll') && p.scrollHeight > p.clientHeight) { p.scrollTo({ top:0, behavior:'smooth' }); return } p = p.parentElement } window.scrollTo({ top:0, behavior:'smooth' }) }}
             title="חזרה למעלה" aria-label="חזרה למעלה"
             className="w-11 h-11 rounded-full bg-white border border-gray-200 text-gray-600 shadow-lg hover:border-[#E0197D] hover:text-[#E0197D] flex items-center justify-center">
             <i className="ti ti-arrow-up" style={{fontSize:18}}/>
