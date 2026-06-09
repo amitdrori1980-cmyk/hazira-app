@@ -582,7 +582,7 @@ export default function OperationsPage() {
                   {boardRows.length > 0 && (
                     <button onClick={fillAllByRoles}
                       className="text-[13px] px-4 py-2 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1">
-                      <i className="ti ti-users" style={{fontSize:14}}/> מלא צוות לפי תפקידים
+                      <i className="ti ti-users" style={{fontSize:14}}/> מלא צוות
                     </button>
                   )}
                 </div>
@@ -661,7 +661,7 @@ export default function OperationsPage() {
                     </div>
                     {isManager && (
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <button onClick={() => fillRowsByRoles(row.id)} title="מלא צוות לפי תפקידים" className="text-gray-300 hover:text-[#E0197D]"><i className="ti ti-users-plus" style={{fontSize:14}}/></button>
+                        <button onClick={() => fillRowsByRoles(row.id)} title="מלא צוות" className="text-gray-300 hover:text-[#E0197D]"><i className="ti ti-users-plus" style={{fontSize:14}}/></button>
                         <button onClick={() => deleteBoardRow(row.id)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:13}}/></button>
                       </div>
                     )}
@@ -678,13 +678,19 @@ export default function OperationsPage() {
                           {slots.map(slot => {
                             const member = crew.find(c => c.id === slot.member_id)
                             const canOpen = isManager || (myMember && slot.member_id === myMember.id)
+                            if (!member) {
+                              return (
+                                <button key={slot.id} disabled={!isManager} onClick={() => setColorMenu(slot)}
+                                  className="w-[56px] md:w-[72px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
+                              )
+                            }
                             const bg = slot.status === 'approved' ? 'bg-yellow-200 text-yellow-900'
                               : slot.status === 'rejected' ? 'bg-red-200 text-red-800'
                               : 'bg-gray-100 text-gray-600'
                             return (
                               <button key={slot.id} disabled={!canOpen} onClick={() => setColorMenu(slot)}
                                 className={`w-[56px] md:w-[72px] text-center truncate px-1 py-1 rounded text-[14px] ${bg} ${slot.selected ? 'ring-2 ring-[#E0197D]' : ''} ${canOpen ? 'hover:opacity-80' : ''}`}>
-                                {member ? member.full_name.split(' ')[0] : 'בחר'}
+                                {member.full_name.split(' ')[0]}
                               </button>
                             )
                           })}
@@ -752,7 +758,7 @@ export default function OperationsPage() {
                       className={`flex-1 text-[12px] py-2 rounded-lg border ${colorMenu.selected ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'text-gray-500 border-gray-300'}`}>
                       {colorMenu.selected ? '✓ נוסף לסידור' : 'הוספה לסידור'}
                     </button>
-                    <button onClick={() => { removeSlot(colorMenu.id); setColorMenu(null) }}
+                    <button onClick={() => { setSlotMember(colorMenu.id, ''); setColorMenu(null) }}
                       className="flex-1 text-[12px] py-2 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 flex items-center justify-center gap-1">
                       <i className="ti ti-eraser" style={{fontSize:12}}/> נקה
                     </button>
