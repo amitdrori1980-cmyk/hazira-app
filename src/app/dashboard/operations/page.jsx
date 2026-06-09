@@ -752,6 +752,10 @@ export default function OperationsPage() {
                       className={`flex-1 text-[12px] py-2 rounded-lg border ${colorMenu.selected ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'text-gray-500 border-gray-300'}`}>
                       {colorMenu.selected ? '✓ נוסף לסידור' : 'הוספה לסידור'}
                     </button>
+                    <button onClick={() => { removeSlot(colorMenu.id); setColorMenu(null) }}
+                      className="flex-1 text-[12px] py-2 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 flex items-center justify-center gap-1">
+                      <i className="ti ti-eraser" style={{fontSize:12}}/> נקה
+                    </button>
                   </div>
                 )}
                 <button onClick={() => setColorMenu(null)} className="w-full mt-3 text-[12px] text-gray-400 hover:text-gray-600">שמירה</button>
