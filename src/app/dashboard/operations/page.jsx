@@ -39,6 +39,8 @@ export default function OperationsPage() {
   const [boardManual, setBoardManual] = useState({ event_name: '', date: '' })
   const [boardRange, setBoardRange] = useState({ from: '', to: '' })
   const [colorMenu, setColorMenu] = useState(null)
+  const [shiftsView, setShiftsView] = useState('active')
+  const [openArchiveMonth, setOpenArchiveMonth] = useState(null)
 
   useEffect(() => {
     load()
@@ -306,6 +308,76 @@ export default function OperationsPage() {
   async function updateShiftNotes(id, notes) {
     await supabase.from('operations_shifts').update({ notes }).eq('id', id)
     setShifts(prev => prev.map(s => s.id === id ? { ...s, notes } : s))
+  }
+
+  function renderShiftGroup(g, slotStatus) {
+    return (
+      <div key={g.key} className="bg-white border border-black/20 shadow-sm rounded-xl overflow-hidden mb-5">
+        <div dir="rtl" className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+          <div className="text-right flex-1 min-w-0">
+            <div className="text-[13px] font-semibold text-gray-800">{g.event_title}</div>
+            <div className="text-[11px] text-gray-400">{(() => { if (!g.event_date) return ''; const [y,m,d] = g.event_date.split('-'); const HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; return `${+d} ${HE[+m-1]} ${y}` })()}</div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="text-[11px] text-gray-400">{g.items.length} עובדים</div>
+            {isManager && (
+              <button onClick={() => publishSchedule(g.key)}
+                className={`text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1 whitespace-nowrap ${shiftPub[g.key] ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-[#E0197D] text-white hover:bg-[#A0106A]'}`}>
+                <i className={`ti ${shiftPub[g.key] ? 'ti-check' : 'ti-send'}`} style={{fontSize:12}}/> {shiftPub[g.key] ? 'פורסם' : 'פרסם'}
+              </button>
+            )}
+            {isManager && (
+              <button onClick={() => { setSummary(v => ({ ...v, event_id: g.items[0]?.event_id || '', event_title: g.event_title, event_date: g.event_date })); setTab('summary') }}
+                className="text-[11px] border border-[#E0197D] text-[#E0197D] px-2.5 py-1 rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1 whitespace-nowrap">
+                <i className="ti ti-clipboard-text" style={{fontSize:12}}/> סיכום אירוע
+              </button>
+            )}
+            {isManager && <button onClick={() => deleteShiftGroup(g.items)}
+              className="text-gray-300 hover:text-red-500 p-1">
+              <i className="ti ti-trash" style={{fontSize:13}}/>
+            </button>}
+          </div>
+        </div>
+        {isManager ? (
+          <div className="px-3 pt-3">
+            <textarea key={g.key + '-evnotes'} defaultValue={shiftNotes[g.key] || ''} onBlur={e => saveShiftNote(g.key, e.target.value)}
+              placeholder="הערות כלליות לאירוע..." rows={2} dir="rtl"
+              className="w-full text-[12px] px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] resize-none bg-gray-50 text-right"/>
+          </div>
+        ) : (shiftNotes[g.key] && <div className="px-4 pt-3 text-[12px] text-gray-600 text-right whitespace-pre-wrap">{shiftNotes[g.key]}</div>)}
+        <div className="overflow-x-auto">
+          <div dir="rtl" className="flex flex-wrap justify-start p-3 gap-3">
+            {g.items.map(s => {
+              const rejected = slotStatus[g.key + '::' + s.member_id] === 'rejected'
+              return (
+              <div key={s.id} className={`flex flex-col items-stretch px-3 py-2.5 border shadow-sm rounded-xl w-[170px] relative ${rejected ? 'bg-red-100 border-red-300' : 'border-black/15'}`}>
+                {isManager && <button onClick={() => deleteShift(s.id)}
+                  className="absolute top-1 left-1 text-gray-200 hover:text-red-500">
+                  <i className="ti ti-x" style={{fontSize:11}}/>
+                </button>}
+                <div className="text-[12px] font-medium text-gray-700 text-right mb-2 mt-1 pl-4">
+                  {crew.find(c=>c.id===s.member_id)?.full_name || '—'}
+                </div>
+                {isManager ? (
+                  <select value={s.role || ''} onChange={e => updateShiftRole(s.id, e.target.value)}
+                    className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full text-right bg-gray-50" dir="rtl">
+                    <option value="">תפקיד...</option>
+                    <option value="בר">בר</option>
+                    <option value="קופה">קופה</option>
+                    <option value="ניהול ערב">ניהול ערב</option>
+                  </select>
+                ) : (s.role && <div className="text-[11px] text-gray-500 text-right">{s.role}</div>)}
+                {isManager ? (
+                  <textarea key={s.id + '-notes'} defaultValue={s.notes || ''} onBlur={e => updateShiftNotes(s.id, e.target.value)}
+                    placeholder="הערות..." rows={2} dir="rtl"
+                    className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full resize-none mt-1 bg-gray-50"/>
+                ) : (s.notes && <div className="text-[11px] text-gray-500 text-right whitespace-pre-wrap mt-1">{s.notes}</div>)}
+              </div>
+              )})}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   function addSummaryItem() {
@@ -899,6 +971,16 @@ export default function OperationsPage() {
 
       {tab === 'shifts' && (
         <div className="max-w-5xl">
+          <div className="flex gap-2 mb-4">
+            <button onClick={() => setShiftsView('active')}
+              className={`text-[12px] px-4 py-1.5 rounded-lg font-medium transition-colors ${shiftsView === 'active' ? 'bg-[#E0197D] text-white' : 'bg-gray-100 text-gray-500 hover:text-[#E0197D]'}`}>
+              פעיל
+            </button>
+            <button onClick={() => setShiftsView('archive')}
+              className={`text-[12px] px-4 py-1.5 rounded-lg font-medium transition-colors ${shiftsView === 'archive' ? 'bg-[#E0197D] text-white' : 'bg-gray-100 text-gray-500 hover:text-[#E0197D]'}`}>
+              ארכיון
+            </button>
+          </div>
           {(() => {
             const grouped = {}
             shifts.forEach(s => {
@@ -913,74 +995,33 @@ export default function OperationsPage() {
             })
             let groups = Object.values(grouped).sort((a, b) => (a.event_date || '').localeCompare(b.event_date || ''))
             if (!isManager) groups = groups.filter(g => shiftPub[g.key])
-            if (groups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין סידור עבודה עדיין. בחר נבחרים בשיבוץ תפעול ולחץ "העבר לסידור עבודה"' : 'אין סידורי עבודה שפורסמו'}</div>
-            return groups.map((g, gi) => (
-              <div key={gi} className="bg-white border border-black/20 shadow-sm rounded-xl overflow-hidden mb-5">
-                <div dir="rtl" className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
-                  <div className="text-right flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold text-gray-800">{g.event_title}</div>
-                    <div className="text-[11px] text-gray-400">{(() => { if (!g.event_date) return ''; const [y,m,d] = g.event_date.split('-'); const HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; return `${+d} ${HE[+m-1]} ${y}` })()}</div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className="text-[11px] text-gray-400">{g.items.length} עובדים</div>
-                    {isManager && (
-                      <button onClick={() => publishSchedule(g.key)}
-                        className={`text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1 whitespace-nowrap ${shiftPub[g.key] ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-[#E0197D] text-white hover:bg-[#A0106A]'}`}>
-                        <i className={`ti ${shiftPub[g.key] ? 'ti-check' : 'ti-send'}`} style={{fontSize:12}}/> {shiftPub[g.key] ? 'פורסם' : 'פרסם'}
-                      </button>
-                    )}
-                    {isManager && (
-                      <button onClick={() => { setSummary(v => ({ ...v, event_id: g.items[0]?.event_id || '', event_title: g.event_title, event_date: g.event_date })); setTab('summary') }}
-                        className="text-[11px] border border-[#E0197D] text-[#E0197D] px-2.5 py-1 rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1 whitespace-nowrap">
-                        <i className="ti ti-clipboard-text" style={{fontSize:12}}/> סיכום אירוע
-                      </button>
-                    )}
-                    {isManager && <button onClick={() => deleteShiftGroup(g.items)}
-                      className="text-gray-300 hover:text-red-500 p-1">
-                      <i className="ti ti-trash" style={{fontSize:13}}/>
-                    </button>}
-                  </div>
+            const today = new Date().toISOString().slice(0, 10)
+            const isArch = g => g.event_date && g.event_date < today
+            const activeGroups = groups.filter(g => !isArch(g))
+            const archiveGroups = groups.filter(isArch)
+            if (shiftsView === 'active') {
+              if (activeGroups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין סידור עבודה פעיל. בחר נבחרים בשיבוץ תפעול ולחץ "העבר לסידור עבודה"' : 'אין סידורי עבודה שפורסמו'}</div>
+              return activeGroups.map(g => renderShiftGroup(g, slotStatus))
+            }
+            if (archiveGroups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">אין אירועים בארכיון</div>
+            const months = {}
+            archiveGroups.forEach(g => { const ym = (g.event_date || '').slice(0, 7); (months[ym] = months[ym] || []).push(g) })
+            const HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
+            return Object.keys(months).sort((a, b) => b.localeCompare(a)).map(ym => {
+              const [y, m] = ym.split('-')
+              const label = (HE[+m - 1] || '') + ' ' + y
+              const open = openArchiveMonth === ym
+              return (
+                <div key={ym} className="mb-3">
+                  <button onClick={() => setOpenArchiveMonth(open ? null : ym)} dir="rtl"
+                    className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl px-4 py-3">
+                    <span className="text-[13px] font-semibold text-gray-700 flex items-center gap-2"><i className={`ti ti-folder${open ? '-open' : ''}`} style={{fontSize:16}}/> {label}</span>
+                    <span className="text-[11px] text-gray-400">{months[ym].length} אירועים</span>
+                  </button>
+                  {open && <div className="mt-3">{months[ym].map(g => renderShiftGroup(g, slotStatus))}</div>}
                 </div>
-                {isManager ? (
-                  <div className="px-3 pt-3">
-                    <textarea key={g.key + '-evnotes'} defaultValue={shiftNotes[g.key] || ''} onBlur={e => saveShiftNote(g.key, e.target.value)}
-                      placeholder="הערות כלליות לאירוע..." rows={2} dir="rtl"
-                      className="w-full text-[12px] px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] resize-none bg-gray-50 text-right"/>
-                  </div>
-                ) : (shiftNotes[g.key] && <div className="px-4 pt-3 text-[12px] text-gray-600 text-right whitespace-pre-wrap">{shiftNotes[g.key]}</div>)}
-                <div className="overflow-x-auto">
-                  <div dir="rtl" className="flex flex-wrap justify-start p-3 gap-3">
-                    {g.items.map(s => {
-                      const rejected = slotStatus[g.key + '::' + s.member_id] === 'rejected'
-                      return (
-                      <div key={s.id} className={`flex flex-col items-stretch px-3 py-2.5 border shadow-sm rounded-xl w-[170px] relative ${rejected ? 'bg-red-100 border-red-300' : 'border-black/15'}`}>
-                        {isManager && <button onClick={() => deleteShift(s.id)}
-                          className="absolute top-1 left-1 text-gray-200 hover:text-red-500">
-                          <i className="ti ti-x" style={{fontSize:11}}/>
-                        </button>}
-                        <div className="text-[12px] font-medium text-gray-700 text-right mb-2 mt-1 pl-4">
-                          {crew.find(c=>c.id===s.member_id)?.full_name || '—'}
-                        </div>
-                        {isManager ? (
-                          <select value={s.role || ''} onChange={e => updateShiftRole(s.id, e.target.value)}
-                            className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full text-right bg-gray-50" dir="rtl">
-                            <option value="">תפקיד...</option>
-                            <option value="בר">בר</option>
-                            <option value="קופה">קופה</option>
-                            <option value="ניהול ערב">ניהול ערב</option>
-                          </select>
-                        ) : (s.role && <div className="text-[11px] text-gray-500 text-right">{s.role}</div>)}
-                        {isManager ? (
-                          <textarea key={s.id + '-notes'} defaultValue={s.notes || ''} onBlur={e => updateShiftNotes(s.id, e.target.value)}
-                            placeholder="הערות..." rows={2} dir="rtl"
-                            className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full resize-none mt-1 bg-gray-50"/>
-                        ) : (s.notes && <div className="text-[11px] text-gray-500 text-right whitespace-pre-wrap mt-1">{s.notes}</div>)}
-                      </div>
-                      )})}
-                  </div>
-                </div>
-              </div>
-            ))
+              )
+            })
           })()}
         </div>
       )}
