@@ -906,6 +906,11 @@ export default function OperationsPage() {
               if (!grouped[key]) grouped[key] = { key, event_title: s.event_title, event_date: s.event_date, items: [] }
               grouped[key].items.push(s)
             })
+            const slotStatus = {}
+            boardRows.forEach(row => {
+              const ek = row.event_id || (row.event_name + '|' + row.date)
+              boardSlots.forEach(sl => { if (sl.row_id === row.id && sl.member_id) slotStatus[ek + '::' + sl.member_id] = sl.status })
+            })
             let groups = Object.values(grouped).sort((a, b) => (a.event_date || '').localeCompare(b.event_date || ''))
             if (!isManager) groups = groups.filter(g => shiftPub[g.key])
             if (groups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין סידור עבודה עדיין. בחר נבחרים בשיבוץ תפעול ולחץ "העבר לסידור עבודה"' : 'אין סידורי עבודה שפורסמו'}</div>
@@ -945,8 +950,10 @@ export default function OperationsPage() {
                 ) : (shiftNotes[g.key] && <div className="px-4 pt-3 text-[12px] text-gray-600 text-right whitespace-pre-wrap">{shiftNotes[g.key]}</div>)}
                 <div className="overflow-x-auto">
                   <div dir="rtl" className="flex flex-wrap justify-start p-3 gap-3">
-                    {g.items.map(s => (
-                      <div key={s.id} className="flex flex-col items-stretch px-3 py-2.5 border border-black/15 shadow-sm rounded-xl w-[170px] relative">
+                    {g.items.map(s => {
+                      const rejected = slotStatus[g.key + '::' + s.member_id] === 'rejected'
+                      return (
+                      <div key={s.id} className={`flex flex-col items-stretch px-3 py-2.5 border shadow-sm rounded-xl w-[170px] relative ${rejected ? 'bg-red-100 border-red-300' : 'border-black/15'}`}>
                         {isManager && <button onClick={() => deleteShift(s.id)}
                           className="absolute top-1 left-1 text-gray-200 hover:text-red-500">
                           <i className="ti ti-x" style={{fontSize:11}}/>
@@ -969,7 +976,7 @@ export default function OperationsPage() {
                             className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full resize-none mt-1 bg-gray-50"/>
                         ) : (s.notes && <div className="text-[11px] text-gray-500 text-right whitespace-pre-wrap mt-1">{s.notes}</div>)}
                       </div>
-                    ))}
+                      )})}
                   </div>
                 </div>
               </div>
