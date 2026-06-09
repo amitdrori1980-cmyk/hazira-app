@@ -371,7 +371,7 @@ export default function OperationsPage() {
     setInquiries(prev => prev.map(i => i.id === id ? { ...i, status } : i))
   }
 
-  const BOARD_CATS = [{ key: 'bar', label: 'בר / קופה', min: 5, w: 'w-[340px] md:w-[420px]' }, { key: 'evening', label: 'ניהול ערב', min: 4, w: 'w-[280px] md:w-[348px]' }, { key: 'other', label: 'אחר', min: 2, w: 'w-[156px] md:w-[196px]' }]
+  const BOARD_CATS = [{ key: 'bar', label: 'בר / קופה', min: 5, w: 'w-full md:w-[420px]' }, { key: 'evening', label: 'ניהול ערב', min: 4, w: 'w-full md:w-[348px]' }, { key: 'other', label: 'אחר', min: 2, w: 'w-full md:w-[196px]' }]
 
   function catForRole(role) {
     const r = (role || '')
@@ -623,8 +623,8 @@ export default function OperationsPage() {
             if (rows.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין שורות — לחץ "הוסף שורה"' : 'אין שיבוצים עבורך'}</div>
             return rows.map(row => (
               <div key={row.id} className="bg-white border border-black/20 rounded-xl overflow-x-auto mb-3">
-                <div className="flex items-stretch w-max min-w-full text-[12px]">
-                  <div className="sticky right-0 z-10 bg-white px-4 py-2.5 border-l-2 border-gray-200 min-w-[240px] md:min-w-[360px] flex items-center justify-between gap-2">
+                <div className="flex flex-col md:flex-row md:items-stretch w-full md:w-max md:min-w-full text-[12px]">
+                  <div className="md:sticky md:right-0 z-10 bg-white px-4 py-2.5 border-b-2 md:border-b-0 md:border-l-2 border-gray-200 w-full md:w-auto md:min-w-[360px] flex items-center justify-between gap-2">
                     <div className="text-right min-w-0">
                       <div className="text-[14px] font-semibold text-gray-800 truncate">{row.event_name}</div>
                       <div className="text-[12px] text-gray-500 flex gap-2 justify-end items-center flex-wrap mt-0.5">
@@ -652,7 +652,7 @@ export default function OperationsPage() {
                     const slots = boardSlots.filter(s => s.row_id === row.id && s.category === cat.key).sort((a, b) => a.position - b.position)
                     const pad = Math.max(0, cat.min - slots.length)
                     return (
-                      <div key={cat.key} className={`px-4 py-2.5 border-l-2 border-gray-200 flex-shrink-0 ${cat.w}`}>
+                      <div key={cat.key} className={`px-4 py-2.5 border-b md:border-b-0 md:border-l-2 border-gray-200 md:flex-shrink-0 ${cat.w}`}>
                         <div className="text-[11px] font-semibold text-gray-400 text-right mb-1.5">{cat.label}</div>
                         <div className="flex flex-row-reverse flex-wrap gap-1.5 justify-start">
                           {slots.map(slot => {
@@ -684,7 +684,7 @@ export default function OperationsPage() {
                       </div>
                     )
                   })}
-                  <div className="px-4 py-2.5 flex-1 min-w-[220px]">
+                  <div className="px-4 py-2.5 w-full md:w-auto md:flex-1 md:min-w-[220px]">
                     <div className="text-[11px] font-semibold text-gray-400 text-right mb-1.5">הערות</div>
                     {isManager ? (
                       <textarea key={row.id + '-bnotes'} defaultValue={row.notes || ''} onBlur={e => updateBoardRow(row.id, 'notes', e.target.value)}
