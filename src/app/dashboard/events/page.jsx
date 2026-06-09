@@ -468,6 +468,20 @@ function EventsPageInner() {
           )
         })}
       </div>
+      {!showTrash && activeEvents.length > 0 && (
+        <div className="fixed bottom-6 left-6 z-40 flex flex-col gap-2">
+          <button onClick={() => { const today = new Date().toISOString().slice(0,10); const up = activeEvents.find(e => e.date >= today); const t = up || activeEvents[activeEvents.length-1]; if (t) document.getElementById('event-'+t.id)?.scrollIntoView({ behavior:'smooth', block:'center' }) }}
+            title="לאירוע הקרוב להיום" aria-label="לאירוע הקרוב להיום"
+            className="w-11 h-11 rounded-full bg-[#E0197D] text-white shadow-lg hover:bg-[#A0106A] flex items-center justify-center">
+            <i className="ti ti-calendar-event" style={{fontSize:18}}/>
+          </button>
+          <button onClick={() => window.scrollTo({ top:0, behavior:'smooth' })}
+            title="חזרה למעלה" aria-label="חזרה למעלה"
+            className="w-11 h-11 rounded-full bg-white border border-gray-200 text-gray-600 shadow-lg hover:border-[#E0197D] hover:text-[#E0197D] flex items-center justify-center">
+            <i className="ti ti-arrow-up" style={{fontSize:18}}/>
+          </button>
+        </div>
+      )}
     </div>
   )
 }
