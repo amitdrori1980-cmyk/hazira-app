@@ -613,16 +613,16 @@ export default function OperationsPage() {
 
         <button onClick={() => setTab('board')}
           className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'board' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
-          שיבוץ תפעול
-        </button>
-        <button onClick={() => setTab('summary')}
-          className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'summary' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
-          סיכום ערב
+          אילוצים
         </button>
           <button onClick={() => setTab('shifts')}
             className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'shifts' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
             סידור עבודה
           </button>
+        <button onClick={() => setTab('summary')}
+          className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'summary' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
+          סיכום ערב
+        </button>
         {isManager && (
           <button onClick={() => setTab('team')}
             className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'team' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
@@ -1000,7 +1000,7 @@ export default function OperationsPage() {
             const activeGroups = groups.filter(g => !isArch(g))
             const archiveGroups = groups.filter(isArch)
             if (shiftsView === 'active') {
-              if (activeGroups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין סידור עבודה פעיל. בחר נבחרים בשיבוץ תפעול ולחץ "העבר לסידור עבודה"' : 'אין סידורי עבודה שפורסמו'}</div>
+              if (activeGroups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין סידור עבודה פעיל. בחר נבחרים בלשונית אילוצים ולחץ "העבר לסידור עבודה"' : 'אין סידורי עבודה שפורסמו'}</div>
               return activeGroups.map(g => renderShiftGroup(g, slotStatus))
             }
             if (archiveGroups.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">אין אירועים בארכיון</div>
