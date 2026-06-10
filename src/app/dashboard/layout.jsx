@@ -5,6 +5,12 @@ import { supabase } from '@/lib/supabase'
 import HaziraLogo from '@/components/HaziraLogo'
 import Link from 'next/link'
 
+function areaOf(path) {
+  if (path === '/dashboard') return 'dashboard'
+  const seg = (path || '').replace('/dashboard/', '').split('/')[0]
+  return seg || 'dashboard'
+}
+
 export default function DashboardLayout({ children }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -14,10 +20,23 @@ export default function DashboardLayout({ children }) {
   const [unread, setUnread] = useState(0)
   const [muted, setMuted] = useState(() => typeof window !== 'undefined' && localStorage.getItem('notif-muted') === 'true')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [accessReady, setAccessReady] = useState(false)
+  const [isManager, setIsManager] = useState(false)
+  const [allowedAreas, setAllowedAreas] = useState(null)
 
   useEffect(() => {
     if (pathname === '/dashboard/messages') setUnread(0)
   }, [pathname])
+
+  // הפניה לאזור המורשה הראשון אם המשתמש הגיע לעמוד שאין לו גישה אליו
+  useEffect(() => {
+    if (!accessReady || isManager || !allowedAreas) return
+    const current = areaOf(pathname)
+    if (!allowedAreas.has(current) && navItems[0]?.href) {
+      router.push(navItems[0].href)
+    }
+  }, [accessReady, isManager, allowedAreas, pathname, navItems, router])
+
   const audioCtxRef = useRef(null)
 
   function playSound() {
@@ -51,48 +70,38 @@ export default function DashboardLayout({ children }) {
       if (!data.user) { router.push('/login'); return }
       setUser(data.user)
 
-      const { data: p } = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
+      const uid = data.user.id
+      const [{ data: p }, { data: nav }, { data: grants }, { data: prefs }] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', uid).single(),
+        supabase.from('nav_items').select('*').eq('enabled', true).order('sort_order'),
+        supabase.from('user_area_access').select('area').eq('user_id', uid),
+        supabase.from('user_preferences').select('area, hidden').eq('user_id', uid),
+      ])
       setProfile(p)
 
-      const { data: nav } = await supabase
-        .from('nav_items')
-        .select('*')
-        .eq('enabled', true)
-        .order('sort_order')
-
-      const areaOf = href => href === '/dashboard' ? 'dashboard' : (href || '').replace('/dashboard/', '')
+      const manager = !!p?.is_manager
+      setIsManager(manager)
 
       let items = nav || []
-      if (!p?.is_manager) {
+      let allowed = null
+      if (!manager) {
         // שכבה קשיחה: רק אזורים שהוקצו למשתמש
-        const { data: grants } = await supabase
-          .from('user_area_access')
-          .select('area')
-          .eq('user_id', data.user.id)
-        const allowed = new Set((grants || []).map(g => g.area))
+        allowed = new Set((grants || []).map(g => g.area))
         items = items.filter(n => !n.manager_only && allowed.has(areaOf(n.href)))
 
         // אזור התפעול לא תמיד קיים כפריט תפריט — נוסיף אותו למי שמורשה
         if (allowed.has('operations') && !items.some(n => areaOf(n.href) === 'operations')) {
           items = [{ label: 'מחלקת תפעול', href: '/dashboard/operations', icon: 'ti-settings', manager_only: false }, ...items]
         }
-
-        // אם אין גישה לעמוד הראשי — הפנה לאזור הראשון שיש
-        if (!allowed.has('dashboard') && items[0] &&
-            typeof window !== 'undefined' && window.location.pathname === '/dashboard') {
-          router.push(items[0].href)
-        }
       }
+      setAllowedAreas(allowed)
 
       // שכבה רכה: הסתרות אישיות של המשתמש
-      const { data: prefs } = await supabase
-        .from('user_preferences')
-        .select('area, hidden')
-        .eq('user_id', data.user.id)
       const hidden = new Set((prefs || []).filter(x => x.hidden).map(x => x.area))
       items = items.filter(n => !hidden.has(areaOf(n.href)))
 
       setNavItems(items)
+      setAccessReady(true)
 
       const { count } = await supabase
         .from('messages')
@@ -179,6 +188,10 @@ export default function DashboardLayout({ children }) {
     : '?'
 
   const bottomNavItems = navItems.slice(0, 4)
+
+  const currentArea = areaOf(pathname)
+  const needsRedirect = accessReady && !isManager && !!allowedAreas && !allowedAreas.has(currentArea)
+  const showContent = accessReady && !needsRedirect
 
   return (
     <div className="fixed inset-0 flex bg-[#f8f5f5] overflow-hidden">
@@ -272,7 +285,11 @@ export default function DashboardLayout({ children }) {
         {/* Page content */}
         <div className="flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto p-4 pb-24 md:pb-5">
-            {children}
+            {showContent ? children : (
+              <div className="h-full flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-gray-200 border-t-[#E0197D] rounded-full animate-spin" />
+              </div>
+            )}
           </div>
         </div>
       </main>
