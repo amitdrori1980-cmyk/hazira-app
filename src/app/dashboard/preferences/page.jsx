@@ -66,6 +66,7 @@ export default function PreferencesPage() {
       next.add(area)
     }
     setHidden(next)
+    window.dispatchEvent(new Event('hazira:prefs-changed'))
     setSaving(null)
   }
 

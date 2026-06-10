@@ -26,6 +26,8 @@ export default function DashboardLayout({ children }) {
   const [accessReady, setAccessReady] = useState(false)
   const [isManager, setIsManager] = useState(false)
   const [allowedAreas, setAllowedAreas] = useState(null)
+  const baseNavRef = useRef([])
+  const uidRef = useRef(null)
 
   useEffect(() => {
     if (pathname === '/dashboard/messages') setUnread(0)
@@ -39,6 +41,23 @@ export default function DashboardLayout({ children }) {
       router.push(navItems[0].href)
     }
   }, [accessReady, isManager, allowedAreas, pathname, navItems, router])
+
+  // עדכון חי של סרגל הצד כשמשנים העדפות הסתרה — בלי רענון
+  useEffect(() => {
+    async function reapplyPrefs() {
+      const uid = uidRef.current
+      if (!uid) return
+      const { data: prefs } = await supabase
+        .from('user_preferences')
+        .select('area, hidden')
+        .eq('user_id', uid)
+      const hidden = new Set((prefs || []).filter(x => x.hidden).map(x => x.area))
+      setNavItems(baseNavRef.current.filter(n => !hidden.has(areaOf(n.href))))
+    }
+    const handler = () => reapplyPrefs()
+    window.addEventListener('hazira:prefs-changed', handler)
+    return () => window.removeEventListener('hazira:prefs-changed', handler)
+  }, [])
 
   const audioCtxRef = useRef(null)
 
@@ -74,6 +93,7 @@ export default function DashboardLayout({ children }) {
       setUser(data.user)
 
       const uid = data.user.id
+      uidRef.current = uid
       const [{ data: p }, { data: nav }, { data: grants }, { data: prefs }] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', uid).single(),
         supabase.from('nav_items').select('*').eq('enabled', true).order('sort_order'),
@@ -101,6 +121,7 @@ export default function DashboardLayout({ children }) {
         }
       }
       setAllowedAreas(allowed)
+      baseNavRef.current = items
 
       // שכבה רכה: הסתרות אישיות של המשתמש
       const hidden = new Set((prefs || []).filter(x => x.hidden).map(x => x.area))
