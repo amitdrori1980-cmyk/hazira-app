@@ -59,26 +59,40 @@ export default function DashboardLayout({ children }) {
         .select('*')
         .eq('enabled', true)
         .order('sort_order')
-      const { data: opsCrew } = await supabase.from('operations_crew').select('id,full_name').eq('user_id', data.user.id).eq('active', true).maybeSingle()
-      const roleType = p?.role_type || 'arena_crew'
-      const arenaCrewPages = [
-        '/dashboard', '/dashboard/messages', '/dashboard/tasks',
-        '/dashboard/calendar', '/dashboard/specs', '/dashboard/production',
-        '/dashboard/gear', '/dashboard/storage', '/dashboard/productions',
-        '/dashboard/notes', '/dashboard/constraints',
-      ]
-      if (opsCrew && !p?.is_manager) {
-        setNavItems([{ label: 'מחלקת תפעול', href: '/dashboard/operations', icon: 'ti-settings', manager_only: false }])
-        if (!p) setProfile({ full_name: opsCrew.full_name, is_manager: false })
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/operations')) {
-          router.push('/dashboard/operations')
+
+      const areaOf = href => href === '/dashboard' ? 'dashboard' : (href || '').replace('/dashboard/', '')
+
+      let items = nav || []
+      if (!p?.is_manager) {
+        // שכבה קשיחה: רק אזורים שהוקצו למשתמש
+        const { data: grants } = await supabase
+          .from('user_area_access')
+          .select('area')
+          .eq('user_id', data.user.id)
+        const allowed = new Set((grants || []).map(g => g.area))
+        items = items.filter(n => !n.manager_only && allowed.has(areaOf(n.href)))
+
+        // אזור התפעול לא תמיד קיים כפריט תפריט — נוסיף אותו למי שמורשה
+        if (allowed.has('operations') && !items.some(n => areaOf(n.href) === 'operations')) {
+          items = [{ label: 'מחלקת תפעול', href: '/dashboard/operations', icon: 'ti-settings', manager_only: false }, ...items]
         }
-      } else if (p?.is_manager) {
-        setNavItems((nav || []).filter(n => !n.manager_only || p?.is_manager))
-      } else {
-        // arena_crew — רק עמודים מורשים
-        setNavItems((nav || []).filter(n => arenaCrewPages.includes(n.href)))
+
+        // אם אין גישה לעמוד הראשי — הפנה לאזור הראשון שיש
+        if (!allowed.has('dashboard') && items[0] &&
+            typeof window !== 'undefined' && window.location.pathname === '/dashboard') {
+          router.push(items[0].href)
+        }
       }
+
+      // שכבה רכה: הסתרות אישיות של המשתמש
+      const { data: prefs } = await supabase
+        .from('user_preferences')
+        .select('area, hidden')
+        .eq('user_id', data.user.id)
+      const hidden = new Set((prefs || []).filter(x => x.hidden).map(x => x.area))
+      items = items.filter(n => !hidden.has(areaOf(n.href)))
+
+      setNavItems(items)
 
       const { count } = await supabase
         .from('messages')
