@@ -79,6 +79,9 @@ export default function DashboardLayout({ children }) {
       ])
       setProfile(p)
 
+      // חיוב החלפת סיסמה בכניסה הראשונה — לפני שמציגים משהו
+      if (p?.must_change_password) { router.push('/change-password'); return }
+
       const manager = !!p?.is_manager
       setIsManager(manager)
 
