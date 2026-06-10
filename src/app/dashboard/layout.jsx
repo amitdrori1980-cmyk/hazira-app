@@ -11,6 +11,9 @@ function areaOf(path) {
   return seg || 'dashboard'
 }
 
+// אזורים אישיים שכל משתמש מחובר רשאי לפתוח, גם בלי הרשאת אזור
+const ALWAYS_ALLOWED = new Set(['preferences'])
+
 export default function DashboardLayout({ children }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -32,7 +35,7 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     if (!accessReady || isManager || !allowedAreas) return
     const current = areaOf(pathname)
-    if (!allowedAreas.has(current) && navItems[0]?.href) {
+    if (!allowedAreas.has(current) && !ALWAYS_ALLOWED.has(current) && navItems[0]?.href) {
       router.push(navItems[0].href)
     }
   }, [accessReady, isManager, allowedAreas, pathname, navItems, router])
@@ -193,7 +196,7 @@ export default function DashboardLayout({ children }) {
   const bottomNavItems = navItems.slice(0, 4)
 
   const currentArea = areaOf(pathname)
-  const needsRedirect = accessReady && !isManager && !!allowedAreas && !allowedAreas.has(currentArea)
+  const needsRedirect = accessReady && !isManager && !!allowedAreas && !allowedAreas.has(currentArea) && !ALWAYS_ALLOWED.has(currentArea)
   const showContent = accessReady && !needsRedirect
 
   return (
@@ -243,6 +246,18 @@ export default function DashboardLayout({ children }) {
 
             </Link>
           ))}
+
+          <Link
+            href="/dashboard/preferences"
+            className={`flex items-center gap-2 px-4 py-2.5 text-[13px] transition-colors ${
+              pathname === '/dashboard/preferences'
+                ? 'bg-white text-[#E0197D] font-medium border-l-2 border-[#E0197D]'
+                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+            }`}
+          >
+            <i className="ti ti-adjustments-horizontal" style={{ fontSize: 15 }} aria-hidden />
+            התאמת תפריט
+          </Link>
 
           {profile?.is_manager && (
             <>
@@ -366,6 +381,19 @@ export default function DashboardLayout({ children }) {
 
                 </Link>
               ))}
+
+              <Link
+                href="/dashboard/preferences"
+                onClick={() => setMenuOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 text-[14px] ${
+                  pathname === '/dashboard/preferences'
+                    ? 'text-[#E0197D] font-medium bg-[#FCE4F3]'
+                    : 'text-gray-600'
+                }`}
+              >
+                <i className="ti ti-adjustments-horizontal" style={{ fontSize: 17 }} />
+                התאמת תפריט
+              </Link>
 
               {profile?.is_manager && (
                 <>
