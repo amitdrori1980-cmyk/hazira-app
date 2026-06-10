@@ -4,60 +4,139 @@ import { supabase } from '@/lib/supabase'
 
 const DEPTS = ['ניהול','תאורה','צליל','תפאורה','תלבושות']
 
+function areaOf(href) {
+  if (href === '/dashboard') return 'dashboard'
+  return (href || '').replace('/dashboard/', '').split('/')[0] || 'dashboard'
+}
+
 export default function TeamPage() {
   const [team, setTeam] = useState([])
+  const [areasList, setAreasList] = useState([])
+  const [isManager, setIsManager] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState({ email:'', password:'', full_name:'', role:'', dept:'ניהול', is_manager: false })
+  const [form, setForm] = useState({ full_name:'', email:'', password:'', role:'', dept:'ניהול', is_manager:false })
+  const [selectedAreas, setSelectedAreas] = useState(new Set())
+  const [addToOps, setAddToOps] = useState(false)
   const [adding, setAdding] = useState(false)
-  const [msg, setMsg] = useState('')
+  const [msg, setMsg] = useState(null)
 
   useEffect(() => {
-    supabase.from('profiles').select('*').order('full_name').then(({ data }) => {
-      setTeam(data || [])
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      const [{ data: profs }, { data: nav }, { data: me }] = await Promise.all([
+        supabase.from('profiles').select('*').order('full_name'),
+        supabase.from('nav_items').select('label, href, manager_only').eq('enabled', true).order('sort_order'),
+        user ? supabase.from('profiles').select('is_manager').eq('id', user.id).single() : Promise.resolve({ data: null }),
+      ])
+      setTeam(profs || [])
+      setIsManager(!!me?.is_manager)
+      const seen = new Set()
+      const list = []
+      for (const n of (nav || [])) {
+        if (n.manager_only) continue
+        const a = areaOf(n.href)
+        if (seen.has(a)) continue
+        seen.add(a); list.push({ area: a, label: n.label })
+      }
+      if (!seen.has('operations')) list.push({ area: 'operations', label: 'מחלקת תפעול' })
+      setAreasList(list)
       setLoading(false)
-    })
+    })()
   }, [])
+
+  function toggleArea(area) {
+    setSelectedAreas(prev => {
+      const next = new Set(prev)
+      next.has(area) ? next.delete(area) : next.add(area)
+      return next
+    })
+  }
 
   async function addMember(e) {
     e.preventDefault()
-    setAdding(true); setMsg('')
-    // Create auth user via admin — requires service role key (not available client-side)
-    // Instead show instructions
-    setMsg(`כדי להוסיף עובד: לך ל-Supabase → Authentication → Users → Add user\nאימייל: ${form.email} | סיסמה: ${form.password}\nאחרי הוספה, הרץ ב-SQL Editor:\ninsert into profiles (id, full_name, role, dept, is_manager)\nselect id, '${form.full_name}', '${form.role}', '${form.dept}', ${form.is_manager}\nfrom auth.users where email='${form.email}';`)
+    setAdding(true); setMsg(null)
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/create-crew-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+      body: JSON.stringify({
+        full_name: form.full_name,
+        email: form.email,
+        password: form.password,
+        role: form.role,
+        dept: form.dept,
+        is_manager: form.is_manager,
+        areas: Array.from(selectedAreas),
+        add_to_operations: addToOps,
+      })
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setMsg({ type: 'err', text: data.error || 'אירעה שגיאה ביצירת המשתמש' })
+      setAdding(false)
+      return
+    }
+    setMsg({ type: 'ok', text: `${form.full_name} נוצר/ה בהצלחה. בכניסה הראשונה תתבקש/י להחליף סיסמה.` })
+    const { data: profs } = await supabase.from('profiles').select('*').order('full_name')
+    setTeam(profs || [])
+    setForm({ full_name:'', email:'', password:'', role:'', dept:'ניהול', is_manager:false })
+    setSelectedAreas(new Set())
+    setAddToOps(false)
     setAdding(false)
   }
 
   const initials = name => name?.split(' ').map(w=>w[0]).join('').slice(0,2) || '?'
 
   return (
-    <div className="max-w-xl">
-      {/* Add member form */}
-      <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
-        <div className="text-[13px] font-medium text-gray-800 mb-3">הוסף עובד חדש</div>
-        <form onSubmit={addMember} className="grid grid-cols-2 gap-2">
-          <input value={form.full_name} onChange={e=>setForm(f=>({...f,full_name:e.target.value}))} placeholder="שם מלא *" className="col-span-2 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
-          <input value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="אימייל *" type="email" className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
-          <input value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} placeholder="סיסמה *" className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
-          <input value={form.role} onChange={e=>setForm(f=>({...f,role:e.target.value}))} placeholder="תפקיד" className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
-          <select value={form.dept} onChange={e=>setForm(f=>({...f,dept:e.target.value}))} className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
-            {DEPTS.map(d => <option key={d}>{d}</option>)}
-          </select>
-          <label className="col-span-2 flex items-center gap-2 text-sm text-gray-600 cursor-pointer flex-row-reverse justify-end">
-            <input type="checkbox" checked={form.is_manager} onChange={e=>setForm(f=>({...f,is_manager:e.target.checked}))} style={{ accentColor:'#E0197D' }} />
-            מנהל הפקה (גישה מלאה)
-          </label>
-          <button type="submit" disabled={adding} className="col-span-2 bg-[#E0197D] text-white text-sm py-2 rounded-lg hover:bg-[#A0106A] transition-colors">
-            קבל הוראות הוספה
-          </button>
-        </form>
-        {msg && (
-          <pre className="mt-3 text-[11px] bg-gray-50 p-3 rounded-lg text-right leading-relaxed whitespace-pre-wrap text-gray-700 border border-gray-200">
-            {msg}
-          </pre>
-        )}
-      </div>
+    <div className="max-w-xl" dir="rtl">
+      {isManager && (
+        <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
+          <div className="text-[13px] font-medium text-gray-800 mb-3">הוסף עובד חדש</div>
+          <form onSubmit={addMember} className="grid grid-cols-2 gap-2">
+            <input value={form.full_name} onChange={e=>setForm(f=>({...f,full_name:e.target.value}))} placeholder="שם מלא *" required className="col-span-2 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+            <input value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="אימייל *" type="email" required className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+            <input value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} placeholder="סיסמה ראשונית *" required className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+            <input value={form.role} onChange={e=>setForm(f=>({...f,role:e.target.value}))} placeholder="תפקיד" className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+            <select value={form.dept} onChange={e=>setForm(f=>({...f,dept:e.target.value}))} className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none text-right">
+              {DEPTS.map(d => <option key={d}>{d}</option>)}
+            </select>
 
-      {/* Team list */}
+            <label className="col-span-2 flex items-center gap-2 text-sm text-gray-600 cursor-pointer flex-row-reverse justify-end mt-1">
+              <input type="checkbox" checked={form.is_manager} onChange={e=>setForm(f=>({...f,is_manager:e.target.checked}))} style={{ accentColor:'#E0197D' }} />
+              מנהל הפקה (גישה מלאה לכל האזורים)
+            </label>
+
+            {!form.is_manager && (
+              <div className="col-span-2 border border-gray-100 rounded-lg p-3 mt-1">
+                <div className="text-[12px] font-medium text-gray-500 mb-2 text-right">אזורים מורשים</div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                  {areasList.map(a => (
+                    <label key={a.area} className="flex items-center gap-2 text-[13px] text-gray-700 cursor-pointer flex-row-reverse justify-end">
+                      <input type="checkbox" checked={selectedAreas.has(a.area)} onChange={()=>toggleArea(a.area)} style={{ accentColor:'#E0197D' }} />
+                      {a.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <label className="col-span-2 flex items-center gap-2 text-sm text-gray-600 cursor-pointer flex-row-reverse justify-end">
+              <input type="checkbox" checked={addToOps} onChange={e=>setAddToOps(e.target.checked)} style={{ accentColor:'#E0197D' }} />
+              חבר/ת צוות תפעול
+            </label>
+
+            <button type="submit" disabled={adding} className="col-span-2 bg-[#E0197D] text-white text-sm py-2 rounded-lg hover:bg-[#A0106A] transition-colors disabled:opacity-50 mt-1">
+              {adding ? 'יוצר...' : 'הוסף עובד'}
+            </button>
+          </form>
+          {msg && (
+            <div className={`mt-3 text-[12px] p-3 rounded-lg text-right border ${msg.type==='ok' ? 'bg-[#E1F5EE] text-[#085041] border-[#bfe8dc]' : 'bg-[#FCE4F3] text-[#A0106A] border-[#f3c6e0]'}`}>
+              {msg.text}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="bg-white border border-gray-100 rounded-xl p-4">
         <div className="text-[13px] font-medium text-gray-800 mb-3">
           הצוות {team.length > 0 && <span className="text-gray-400">({team.length} עובדים)</span>}
@@ -73,7 +152,7 @@ export default function TeamPage() {
               <div className="text-[13px] font-medium text-gray-800">{m.full_name}</div>
               <div className="text-[11px] text-gray-400">{m.role}</div>
             </div>
-            <span className="text-[11px] bg-[#FCE4F3] text-[#A0106A] px-2 py-0.5 rounded-full">{m.dept}</span>
+            {m.dept && <span className="text-[11px] bg-[#FCE4F3] text-[#A0106A] px-2 py-0.5 rounded-full">{m.dept}</span>}
             {m.is_manager && <span className="text-[11px] bg-[#E3F0FF] text-[#1A4A8A] px-2 py-0.5 rounded-full">מנהל</span>}
           </div>
         ))}
