@@ -41,24 +41,45 @@ export default function ConstraintsPage() {
   const [crewOpen, setCrewOpen] = useState(false)
   const [hiddenCrew, setHiddenCrew] = useState(new Set())
   const [showCrewFilter, setShowCrewFilter] = useState(false)
-  const [form, setForm]       = useState({ crew_name:'', date:'', date_to:'', time_from:'', time_to:'', hours:'', notes:'' })
+  const [form, setForm]       = useState({ crew_name:'', date:'', available:false, notes:'' })
   const [adding, setAdding]   = useState(false)
   const [confirmId, setConfirmId] = useState(null)
   const [editItem, setEditItem] = useState(null) // constraint being edited
-  const [editForm, setEditForm] = useState({ crew_name:'', date:'', date_to:'', time_from:'', time_to:'', hours:'', notes:'' })
+  const [editForm, setEditForm] = useState({ crew_name:'', date:'', available:false, notes:'' })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => { load() }, [])
 
   async function load() {
-    const [{ data: c }, { data: e }, { data: cr }] = await Promise.all([
+    const [{ data: c }, { data: e }, { data: profs }, { data: cm }, { data: ops }] = await Promise.all([
       supabase.from('crew_constraints').select('*').order('date'),
       supabase.from('events').select('id,title,date,time,type').order('date'),
-      supabase.from('crew_members').select('id,full_name').eq('active',true).order('full_name'),
+      supabase.from('profiles').select('id,full_name,dept').order('full_name'),
+      supabase.from('crew_members').select('id,full_name').order('full_name'),
+      supabase.from('user_area_access').select('user_id').eq('area','operations'),
     ])
+    // מקור העובדים: כל בעלי החשבונות חוץ מתפעול, ועוד חסרי-החשבון מרשימת הצוות
+    const opsSet = new Set((ops || []).map(o => o.user_id))
+    const merged = []
+    const seen = new Set()
+    ;(profs || []).forEach(p => {
+      if (!p.full_name) return
+      if (opsSet.has(p.id)) return
+      if ((p.dept || '').trim() === 'תפעול') return
+      const key = p.full_name.trim()
+      if (seen.has(key)) return
+      seen.add(key); merged.push({ id: p.id, full_name: p.full_name })
+    })
+    ;(cm || []).forEach(m => {
+      if (!m.full_name) return
+      const key = m.full_name.trim()
+      if (seen.has(key)) return
+      seen.add(key); merged.push({ id: m.id, full_name: m.full_name })
+    })
+    merged.sort((a, b) => a.full_name.localeCompare(b.full_name, 'he'))
     setConstraints(c || [])
     setEvents(e || [])
-    setCrew(cr || [])
+    setCrew(merged)
     setLoading(false)
   }
 
@@ -220,16 +241,12 @@ export default function ConstraintsPage() {
     const member = crew.find(c => c.full_name.trim() === form.crew_name.trim())
     await supabase.from('crew_constraints').insert({
       crew_member_id: member?.id || null,
-      crew_name: form.crew_name,
+      crew_name: form.crew_name.trim(),
       date: form.date,
-      date_to: form.date_to || null,
-      time_from: form.time_from || null,
-      time_to: form.time_to || null,
-      hours: form.hours,
+      available: form.available,
       notes: form.notes,
-      available: false,
     })
-    setForm({ crew_name:'', date:'', date_to:'', time_from:'', time_to:'', hours:'', notes:'' })
+    setForm({ crew_name:'', date:'', available:false, notes:'' })
     setShowAdd(false)
     setAdding(false)
     await load()
@@ -247,7 +264,7 @@ export default function ConstraintsPage() {
 
   function openEdit(c) {
     setEditItem(c)
-    setEditForm({ crew_name: c.crew_name, date: c.date, date_to: c.date_to || '', time_from: c.time_from || '', time_to: c.time_to || '', hours: c.hours || '', notes: c.notes || '' })
+    setEditForm({ crew_name: c.crew_name, date: c.date, available: !!c.available, notes: c.notes || '' })
   }
 
   async function saveEdit() {
@@ -256,17 +273,15 @@ export default function ConstraintsPage() {
     const member = crew.find(m => m.full_name.trim() === editForm.crew_name.trim())
     await supabase.from('crew_constraints').update({
       crew_member_id: member?.id || null,
-      crew_name: editForm.crew_name,
+      crew_name: editForm.crew_name.trim(),
       date: editForm.date,
-      date_to: editForm.date_to || null,
-      time_from: editForm.time_from || null,
-      time_to: editForm.time_to || null,
-      hours: editForm.hours,
+      available: editForm.available,
       notes: editForm.notes,
     }).eq('id', editItem.id)
     setConstraints(prev => prev.map(c => c.id === editItem.id ? { ...c, ...editForm } : c))
     setEditItem(null)
     setSaving(false)
+    await load()
   }
 
   return (
@@ -283,9 +298,12 @@ export default function ConstraintsPage() {
             </label>
             <label className="flex items-center gap-2 cursor-pointer text-[13px] text-gray-700">
               <input type="checkbox" checked={showConstraints} onChange={e=>setShowConstraints(e.target.checked)}
-                style={{accentColor:'#6366f1'}} className="w-4 h-4"/>
-              <span className="w-3 h-3 rounded-sm bg-[#EEF2FF] inline-block"/>
-              הצג אילוצי צוות
+                style={{accentColor:'#16a34a'}} className="w-4 h-4"/>
+              <span className="flex gap-0.5">
+                <span className="w-3 h-3 rounded-sm bg-[#16a34a] inline-block"/>
+                <span className="w-3 h-3 rounded-sm bg-[#dc2626] inline-block"/>
+              </span>
+              הצג אילוצים
             </label>
             {showConstraints && (
               <div className="relative">
@@ -358,28 +376,23 @@ export default function ConstraintsPage() {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] text-gray-400 flex-shrink-0">מתאריך</span>
+              <div className="flex items-center gap-1 col-span-2">
+                <span className="text-[11px] text-gray-400 flex-shrink-0">תאריך</span>
                 <input value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}
                   type="date" required className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] text-gray-400 flex-shrink-0">עד תאריך</span>
-                <input value={form.date_to} onChange={e=>setForm(f=>({...f,date_to:e.target.value}))}
-                  type="date" className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] text-gray-400 flex-shrink-0">משעה</span>
-                <input value={form.time_from} onChange={e=>setForm(f=>({...f,time_from:e.target.value}))}
-                  type="time" className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] text-gray-400 flex-shrink-0">עד שעה</span>
-                <input value={form.time_to} onChange={e=>setForm(f=>({...f,time_to:e.target.value}))}
-                  type="time" className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
+              <div className="col-span-2 flex rounded-lg overflow-hidden border border-gray-200">
+                <button type="button" onClick={()=>setForm(f=>({...f,available:true}))}
+                  className={`flex-1 text-[13px] py-2 transition-colors ${form.available ? 'bg-[#16a34a] text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                  נמצא
+                </button>
+                <button type="button" onClick={()=>setForm(f=>({...f,available:false}))}
+                  className={`flex-1 text-[13px] py-2 transition-colors ${!form.available ? 'bg-[#dc2626] text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                  לא נמצא
+                </button>
               </div>
               <input value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}
-                placeholder="הערה" className="col-span-2 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
+                placeholder="הערה" className="col-span-2 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right"/>
             </div>
             <div className="flex gap-2">
               <button type="submit" disabled={adding}
@@ -432,7 +445,7 @@ export default function ConstraintsPage() {
                     <span key={e.id} className="w-2.5 h-2.5 rounded-full bg-[#E0197D] inline-block"/>
                   ))}
                   {dayConstraints.slice(0,3).map(c=>(
-                    <span key={c.id} className="w-2.5 h-2.5 rounded-full bg-[#6366f1] inline-block"/>
+                    <span key={c.id} className={`w-2.5 h-2.5 rounded-full inline-block ${c.available ? 'bg-[#16a34a]' : 'bg-[#dc2626]'}`}/>
                   ))}
                 </div>
                 {/* Desktop: text */}
@@ -442,7 +455,7 @@ export default function ConstraintsPage() {
                   </div>
                 ))}
                 {dayConstraints.slice(0,2).map(c=>(
-                  <div key={c.id} className="hidden md:block text-[9px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#EEF2FF] text-[#4338ca]">
+                  <div key={c.id} className={`hidden md:block text-[9px] px-1 py-0.5 rounded mb-0.5 truncate ${c.available ? 'bg-[#DCFCE7] text-[#15803d]' : 'bg-[#FEE2E2] text-[#b91c1c]'}`}>
                     {c.crew_name?.split(' ')[0]}
                   </div>
                 ))}
@@ -474,34 +487,51 @@ export default function ConstraintsPage() {
             </div>
           )}
 
-          {selectedData.dayConstraints.length > 0 && (
-            <div>
-              <div className="text-[11px] font-semibold text-gray-700 mb-2">אילוצי צוות</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {selectedData.dayConstraints.map(c=>(
-                  <div key={c.id} className="flex items-center gap-2 py-2 bg-[#EEF2FF] rounded-lg px-3 flex-row-reverse group">
-                    <div className="flex-1 text-right">
-                      <div className="text-[13px] font-medium text-[#4338ca]">{c.crew_name}</div>
-                      {c.hours && <div className="text-[11px] text-[#6366f1]">🕐 {c.hours}</div>}
-                      {(c.time_from || c.time_to) && <div className="text-[11px] text-[#6366f1]">🕐 {c.time_from?.slice(0,5)}{c.time_to ? ` - ${c.time_to.slice(0,5)}` : ''}</div>}
-                      {c.date_to && <div className="text-[11px] text-gray-800">עד {c.date_to}</div>}
-                      {c.notes && <div className="text-[11px] text-gray-800">{c.notes}</div>}
+          {selectedData.dayConstraints.length > 0 && (() => {
+            const present = selectedData.dayConstraints.filter(c => c.available)
+            const absent  = selectedData.dayConstraints.filter(c => !c.available)
+            const withNotes = selectedData.dayConstraints.filter(c => c.notes && c.notes.trim())
+            const Chip = ({ c, tone }) => (
+              <span className={`inline-flex items-center gap-1 pr-0 rounded-full text-[12px] ${tone}`}>
+                <button onClick={()=>openEdit(c)} className="pr-2.5 pl-1 py-1 hover:opacity-70">{c.crew_name}</button>
+                <button onClick={()=>deleteConstraint(c.id)} className="pl-2 py-1 opacity-50 hover:opacity-100">
+                  <i className="ti ti-x" style={{fontSize:11}}/>
+                </button>
+              </span>
+            )
+            return (
+              <div className="space-y-3">
+                <div>
+                  <div className="text-[11px] font-semibold text-[#15803d] mb-2">נמצאים ({present.length})</div>
+                  {present.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {present.map(c => <Chip key={c.id} c={c} tone="bg-[#DCFCE7] text-[#15803d]" />)}
                     </div>
-                    <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-all">
-                      <button onClick={()=>openEdit(c)}
-                        className="text-gray-300 hover:text-[#6366f1] p-1">
-                        <i className="ti ti-pencil" style={{fontSize:14}}/>
-                      </button>
-                      <button onClick={()=>deleteConstraint(c.id)}
-                        className="text-gray-300 hover:text-red-500 p-1">
-                        <i className="ti ti-trash" style={{fontSize:14}}/>
-                      </button>
+                  ) : <div className="text-[12px] text-gray-400">—</div>}
+                </div>
+                <div>
+                  <div className="text-[11px] font-semibold text-[#b91c1c] mb-2">לא נמצאים ({absent.length})</div>
+                  {absent.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {absent.map(c => <Chip key={c.id} c={c} tone="bg-[#FEE2E2] text-[#b91c1c]" />)}
+                    </div>
+                  ) : <div className="text-[12px] text-gray-400">—</div>}
+                </div>
+                {withNotes.length > 0 && (
+                  <div>
+                    <div className="text-[11px] font-semibold text-gray-700 mb-2">הערות</div>
+                    <div className="space-y-1">
+                      {withNotes.map(c => (
+                        <div key={c.id} className="text-[12px] text-gray-700 text-right">
+                          <span className="font-medium">{c.crew_name}:</span> {c.notes}
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
+                )}
               </div>
-            </div>
-          )}
+            )
+          })()}
 
           {selectedData.dayEvents.length===0 && selectedData.dayConstraints.length===0 && (
             <div className="text-[13px] text-gray-600 text-center py-4">אין נתונים ליום זה</div>
@@ -527,27 +557,20 @@ export default function ConstraintsPage() {
                 {crew.map(m=><option key={m.id} value={m.full_name}>{m.full_name}</option>)}
               </select>
               <div className="flex items-center gap-1">
-                <span className="text-[11px] text-gray-400 flex-shrink-0">מתאריך</span>
+                <span className="text-[11px] text-gray-400 flex-shrink-0">תאריך</span>
                 <input value={editForm.date} onChange={e=>setEditForm(f=>({...f,date:e.target.value}))}
                   type="date" required className="flex-1 text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1]"/>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] text-gray-400 flex-shrink-0">עד תאריך</span>
-                <input value={editForm.date_to} onChange={e=>setEditForm(f=>({...f,date_to:e.target.value}))}
-                  type="date" className="flex-1 text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1]"/>
+              <div className="flex rounded-xl overflow-hidden border border-gray-200">
+                <button type="button" onClick={()=>setEditForm(f=>({...f,available:true}))}
+                  className={`flex-1 text-[13px] py-2.5 transition-colors ${editForm.available ? 'bg-[#16a34a] text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                  נמצא
+                </button>
+                <button type="button" onClick={()=>setEditForm(f=>({...f,available:false}))}
+                  className={`flex-1 text-[13px] py-2.5 transition-colors ${!editForm.available ? 'bg-[#dc2626] text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                  לא נמצא
+                </button>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] text-gray-400 flex-shrink-0">משעה</span>
-                <input value={editForm.time_from} onChange={e=>setEditForm(f=>({...f,time_from:e.target.value}))}
-                  type="time" className="flex-1 text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1]"/>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] text-gray-400 flex-shrink-0">עד שעה</span>
-                <input value={editForm.time_to} onChange={e=>setEditForm(f=>({...f,time_to:e.target.value}))}
-                  type="time" className="flex-1 text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1]"/>
-              </div>
-              <input value={editForm.hours} onChange={e=>setEditForm(f=>({...f,hours:e.target.value}))}
-                placeholder="שעות (09:00-13:00)" className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1] text-right"/>
               <input value={editForm.notes} onChange={e=>setEditForm(f=>({...f,notes:e.target.value}))}
                 placeholder="הערה" className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1] text-right"/>
             </div>
