@@ -15,6 +15,7 @@ export default function MessagesPage() {
   const [profile, setProfile]   = useState(null)
   const [depts, setDepts]       = useState([])
   const [crew, setCrew]         = useState([])
+  const [people, setPeople]     = useState([])
   const [loading, setLoading]   = useState(true)
   const [sending, setSending]   = useState(false)
   const [form, setForm] = useState({ body:'', target_type:'all', to_dept:'', to_crew_id:'', priority:'רגיל' })
@@ -44,12 +45,14 @@ export default function MessagesPage() {
     const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
     setProfile({ ...p, uid: user.id })
 
-    const [{ data: ds }, { data: cr }] = await Promise.all([
+    const [{ data: ds }, { data: cr }, { data: pe }] = await Promise.all([
       supabase.from('departments').select('name').order('name'),
       supabase.from('crew_members').select('id,full_name,role,dept,user_id').eq('active',true).order('full_name'),
+      supabase.from('profiles').select('id,full_name').order('full_name'),
     ])
     setDepts((ds||[]).map(d=>d.name))
     setCrew(cr||[])
+    setPeople(pe||[])
 
     const q = supabase
       .from('messages')
@@ -174,13 +177,19 @@ export default function MessagesPage() {
     return msg.sender_id === profile.uid || msg.to_user === profile.uid || profile.is_manager
   }
 
+  function recipientName(msg) {
+    let name = ''
+    if (msg.to_crew_id) name = crew.find(c => c.id === msg.to_crew_id)?.full_name || ''
+    if (!name && msg.to_user) name = people.find(p => p.id === msg.to_user)?.full_name || crew.find(c => c.user_id === msg.to_user)?.full_name || ''
+    return name
+  }
+
   function getTargetLabel(msg) {
     if (msg.to_dept === 'all') return '🌐 כולם'
     if (msg.to_dept) return `📂 ${msg.to_dept}`
-    if (msg.to_crew_id) {
-      const member = crew.find(c => c.id === msg.to_crew_id)
-      return `👤 ${member?.full_name || 'אדם ספציפי'}`
-    }
+    const name = recipientName(msg)
+    if (name) return `👤 ${name}`
+    if (msg.to_crew_id || msg.to_user) return '👤 אדם ספציפי'
     return ''
   }
 
@@ -310,7 +319,7 @@ export default function MessagesPage() {
                   <span className="text-[11px] text-gray-400 mr-auto">{m.sender?.full_name || 'מנהל'}</span>
                 </div>
                 {(m.sender_id === profile?.uid || profile?.is_manager) && (
-                  <div className="text-[12px] text-gray-600 mb-2">אל: <span className="font-medium text-gray-800">{crew.find(c=>c.id===m.to_crew_id)?.full_name || '—'}</span></div>
+                  <div className="text-[12px] text-gray-600 mb-2">אל: <span className="font-medium text-gray-800">{recipientName(m) || '—'}</span></div>
                 )}
                 <div className="bg-white rounded-lg p-3 mb-3">
                   <div className="text-[13px] font-medium text-gray-800">{m.event_data?.event_title}</div>
