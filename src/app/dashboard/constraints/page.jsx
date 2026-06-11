@@ -438,8 +438,9 @@ export default function ConstraintsPage() {
 
       {/* Calendar */}
       <div ref={gridRef} className={`bg-white border border-gray-100 rounded-xl p-5 mb-3 ${selectedDay ? 'hidden' : ''}`}>
-        <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-          <div className="flex items-center gap-1">
+        <div className="grid grid-cols-3 items-center mb-4 gap-2">
+          <div></div>
+          <div className="flex items-center justify-center gap-1">
             <button onClick={()=>navigate(-1)} className="text-gray-400 hover:text-[#E0197D] p-1 rounded-lg hover:bg-gray-50">
               <i className="ti ti-chevron-right" style={{fontSize:20}}/>
             </button>
@@ -450,9 +451,11 @@ export default function ConstraintsPage() {
               <i className="ti ti-chevron-left" style={{fontSize:20}}/>
             </button>
           </div>
-          <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-            <button onClick={()=>setViewMode('month')} className={`text-[12px] px-3 py-1 ${viewMode==='month'?'bg-[#E0197D] text-white':'text-gray-500 hover:text-[#E0197D]'}`}>חודשי</button>
-            <button onClick={()=>{ setViewMode('week'); setWeekAnchor(selectedDay || todayDs) }} className={`text-[12px] px-3 py-1 ${viewMode==='week'?'bg-[#E0197D] text-white':'text-gray-500 hover:text-[#E0197D]'}`}>שבועי</button>
+          <div className="flex justify-end">
+            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+              <button onClick={()=>setViewMode('month')} className={`text-[12px] px-3 py-1 ${viewMode==='month'?'bg-[#E0197D] text-white':'text-gray-500 hover:text-[#E0197D]'}`}>חודשי</button>
+              <button onClick={()=>{ setViewMode('week'); setWeekAnchor(selectedDay || todayDs) }} className={`text-[12px] px-3 py-1 ${viewMode==='week'?'bg-[#E0197D] text-white':'text-gray-500 hover:text-[#E0197D]'}`}>שבועי</button>
+            </div>
           </div>
         </div>
 
