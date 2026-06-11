@@ -139,9 +139,9 @@ export default function TeamPage() {
                 <div className="text-[12px] font-medium text-gray-500 mb-2 text-right">אזורים מורשים</div>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                   {areasList.map(a => (
-                    <label key={a.area} className="flex items-center gap-2 text-[13px] text-gray-700 cursor-pointer flex-row-reverse justify-end">
-                      <input type="checkbox" checked={selectedAreas.has(a.area)} onChange={()=>toggleArea(a.area)} style={{ accentColor:'#E0197D' }} />
-                      {a.label}
+                    <label key={a.area} className="flex items-center gap-2 text-[13px] text-gray-700 cursor-pointer w-full">
+                      <input type="checkbox" checked={selectedAreas.has(a.area)} onChange={()=>toggleArea(a.area)} style={{ accentColor:'#E0197D' }} className="flex-shrink-0" />
+                      <span>{a.label}</span>
                     </label>
                   ))}
                 </div>
