@@ -188,6 +188,22 @@ function ProductionInquiries() {
       if (error) return alert('שגיאה: ' + error.message)
       alert(`האירוע נוסף ליומן${confirmed.length ? ` עם ${confirmed.length} אנשי צוות שאישרו` : ''}!`)
     }
+
+    // סנכרון ללוח האילוצים: כל מי שאישר (צהוב) -> שורת "נמצא" אמיתית בתאריך האירוע
+    if (ev.date) {
+      const evTag = ev.event_name || ''
+      // הסרת שורות אוטומטיות קודמות של האירוע הזה (כדי שמי שכבר לא צהוב יוסר)
+      await supabase.from('crew_constraints').delete()
+        .eq('date', ev.date).eq('notes', evTag).eq('available', true).is('crew_member_id', null)
+      // לא לכפול שם שכבר יש לו שורה באותו יום (ידנית או מאירוע אחר)
+      const { data: dayRows } = await supabase.from('crew_constraints')
+        .select('crew_name').eq('date', ev.date)
+      const taken = new Set((dayRows || []).map(r => (r.crew_name || '').trim()))
+      const toInsert = confirmed
+        .filter(n => !taken.has(n))
+        .map(n => ({ crew_member_id: null, crew_name: n, date: ev.date, available: true, notes: evTag }))
+      if (toInsert.length) await supabase.from('crew_constraints').insert(toInsert)
+    }
   }
 
   async function saveEventEdit() {
