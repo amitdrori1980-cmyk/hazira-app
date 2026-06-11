@@ -480,7 +480,7 @@ function EventsPageInner() {
         })}
       </div>
       {!showTrash && activeEvents.length > 0 && (
-        <div className="fixed bottom-6 left-6 z-40 flex flex-col gap-2">
+        <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2">
           <button onClick={() => { const today = new Date().toISOString().slice(0,10); const up = activeEvents.find(e => e.date >= today); const t = up || activeEvents[activeEvents.length-1]; if (t) document.getElementById('event-'+t.id)?.scrollIntoView({ behavior:'smooth', block:'center' }) }}
             title="לאירוע הקרוב להיום" aria-label="לאירוע הקרוב להיום"
             className="w-11 h-11 rounded-full bg-[#E0197D] text-white shadow-lg hover:bg-[#A0106A] flex items-center justify-center">
