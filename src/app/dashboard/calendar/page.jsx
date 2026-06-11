@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -15,8 +15,6 @@ export default function CalendarPage() {
   const [calYear, setCalYear] = useState(new Date().getFullYear())
   const [calMonth, setCalMonth] = useState(new Date().getMonth())
   const [selectedDay, setSelectedDay] = useState(null)
-  const [viewMode, setViewMode] = useState('month')
-  const [weekAnchor, setWeekAnchor] = useState(null)
   const [venues, setVenues] = useState([])
   const [selectedVenue, setSelectedVenue] = useState('all')
   const [editingEvent, setEditingEvent] = useState(null)
@@ -63,61 +61,6 @@ export default function CalendarPage() {
     setCalMonth(m); setCalYear(y); setSelectedDay(null)
   }
 
-  function buildWeekCells(anchorDs) {
-    const [ay, am, ad] = anchorDs.split('-').map(Number)
-    const base = new Date(ay, am - 1, ad)
-    base.setDate(base.getDate() - base.getDay())
-    const wk = []
-    for (let j = 0; j < 7; j++) {
-      const dt = new Date(base); dt.setDate(base.getDate() + j)
-      wk.push({ d: dt.getDate(), ds: dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate()), inMonth: true })
-    }
-    return wk
-  }
-
-  function navigate(dir) {
-    if (viewMode === 'week') {
-      const a = weekAnchor || selectedDay || todayDs
-      const [ay, am, ad] = a.split('-').map(Number)
-      const dt = new Date(ay, am - 1, ad); dt.setDate(dt.getDate() + dir * 7)
-      setWeekAnchor(dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate()))
-    } else {
-      changeMonth(dir)
-    }
-  }
-
-  // מעבר חודש בגלילה/החלקה מעל היומן
-  const gridRef = useRef(null)
-  const wheelAcc = useRef(0)
-  const wheelTime = useRef(0)
-  const wheelLock = useRef(false)
-  const touchStart = useRef(null)
-  useEffect(() => {
-    const el = gridRef.current
-    if (!el) return
-    function onTouchStart(e) {
-      touchStart.current = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null
-    }
-    function onTouchEnd(e) {
-      const st = touchStart.current
-      touchStart.current = null
-      if (!st || wheelLock.current) return
-      const t = e.changedTouches[0]
-      const dx = t.clientX - st.x, dy = t.clientY - st.y
-      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        wheelLock.current = true
-        changeMonth(dx > 0 ? 1 : -1)
-        setTimeout(() => { wheelLock.current = false }, 500)
-      }
-    }
-    el.addEventListener('touchstart', onTouchStart, { passive: true })
-    el.addEventListener('touchend', onTouchEnd, { passive: true })
-    return () => {
-      el.removeEventListener('touchstart', onTouchStart)
-      el.removeEventListener('touchend', onTouchEnd)
-    }
-  }, [calMonth, calYear])
-
   function dateStr(y, m, d) {
     return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
   }
@@ -128,30 +71,22 @@ export default function CalendarPage() {
 
   // ---- בניית שבועות + פסים מתפרסים לאירועים מתמשכים ----
   const todayDs = dateStr(today.getFullYear(), today.getMonth(), today.getDate())
-  const wkAnchor = weekAnchor || selectedDay || todayDs
-  let weeks = []
-  if (viewMode === 'week') {
-    weeks = [buildWeekCells(wkAnchor)]
-  } else {
-    const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7
-    for (let i = 0; i < totalCells; i += 7) {
-      const wk = []
-      for (let j = 0; j < 7; j++) {
-        const dt = new Date(calYear, calMonth, (i + j) - firstDay + 1)
-        wk.push({ d: dt.getDate(), ds: dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate()), inMonth: dt.getMonth() === calMonth && dt.getFullYear() === calYear })
-      }
-      weeks.push(wk)
+  const weeks = []
+  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7
+  for (let i = 0; i < totalCells; i += 7) {
+    const wk = []
+    for (let j = 0; j < 7; j++) {
+      const dt = new Date(calYear, calMonth, (i + j) - firstDay + 1)
+      wk.push({ d: dt.getDate(), ds: dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate()), inMonth: dt.getMonth() === calMonth && dt.getFullYear() === calYear })
     }
+    weeks.push(wk)
   }
-  const weekLabel = weeks[0]
-    ? `${weeks[0][0].d} ${HE_MONTHS[Number(weeks[0][0].ds.split('-')[1]) - 1]} – ${weeks[0][6].d} ${HE_MONTHS[Number(weeks[0][6].ds.split('-')[1]) - 1]}`
-    : ''
   const weekData = weeks.map(week => {
     const wStart = week[0].ds, wEnd = week[6].ds
     const segs = filteredEvents
-      .filter(e => { const en = (e.end_date && e.end_date >= e.date ? e.end_date : e.date); return e.date && e.date <= wEnd && en >= wStart })
+      .filter(e => { const en = e.end_date || e.date; return e.date && e.date <= wEnd && en >= wStart })
       .map(e => {
-        const s = e.date, en = (e.end_date && e.end_date >= e.date ? e.end_date : e.date)
+        const s = e.date, en = e.end_date || e.date
         let sc = 0; while (sc < 7 && week[sc].ds < s) sc++
         let ec = 6; while (ec >= 0 && week[ec].ds > en) ec--
         return { event: e, startCol: sc, endCol: ec, isStart: s >= wStart, isEnd: en <= wEnd }
@@ -217,7 +152,7 @@ export default function CalendarPage() {
       end_date: editForm.end_date || null,
       time: editForm.time || null,
       type: editForm.type,
-      venue: (editForm.venue && editForm.venue !== 'אירועים מקבילים') ? editForm.venue : null,
+      venue: editForm.venue || null,
       description: editForm.description || null,
     }).eq('id', editingEvent)
     setEvents(prev => prev.map(e => e.id === editingEvent ? { ...e, ...editForm } : e))
@@ -227,27 +162,21 @@ export default function CalendarPage() {
 
   return (
     <div className="w-full">
-      <div ref={gridRef} className={`bg-white border border-gray-100 rounded-xl p-5 mb-3 ${selectedDay ? 'hidden' : ''}`}>
+      <div className="bg-white border border-gray-100 rounded-xl p-5 mb-3">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={() => changeMonth(-1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">
+            ‹ הקודם
+          </button>
+          <span className="text-base font-semibold text-[#E0197D]">
+            {HE_MONTHS[calMonth]} {calYear}
+          </span>
+          <button onClick={() => changeMonth(1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">
+            הבא ›
+          </button>
           <button onClick={exportExcel} className="text-sm text-gray-500 hover:text-green-600 px-3 py-1 border border-gray-200 rounded-lg flex items-center gap-1">
             <i className="ti ti-table-export" style={{fontSize:13}}/> ייצוא
           </button>
-          <div className="flex items-center gap-1">
-            <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-[#E0197D] p-1 rounded-lg hover:bg-gray-50">
-              <i className="ti ti-chevron-right" style={{fontSize:20}}/>
-            </button>
-            <span className="text-base font-semibold text-[#E0197D] text-center min-w-[130px]">
-              {viewMode === 'week' ? weekLabel : `${HE_MONTHS[calMonth]} ${calYear}`}
-            </span>
-            <button onClick={() => navigate(1)} className="text-gray-400 hover:text-[#E0197D] p-1 rounded-lg hover:bg-gray-50">
-              <i className="ti ti-chevron-left" style={{fontSize:20}}/>
-            </button>
-          </div>
-          <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-            <button onClick={() => setViewMode('month')} className={`text-[12px] px-3 py-1 ${viewMode === 'month' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>חודשי</button>
-            <button onClick={() => { setViewMode('week'); setWeekAnchor(selectedDay || todayDs) }} className={`text-[12px] px-3 py-1 ${viewMode === 'week' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>שבועי</button>
-          </div>
         </div>
 
         {/* Venue filter */}
@@ -277,75 +206,37 @@ export default function CalendarPage() {
         <div className="flex flex-col gap-1.5">
           {weekData.map((wd, wi) => (
             <div key={wi}>
-              {viewMode === 'week' ? (
-                <div className="grid grid-cols-7 gap-1.5">
-                  {wd.week.map((c, ci) => {
-                    const isToday = c.ds === todayDs
-                    const isSelected = selectedDay === c.ds
-                    const dayEvents = filteredEvents
-                      .filter(e => e.date === c.ds || (e.end_date && e.end_date >= e.date && c.ds >= e.date && c.ds <= e.end_date))
-                      .sort((a, b) => {
-                        if (a.type === 'show' && b.type !== 'show') return -1
-                        if (a.type !== 'show' && b.type === 'show') return 1
-                        return (a.time || '').localeCompare(b.time || '')
-                      })
-                    return (
-                      <div key={ci} onClick={() => setSelectedDay(c.ds)}
-                        className={`min-h-[120px] md:min-h-[420px] rounded-lg p-1.5 md:p-2 cursor-pointer border transition-all ${
-                          isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
-                          isToday ? 'bg-[#FCE4F3] border-transparent' :
-                          'border-gray-100 bg-gray-50 hover:bg-gray-100'
-                        } ${c.inMonth ? '' : 'opacity-30'}`}>
-                        <div className={`text-center text-[14px] md:text-[20px] font-medium mb-1.5 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
-                        {dayEvents.map(e => (
-                          <div key={e.id} className="text-[10px] md:text-[14px] px-1.5 py-1 rounded mb-1 truncate"
-                            style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
-                            {e.time ? e.time.slice(0,5) + ' ' : ''}{e.title}
-                          </div>
-                        ))}
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="grid grid-cols-7 gap-1.5">
-                  {wd.week.map((c, ci) => {
-                    const isToday = c.ds === todayDs
-                    const isSelected = selectedDay === c.ds
-                    const dayEvents = filteredEvents
-                      .filter(e => e.date === c.ds || (e.end_date && e.end_date >= e.date && c.ds >= e.date && c.ds <= e.end_date))
-                      .sort((a, b) => {
-                        if (a.type === 'show' && b.type !== 'show') return -1
-                        if (a.type !== 'show' && b.type === 'show') return 1
-                        return (a.time || '').localeCompare(b.time || '')
-                      })
-                    return (
-                      <div key={ci} onClick={() => setSelectedDay(c.ds)}
-                        className={`min-h-[72px] md:min-h-[150px] rounded-lg p-1.5 cursor-pointer border transition-all ${
-                          isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
-                          isToday ? 'bg-[#FCE4F3] border-transparent' :
-                          'border-gray-100 bg-gray-50 hover:bg-gray-100'
-                        } ${c.inMonth ? '' : 'opacity-30'}`}>
-                        <div className={`text-center text-[12px] md:text-[14px] font-medium mb-1 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
-                        <div className="flex flex-wrap gap-0.5 md:hidden justify-center">
-                          {dayEvents.slice(0, 4).map(e => (
-                            <span key={e.id} className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: getTypeColors(e.type).text }}/>
-                          ))}
-                        </div>
-                        {dayEvents.slice(0, 3).map(e => (
-                          <div key={e.id} className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate"
-                            style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
-                            {e.time ? e.time.slice(0,5) + ' ' : ''}{e.title}
-                          </div>
-                        ))}
-                        {dayEvents.length > 3 && (
-                          <div className="hidden md:block text-[9px] text-gray-400 text-center">+{dayEvents.length - 3}</div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+              <div className="grid grid-cols-7 gap-1.5">
+                {wd.week.map((c, ci) => {
+                  const isToday = c.ds === todayDs
+                  const isSelected = selectedDay === c.ds
+                  return (
+                    <div key={ci} onClick={() => setSelectedDay(c.ds)}
+                      className={`min-h-[26px] rounded-lg pt-1 pb-0.5 cursor-pointer border transition-all ${
+                        isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
+                        isToday ? 'bg-[#FCE4F3] border-transparent' :
+                        'border-transparent hover:bg-gray-50'
+                      } ${c.inMonth ? '' : 'opacity-30'}`}>
+                      <div className={`text-center text-[11px] md:text-[12px] font-medium ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="grid grid-cols-7 gap-x-1.5 gap-y-0.5 mt-0.5" style={{ gridTemplateRows: `repeat(${wd.laneCount}, minmax(18px, auto))`, minHeight: '3.4rem' }}>
+                {wd.segs.map((seg, si) => (
+                  <div key={seg.event.id + '-' + wi}
+                    onClick={() => setSelectedDay(seg.event.date)}
+                    style={{ gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`, gridRow: seg.lane + 1, backgroundColor: getTypeColors(seg.event.type).bg, color: getTypeColors(seg.event.type).text }}
+                    className={`min-w-0 min-h-[16px] text-[9px] md:text-[10px] leading-tight px-1.5 py-0.5 truncate cursor-pointer ${
+                      seg.isStart && seg.isEnd ? 'rounded' :
+                      seg.isStart ? 'rounded-r-md rounded-l-none' :
+                      seg.isEnd ? 'rounded-l-md rounded-r-none' :
+                      'rounded-none'
+                    }`}>
+                    {seg.isStart ? <>{seg.event.time ? seg.event.time.slice(0,5) + ' ' : ''}{seg.event.title}</> : ''}
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
@@ -354,17 +245,10 @@ export default function CalendarPage() {
       {/* Selected day panel */}
       {selectedDay && (
         <div className="bg-white border border-gray-100 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <button onClick={() => setSelectedDay(null)}
-                className="flex items-center gap-1 text-[13px] text-gray-600 hover:text-[#E0197D] border border-gray-200 hover:border-[#E0197D] rounded-lg px-3 py-1.5 transition-colors">
-                <i className="ti ti-arrow-right" style={{fontSize:15}}/>
-                חזרה ליומן
-              </button>
-              <span className="text-[16px] font-semibold text-gray-900">
-                {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
-              </span>
-            </div>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[13px] font-medium text-gray-800">
+              {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
+            </span>
             {profile?.is_manager && (
               <button
                 onClick={() => router.push(`/dashboard/events?date=${selectedDay}`)}
@@ -399,7 +283,7 @@ export default function CalendarPage() {
                       <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
                         {getTypeLabel(e.type)}
                       </span>
-                      {e.venue && e.venue !== 'אירועים מקבילים' && <span className="text-[11px] text-gray-400">{e.venue}</span>}
+                      {e.venue && <span className="text-[11px] text-gray-400">{e.venue}</span>}
                     </div>
                     {e.crew_notes && (
                       <div className="mt-2 pt-2 border-t border-gray-200/70 flex items-start gap-1.5 justify-end">
