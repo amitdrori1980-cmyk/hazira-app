@@ -330,9 +330,9 @@ export default function ConstraintsPage() {
             </label>
             <label className="flex items-center gap-2 cursor-pointer text-[13px] text-gray-700">
               <input type="checkbox" checked={showConstraints} onChange={e=>setShowConstraints(e.target.checked)}
-                style={{accentColor:'#16a34a'}} className="w-4 h-4"/>
+                style={{accentColor:'#ca8a04'}} className="w-4 h-4"/>
               <span className="flex gap-0.5">
-                <span className="w-3 h-3 rounded-sm bg-[#16a34a] inline-block"/>
+                <span className="w-3 h-3 rounded-sm bg-[#ca8a04] inline-block"/>
                 <span className="w-3 h-3 rounded-sm bg-[#dc2626] inline-block"/>
               </span>
               הצג אילוצים
@@ -415,7 +415,7 @@ export default function ConstraintsPage() {
               </div>
               <div className="col-span-2 flex rounded-lg overflow-hidden border border-gray-200">
                 <button type="button" onClick={()=>setForm(f=>({...f,available:true}))}
-                  className={`flex-1 text-[13px] py-2 transition-colors ${form.available ? 'bg-[#16a34a] text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                  className={`flex-1 text-[13px] py-2 transition-colors ${form.available ? 'bg-[#ca8a04] text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
                   נמצא
                 </button>
                 <button type="button" onClick={()=>setForm(f=>({...f,available:false}))}
@@ -494,7 +494,7 @@ export default function ConstraintsPage() {
                   {dayEvents.slice(0,2).map(e=>(
                     <span key={e.id} className="w-2.5 h-2.5 rounded-full bg-[#E0197D] inline-block"/>
                   ))}
-                  {present.length>0 && <span className="w-2.5 h-2.5 rounded-full inline-block bg-[#16a34a]"/>}
+                  {present.length>0 && <span className="w-2.5 h-2.5 rounded-full inline-block bg-[#ca8a04]"/>}
                   {absent.length>0 && <span className="w-2.5 h-2.5 rounded-full inline-block bg-[#dc2626]"/>}
                 </div>
                 {/* Desktop: text */}
@@ -504,7 +504,7 @@ export default function ConstraintsPage() {
                   </div>
                 ))}
                 {present.length>0 && (
-                  <div className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#DCFCE7] text-[#15803d]">
+                  <div className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FEF9C3] text-[#854d0e]">
                     {present.map(c=>c.crew_name).join(', ')}
                   </div>
                 )}
@@ -542,7 +542,7 @@ export default function ConstraintsPage() {
                   </div>
                 ))}
                 {present.length>0 && (
-                  <div className="text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 bg-[#DCFCE7] text-[#15803d] leading-snug">
+                  <div className="text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 bg-[#FEF9C3] text-[#854d0e] leading-snug">
                     {present.map(x=>x.crew_name).join(', ')}
                   </div>
                 )}
@@ -605,10 +605,10 @@ export default function ConstraintsPage() {
             return (
               <div className="space-y-3">
                 <div>
-                  <div className="text-[11px] font-semibold text-[#15803d] mb-2">נמצאים ({present.length})</div>
+                  <div className="text-[11px] font-semibold text-[#854d0e] mb-2">נמצאים ({present.length})</div>
                   {present.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
-                      {present.map(c => <Chip key={c.id} c={c} tone="bg-[#DCFCE7] text-[#15803d]" />)}
+                      {present.map(c => <Chip key={c.id} c={c} tone="bg-[#FEF9C3] text-[#854d0e]" />)}
                     </div>
                   ) : <div className="text-[12px] text-gray-400">—</div>}
                 </div>
@@ -669,7 +669,7 @@ export default function ConstraintsPage() {
               </div>
               <div className="flex rounded-xl overflow-hidden border border-gray-200">
                 <button type="button" onClick={()=>setEditForm(f=>({...f,available:true}))}
-                  className={`flex-1 text-[13px] py-2.5 transition-colors ${editForm.available ? 'bg-[#16a34a] text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                  className={`flex-1 text-[13px] py-2.5 transition-colors ${editForm.available ? 'bg-[#ca8a04] text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
                   נמצא
                 </button>
                 <button type="button" onClick={()=>setEditForm(f=>({...f,available:false}))}
