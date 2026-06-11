@@ -333,7 +333,7 @@ export default function ConstraintsPage() {
                 style={{accentColor:'#eab308'}} className="w-4 h-4"/>
               <span className="flex gap-0.5">
                 <span className="w-3 h-3 rounded-sm bg-[#eab308] inline-block"/>
-                <span className="w-3 h-3 rounded-sm bg-[#dc2626] inline-block"/>
+                <span className="w-3 h-3 rounded-sm bg-[#ef4444] inline-block"/>
               </span>
               הצג אילוצים
             </label>
@@ -415,11 +415,11 @@ export default function ConstraintsPage() {
               </div>
               <div className="col-span-2 flex rounded-lg overflow-hidden border border-gray-200">
                 <button type="button" onClick={()=>setForm(f=>({...f,available:true}))}
-                  className={`flex-1 text-[13px] py-2 transition-colors ${form.available ? 'bg-[#eab308] text-[#713f12]' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                  className={`flex-1 text-[13px] py-2 transition-colors ${form.available ? 'bg-yellow-100 text-yellow-900' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
                   נמצא
                 </button>
                 <button type="button" onClick={()=>setForm(f=>({...f,available:false}))}
-                  className={`flex-1 text-[13px] py-2 transition-colors ${!form.available ? 'bg-[#dc2626] text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                  className={`flex-1 text-[13px] py-2 transition-colors ${!form.available ? 'bg-red-100 text-red-900' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
                   לא נמצא
                 </button>
               </div>
@@ -495,7 +495,7 @@ export default function ConstraintsPage() {
                     <span key={e.id} className="w-2.5 h-2.5 rounded-full bg-[#E0197D] inline-block"/>
                   ))}
                   {present.length>0 && <span className="w-2.5 h-2.5 rounded-full inline-block bg-[#eab308]"/>}
-                  {absent.length>0 && <span className="w-2.5 h-2.5 rounded-full inline-block bg-[#dc2626]"/>}
+                  {absent.length>0 && <span className="w-2.5 h-2.5 rounded-full inline-block bg-[#ef4444]"/>}
                 </div>
                 {/* Desktop: text */}
                 {dayEvents.slice(0,3).map(e=>(
@@ -504,12 +504,12 @@ export default function ConstraintsPage() {
                   </div>
                 ))}
                 {present.length>0 && (
-                  <div className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#eab308] text-[#713f12]">
+                  <div className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-yellow-100 text-yellow-900">
                     {present.map(c=>c.crew_name).join(', ')}
                   </div>
                 )}
                 {absent.length>0 && (
-                  <div className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FEE2E2] text-[#b91c1c]">
+                  <div className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-red-100 text-red-900">
                     {absent.map(c=>c.crew_name).join(', ')}
                   </div>
                 )}
@@ -542,12 +542,12 @@ export default function ConstraintsPage() {
                   </div>
                 ))}
                 {present.length>0 && (
-                  <div className="text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 bg-[#eab308] text-[#713f12] leading-snug">
+                  <div className="text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 bg-yellow-100 text-yellow-900 leading-snug">
                     {present.map(x=>x.crew_name).join(', ')}
                   </div>
                 )}
                 {absent.length>0 && (
-                  <div className="text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 bg-[#FEE2E2] text-[#b91c1c] leading-snug">
+                  <div className="text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 bg-red-100 text-red-900 leading-snug">
                     {absent.map(x=>x.crew_name).join(', ')}
                   </div>
                 )}
@@ -605,18 +605,18 @@ export default function ConstraintsPage() {
             return (
               <div className="space-y-3">
                 <div>
-                  <div className="text-[11px] font-semibold text-[#713f12] mb-2">נמצאים ({present.length})</div>
+                  <div className="text-[11px] font-semibold text-yellow-900 mb-2">נמצאים ({present.length})</div>
                   {present.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
-                      {present.map(c => <Chip key={c.id} c={c} tone="bg-[#eab308] text-[#713f12]" />)}
+                      {present.map(c => <Chip key={c.id} c={c} tone="bg-yellow-100 text-yellow-900" />)}
                     </div>
                   ) : <div className="text-[12px] text-gray-400">—</div>}
                 </div>
                 <div>
-                  <div className="text-[11px] font-semibold text-[#b91c1c] mb-2">לא נמצאים ({absent.length})</div>
+                  <div className="text-[11px] font-semibold text-red-900 mb-2">לא נמצאים ({absent.length})</div>
                   {absent.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
-                      {absent.map(c => <Chip key={c.id} c={c} tone="bg-[#FEE2E2] text-[#b91c1c]" />)}
+                      {absent.map(c => <Chip key={c.id} c={c} tone="bg-red-100 text-red-900" />)}
                     </div>
                   ) : <div className="text-[12px] text-gray-400">—</div>}
                 </div>
@@ -669,11 +669,11 @@ export default function ConstraintsPage() {
               </div>
               <div className="flex rounded-xl overflow-hidden border border-gray-200">
                 <button type="button" onClick={()=>setEditForm(f=>({...f,available:true}))}
-                  className={`flex-1 text-[13px] py-2.5 transition-colors ${editForm.available ? 'bg-[#eab308] text-[#713f12]' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                  className={`flex-1 text-[13px] py-2.5 transition-colors ${editForm.available ? 'bg-yellow-100 text-yellow-900' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
                   נמצא
                 </button>
                 <button type="button" onClick={()=>setEditForm(f=>({...f,available:false}))}
-                  className={`flex-1 text-[13px] py-2.5 transition-colors ${!editForm.available ? 'bg-[#dc2626] text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                  className={`flex-1 text-[13px] py-2.5 transition-colors ${!editForm.available ? 'bg-red-100 text-red-900' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
                   לא נמצא
                 </button>
               </div>
