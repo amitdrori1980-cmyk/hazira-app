@@ -406,7 +406,7 @@ export default function ConstraintsPage() {
       </div>
 
       {/* Calendar */}
-      <div ref={gridRef} className="bg-white border border-gray-100 rounded-xl p-5 mb-3">
+      <div ref={gridRef} className={`bg-white border border-gray-100 rounded-xl p-5 mb-3 ${selectedDay ? 'hidden' : ''}`}>
         <div className="flex items-center justify-between mb-4">
           <button onClick={()=>changeMonth(-1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">‹ הקודם</button>
           <span className="text-base font-semibold text-[#E0197D]">{HE_MONTHS[calMonth]} {calYear}</span>
@@ -419,7 +419,7 @@ export default function ConstraintsPage() {
 
         <div className="grid grid-cols-7 gap-1.5">
           {Array.from({length:firstDay}).map((_,i)=>(
-            <div key={'p'+i} className="min-h-[70px] md:min-h-[90px] rounded-lg p-1 opacity-25">
+            <div key={'p'+i} className="min-h-[72px] md:min-h-[150px] rounded-lg p-1 opacity-25">
               <div className="text-center text-[11px] text-gray-400">{daysInPrev-firstDay+i+1}</div>
             </div>
           ))}
@@ -435,7 +435,7 @@ export default function ConstraintsPage() {
 
             return (
               <div key={d} onClick={()=>setSelectedDay(ds)}
-                className={`min-h-[70px] md:min-h-[90px] rounded-lg p-1.5 cursor-pointer border transition-all ${
+                className={`min-h-[72px] md:min-h-[150px] rounded-lg p-1.5 cursor-pointer border transition-all ${
                   isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
                   isToday    ? 'bg-[#FCE4F3] border-transparent' :
                   hasData    ? 'border-gray-100 bg-gray-50' :
@@ -451,7 +451,7 @@ export default function ConstraintsPage() {
                   {absent.length>0 && <span className="w-2.5 h-2.5 rounded-full inline-block bg-[#dc2626]"/>}
                 </div>
                 {/* Desktop: text */}
-                {dayEvents.slice(0,1).map(e=>(
+                {dayEvents.slice(0,3).map(e=>(
                   <div key={e.id} className="hidden md:block text-[9px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FCE4F3] text-[#A0106A]">
                     {e.time?.slice(0,5)} {e.title}
                   </div>
@@ -466,8 +466,8 @@ export default function ConstraintsPage() {
                     {absent.map(c=>c.crew_name).join(', ')}
                   </div>
                 )}
-                {dayEvents.length>1 && (
-                  <div className="hidden md:block text-[9px] text-gray-400 text-center">+{dayEvents.length-1} אירועים</div>
+                {dayEvents.length>3 && (
+                  <div className="hidden md:block text-[9px] text-gray-400 text-center">+{dayEvents.length-3} אירועים</div>
                 )}
               </div>
             )
@@ -478,8 +478,15 @@ export default function ConstraintsPage() {
       {/* Selected day panel */}
       {selectedDay && selectedData && (
         <div className="bg-white border border-gray-100 rounded-xl p-4">
-          <div className="text-[14px] font-medium text-gray-800 mb-3">
-            {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={()=>setSelectedDay(null)}
+              className="flex items-center gap-1 text-[13px] text-gray-600 hover:text-[#E0197D] border border-gray-200 hover:border-[#E0197D] rounded-lg px-3 py-1.5 transition-colors">
+              <i className="ti ti-arrow-right" style={{fontSize:15}}/>
+              חזרה ליומן
+            </button>
+            <div className="text-[16px] font-semibold text-gray-900">
+              {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
+            </div>
           </div>
 
           {selectedData.dayEvents.length > 0 && (
