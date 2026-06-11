@@ -105,32 +105,13 @@ export default function ConstraintsPage() {
     setCalMonth(m); setCalYear(y); setSelectedDay(null)
   }
 
-  // מעבר חודש בגלילה (עכבר/טראקפד) והחלקה (מובייל)
+  // מעבר חודש בהחלקה (מובייל) — בדסקטופ עוברים עם הכפתורים, בדיוק כמו ביומן
   const gridRef = useRef(null)
-  const wheelAcc = useRef(0)
-  const wheelTime = useRef(0)
   const wheelLock = useRef(false)
   const touchStart = useRef(null)
   useEffect(() => {
     const el = gridRef.current
     if (!el) return
-    function onWheel(e) {
-      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
-      if (!d) return
-      e.preventDefault()
-      if (wheelLock.current) return
-      const now = Date.now()
-      if (now - wheelTime.current > 300) wheelAcc.current = 0
-      wheelTime.current = now
-      wheelAcc.current += d
-      if (Math.abs(wheelAcc.current) >= 40) {
-        const dir = wheelAcc.current > 0 ? 1 : -1
-        wheelAcc.current = 0
-        wheelLock.current = true
-        changeMonth(dir)
-        setTimeout(() => { wheelLock.current = false }, 500)
-      }
-    }
     function onTouchStart(e) {
       touchStart.current = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null
     }
@@ -146,11 +127,9 @@ export default function ConstraintsPage() {
         setTimeout(() => { wheelLock.current = false }, 500)
       }
     }
-    el.addEventListener('wheel', onWheel, { passive: false })
     el.addEventListener('touchstart', onTouchStart, { passive: true })
     el.addEventListener('touchend', onTouchEnd, { passive: true })
     return () => {
-      el.removeEventListener('wheel', onWheel)
       el.removeEventListener('touchstart', onTouchStart)
       el.removeEventListener('touchend', onTouchEnd)
     }
@@ -165,7 +144,12 @@ export default function ConstraintsPage() {
   const daysInPrev  = new Date(calYear, calMonth, 0).getDate()
 
   function getDayData(ds) {
-    const dayEvents      = showEvents      ? events.filter(e => e.date === ds) : []
+    const dayEvents = showEvents ? events.filter(e => e.date === ds).sort((a, b) => {
+      // הצגות (מופעים) תמיד למעלה, אחר כך לפי שעה
+      if (a.type === 'show' && b.type !== 'show') return -1
+      if (a.type !== 'show' && b.type === 'show') return 1
+      return (a.time || '').localeCompare(b.time || '')
+    }) : []
     const dayConstraints = showConstraints ? constraints.filter(c => !hiddenCrew.has(c.crew_name) && (c.date === ds || (c.date_to && ds >= c.date && ds <= c.date_to))) : []
     return { dayEvents, dayConstraints }
   }
@@ -275,6 +259,11 @@ export default function ConstraintsPage() {
     await supabase.from('crew_constraints').delete().eq('id', confirmId)
     setConstraints(prev => prev.filter(c => c.id !== confirmId))
     setConfirmId(null)
+  }
+
+  async function toggleStatus(c) {
+    await supabase.from('crew_constraints').update({ available: !c.available }).eq('id', c.id)
+    setConstraints(prev => prev.map(x => x.id === c.id ? { ...x, available: !c.available } : x))
   }
 
   function openEdit(c) {
@@ -513,9 +502,15 @@ export default function ConstraintsPage() {
             const absent  = selectedData.dayConstraints.filter(c => !c.available)
             const withNotes = selectedData.dayConstraints.filter(c => c.notes && c.notes.trim())
             const Chip = ({ c, tone }) => (
-              <span className={`inline-flex items-center gap-1 pr-0 rounded-full text-[12px] ${tone}`}>
-                <button onClick={()=>openEdit(c)} className="pr-2.5 pl-1 py-1 hover:opacity-70">{c.crew_name}</button>
-                <button onClick={()=>deleteConstraint(c.id)} className="pl-2 py-1 opacity-50 hover:opacity-100">
+              <span className={`inline-flex items-center rounded-full text-[12px] ${tone}`}>
+                <button onClick={()=>toggleStatus(c)} title="לחץ כדי להפוך נמצא/לא נמצא"
+                  className="pr-2.5 pl-1 py-1 hover:opacity-70">{c.crew_name}</button>
+                <button onClick={()=>openEdit(c)} title="עריכה והערה"
+                  className="px-1 py-1 opacity-50 hover:opacity-100">
+                  <i className="ti ti-pencil" style={{fontSize:11}}/>
+                </button>
+                <button onClick={()=>deleteConstraint(c.id)} title="מחיקה"
+                  className="pl-2 py-1 opacity-50 hover:opacity-100">
                   <i className="ti ti-x" style={{fontSize:11}}/>
                 </button>
               </span>
