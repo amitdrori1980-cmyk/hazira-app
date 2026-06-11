@@ -504,13 +504,15 @@ export default function ConstraintsPage() {
                   </div>
                 ))}
                 {present.length>0 && (
-                  <div className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-yellow-100 text-yellow-900">
-                    {present.map(c=>c.crew_name).join(', ')}
+                  <div className="hidden md:flex items-center gap-1 text-[12px] px-1 py-0.5 mb-0.5 text-gray-700">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-black/10" style={{background:'#eab308'}}/>
+                    <span className="truncate min-w-0">{present.map(c=>c.crew_name).join(', ')}</span>
                   </div>
                 )}
                 {absent.length>0 && (
-                  <div className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-red-100 text-red-900">
-                    {absent.map(c=>c.crew_name).join(', ')}
+                  <div className="hidden md:flex items-center gap-1 text-[12px] px-1 py-0.5 mb-0.5 text-gray-700">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-black/10" style={{background:'#ef4444'}}/>
+                    <span className="truncate min-w-0">{absent.map(c=>c.crew_name).join(', ')}</span>
                   </div>
                 )}
                 {dayEvents.length>3 && (
@@ -542,13 +544,15 @@ export default function ConstraintsPage() {
                   </div>
                 ))}
                 {present.length>0 && (
-                  <div className="text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 bg-yellow-100 text-yellow-900 leading-snug">
-                    {present.map(x=>x.crew_name).join(', ')}
+                  <div className="flex items-start gap-1 text-[10px] md:text-[13px] px-1.5 py-1 mb-1 text-gray-700 leading-snug">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-black/10 mt-1" style={{background:'#eab308'}}/>
+                    <span className="min-w-0">{present.map(x=>x.crew_name).join(', ')}</span>
                   </div>
                 )}
                 {absent.length>0 && (
-                  <div className="text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 bg-red-100 text-red-900 leading-snug">
-                    {absent.map(x=>x.crew_name).join(', ')}
+                  <div className="flex items-start gap-1 text-[10px] md:text-[13px] px-1.5 py-1 mb-1 text-gray-700 leading-snug">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-black/10 mt-1" style={{background:'#ef4444'}}/>
+                    <span className="min-w-0">{absent.map(x=>x.crew_name).join(', ')}</span>
                   </div>
                 )}
               </div>
@@ -588,16 +592,17 @@ export default function ConstraintsPage() {
             const present = selectedData.dayConstraints.filter(c => c.available)
             const absent  = selectedData.dayConstraints.filter(c => !c.available)
             const withNotes = selectedData.dayConstraints.filter(c => c.notes && c.notes.trim())
-            const Chip = ({ c, tone }) => (
-              <span className={`inline-flex items-center rounded-full text-[12px] ${tone}`}>
+            const Chip = ({ c, dot }) => (
+              <span className="inline-flex items-center gap-1 rounded-full pr-2.5 pl-1 py-0.5 text-[12px] bg-gray-50 border border-gray-200 text-gray-700">
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/10" style={{background:dot}}/>
                 <button onClick={()=>toggleStatus(c)} title="לחץ כדי להפוך נמצא/לא נמצא"
-                  className="pr-2.5 pl-1 py-1 hover:opacity-70">{c.crew_name}</button>
+                  className="py-1 hover:opacity-70">{c.crew_name}</button>
                 <button onClick={()=>openEdit(c)} title="עריכה והערה"
-                  className="px-1 py-1 opacity-50 hover:opacity-100">
+                  className="px-0.5 py-1 opacity-50 hover:opacity-100">
                   <i className="ti ti-pencil" style={{fontSize:11}}/>
                 </button>
                 <button onClick={()=>deleteConstraint(c.id)} title="מחיקה"
-                  className="pl-2 py-1 opacity-50 hover:opacity-100">
+                  className="py-1 opacity-50 hover:opacity-100">
                   <i className="ti ti-x" style={{fontSize:11}}/>
                 </button>
               </span>
@@ -605,18 +610,18 @@ export default function ConstraintsPage() {
             return (
               <div className="space-y-3">
                 <div>
-                  <div className="text-[11px] font-semibold text-yellow-900 mb-2">נמצאים ({present.length})</div>
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-700 mb-2"><span className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/10" style={{background:'#eab308'}}/>נמצאים ({present.length})</div>
                   {present.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
-                      {present.map(c => <Chip key={c.id} c={c} tone="bg-yellow-100 text-yellow-900" />)}
+                      {present.map(c => <Chip key={c.id} c={c} dot="#eab308" />)}
                     </div>
                   ) : <div className="text-[12px] text-gray-400">—</div>}
                 </div>
                 <div>
-                  <div className="text-[11px] font-semibold text-red-900 mb-2">לא נמצאים ({absent.length})</div>
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-700 mb-2"><span className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/10" style={{background:'#ef4444'}}/>לא נמצאים ({absent.length})</div>
                   {absent.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
-                      {absent.map(c => <Chip key={c.id} c={c} tone="bg-red-100 text-red-900" />)}
+                      {absent.map(c => <Chip key={c.id} c={c} dot="#ef4444" />)}
                     </div>
                   ) : <div className="text-[12px] text-gray-400">—</div>}
                 </div>
