@@ -217,7 +217,7 @@ export default function CalendarPage() {
       end_date: editForm.end_date || null,
       time: editForm.time || null,
       type: editForm.type,
-      venue: editForm.venue || null,
+      venue: (editForm.venue && editForm.venue !== 'אירועים מקבילים') ? editForm.venue : null,
       description: editForm.description || null,
     }).eq('id', editingEvent)
     setEvents(prev => prev.map(e => e.id === editingEvent ? { ...e, ...editForm } : e))
@@ -361,7 +361,7 @@ export default function CalendarPage() {
                       <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
                         {getTypeLabel(e.type)}
                       </span>
-                      {e.venue && <span className="text-[11px] text-gray-400">{e.venue}</span>}
+                      {e.venue && e.venue !== 'אירועים מקבילים' && <span className="text-[11px] text-gray-400">{e.venue}</span>}
                     </div>
                     {e.crew_notes && (
                       <div className="mt-2 pt-2 border-t border-gray-200/70 flex items-start gap-1.5 justify-end">
