@@ -12,9 +12,13 @@ function areaOf(href) {
 
 function sortTeam(arr) {
   return [...arr].sort((a, b) => {
+    // מנהלים קודם
+    if (!!a.is_manager !== !!b.is_manager) return a.is_manager ? -1 : 1
+    // ואז לפי שיוך
     const da = a.dept || '\uffff'   // ללא שיוך — בסוף
     const db = b.dept || '\uffff'
     if (da !== db) return da.localeCompare(db, 'he')
+    // ובתוך זה לפי א-ב
     return (a.full_name || '').localeCompare(b.full_name || '', 'he')
   })
 }
@@ -22,6 +26,7 @@ function sortTeam(arr) {
 export default function TeamPage() {
   const [team, setTeam] = useState([])
   const [areasList, setAreasList] = useState([])
+  const [opsSet, setOpsSet] = useState(new Set())
   const [isManager, setIsManager] = useState(false)
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ full_name:'', email:'', password:'', dept:'', is_manager:false })
@@ -33,11 +38,13 @@ export default function TeamPage() {
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      const [{ data: profs }, { data: nav }, { data: me }] = await Promise.all([
+      const [{ data: profs }, { data: nav }, { data: me }, { data: opsRows }] = await Promise.all([
         supabase.from('profiles').select('*').order('full_name'),
         supabase.from('nav_items').select('label, href, manager_only').eq('enabled', true).order('sort_order'),
         user ? supabase.from('profiles').select('is_manager').eq('id', user.id).single() : Promise.resolve({ data: null }),
+        supabase.from('operations_crew').select('user_id'),
       ])
+      setOpsSet(new Set((opsRows || []).map(r => r.user_id).filter(Boolean)))
       setTeam(sortTeam(profs || []))
       setIsManager(!!me?.is_manager)
       const seen = new Set()
@@ -167,9 +174,8 @@ export default function TeamPage() {
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {m.is_manager && <span className="text-[11px] bg-[#E3F0FF] text-[#1A4A8A] px-2 py-0.5 rounded-full">מנהל</span>}
-              {m.dept === 'תפעול'
-                ? <span className="text-[11px] bg-[#E1F5EE] text-[#0a7a5f] px-2 py-0.5 rounded-full">צוות תפעול</span>
-                : m.dept ? <span className="text-[11px] bg-[#FCE4F3] text-[#A0106A] px-2 py-0.5 rounded-full">{m.dept}</span> : null}
+              {(opsSet.has(m.id) || m.dept === 'תפעול') && <span className="text-[11px] bg-[#E1F5EE] text-[#0a7a5f] px-2 py-0.5 rounded-full">צוות תפעול</span>}
+              {m.dept && m.dept !== 'תפעול' && <span className="text-[11px] bg-[#FCE4F3] text-[#A0106A] px-2 py-0.5 rounded-full">{m.dept}</span>}
             </div>
             <div className="w-8 h-8 rounded-full bg-[#FCE4F3] text-[#E0197D] text-[11px] font-medium flex items-center justify-center flex-shrink-0">
               {initials(m.full_name)}
