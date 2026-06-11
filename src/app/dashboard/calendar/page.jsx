@@ -365,14 +365,14 @@ export default function CalendarPage() {
                             <span key={e.id} className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: getTypeColors(e.type).dot }}/>
                           ))}
                         </div>
-                        {dayEvents.slice(0, 3).map(e => (
+                        {dayEvents.slice(0, 4).map(e => (
                           <div key={e.id} className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate"
                             style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
                             {e.time ? e.time.slice(0,5) + ' ' : ''}{e.title}
                           </div>
                         ))}
-                        {dayEvents.length > 3 && (
-                          <div className="hidden md:block text-[9px] text-gray-400 text-center">+{dayEvents.length - 3}</div>
+                        {dayEvents.length > 4 && (
+                          <div className="hidden md:block text-[9px] text-gray-400 text-center">+{dayEvents.length - 4}</div>
                         )}
                       </div>
                     )
