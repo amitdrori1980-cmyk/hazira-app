@@ -39,6 +39,8 @@ export default function ConstraintsPage() {
   const [calYear, setCalYear]   = useState(today.getFullYear())
   const [calMonth, setCalMonth] = useState(today.getMonth())
   const [selectedDay, setSelectedDay] = useState(null)
+  const [viewMode, setViewMode] = useState('month')
+  const [weekAnchor, setWeekAnchor] = useState(null)
 
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
@@ -123,7 +125,7 @@ export default function ConstraintsPage() {
       const dx = t.clientX - st.x, dy = t.clientY - st.y
       if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
         wheelLock.current = true
-        changeMonth(dx > 0 ? 1 : -1)
+        navigate(dx > 0 ? 1 : -1)
         setTimeout(() => { wheelLock.current = false }, 500)
       }
     }
@@ -133,11 +135,40 @@ export default function ConstraintsPage() {
       el.removeEventListener('touchstart', onTouchStart)
       el.removeEventListener('touchend', onTouchEnd)
     }
-  }, [calMonth, calYear])
+  }, [calMonth, calYear, viewMode, weekAnchor])
 
   function dateStr(y, m, d) {
     return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
   }
+
+  const todayDs = dateStr(today.getFullYear(), today.getMonth(), today.getDate())
+
+  function buildWeekCells(anchorDs) {
+    const [ay, am, ad] = anchorDs.split('-').map(Number)
+    const base = new Date(ay, am - 1, ad)
+    base.setDate(base.getDate() - base.getDay())
+    const wk = []
+    for (let j = 0; j < 7; j++) {
+      const dt = new Date(base); dt.setDate(base.getDate() + j)
+      wk.push({ d: dt.getDate(), ds: dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate()) })
+    }
+    return wk
+  }
+
+  function navigate(dir) {
+    if (viewMode === 'week') {
+      const a = weekAnchor || selectedDay || todayDs
+      const [ay, am, ad] = a.split('-').map(Number)
+      const dt = new Date(ay, am - 1, ad); dt.setDate(dt.getDate() + dir * 7)
+      setWeekAnchor(dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate())); setSelectedDay(null)
+    } else {
+      changeMonth(dir)
+    }
+  }
+
+  const wkAnchor = weekAnchor || selectedDay || todayDs
+  const weekCells = buildWeekCells(wkAnchor)
+  const weekLabel = `${weekCells[0].d} ${HE_MONTHS[Number(weekCells[0].ds.split('-')[1]) - 1]} – ${weekCells[6].d} ${HE_MONTHS[Number(weekCells[6].ds.split('-')[1]) - 1]}`
 
   const firstDay    = new Date(calYear, calMonth, 1).getDay()
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
@@ -408,15 +439,22 @@ export default function ConstraintsPage() {
       {/* Calendar */}
       <div ref={gridRef} className={`bg-white border border-gray-100 rounded-xl p-5 mb-3 ${selectedDay ? 'hidden' : ''}`}>
         <div className="flex items-center justify-between mb-4">
-          <button onClick={()=>changeMonth(-1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">‹ הקודם</button>
-          <span className="text-base font-semibold text-[#E0197D]">{HE_MONTHS[calMonth]} {calYear}</span>
-          <button onClick={()=>changeMonth(1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">הבא ›</button>
+          <button onClick={()=>navigate(-1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">‹ הקודם</button>
+          <div className="flex items-center gap-3">
+            <span className="text-base font-semibold text-[#E0197D]">{viewMode==='week' ? weekLabel : `${HE_MONTHS[calMonth]} ${calYear}`}</span>
+            <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+              <button onClick={()=>setViewMode('month')} className={`text-[12px] px-3 py-1 ${viewMode==='month'?'bg-[#E0197D] text-white':'text-gray-500 hover:text-[#E0197D]'}`}>חודשי</button>
+              <button onClick={()=>{ setViewMode('week'); setWeekAnchor(selectedDay || todayDs) }} className={`text-[12px] px-3 py-1 ${viewMode==='week'?'bg-[#E0197D] text-white':'text-gray-500 hover:text-[#E0197D]'}`}>שבועי</button>
+            </div>
+          </div>
+          <button onClick={()=>navigate(1)} className="text-sm text-gray-500 hover:text-gray-800 px-3 py-1 border border-gray-200 rounded-lg">הבא ›</button>
         </div>
 
         <div className="grid grid-cols-7 gap-1.5 mb-1.5">
           {HE_DAYS.map(d=><div key={d} className="text-center text-[12px] text-gray-400 font-medium py-1">{d}</div>)}
         </div>
 
+        {viewMode === 'month' ? (
         <div className="grid grid-cols-7 gap-1.5">
           {Array.from({length:firstDay}).map((_,i)=>(
             <div key={'p'+i} className="min-h-[72px] md:min-h-[150px] rounded-lg p-1 opacity-25">
@@ -473,6 +511,42 @@ export default function ConstraintsPage() {
             )
           })}
         </div>
+        ) : (
+        <div className="grid grid-cols-7 gap-1.5">
+          {weekCells.map((c, ci) => {
+            const isToday = c.ds === todayDs
+            const isSelected = selectedDay === c.ds
+            const { dayEvents, dayConstraints } = getDayData(c.ds)
+            const present = dayConstraints.filter(x => x.available)
+            const absent  = dayConstraints.filter(x => !x.available)
+            return (
+              <div key={ci} onClick={()=>setSelectedDay(c.ds)}
+                className={`min-h-[120px] md:min-h-[420px] rounded-lg p-1.5 md:p-2 cursor-pointer border transition-all ${
+                  isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
+                  isToday    ? 'bg-[#FCE4F3] border-transparent' :
+                               'border-gray-100 bg-gray-50 hover:bg-gray-100'
+                }`}>
+                <div className={`text-center text-[14px] md:text-[20px] font-medium mb-1.5 ${isToday||isSelected?'text-[#E0197D]':'text-gray-700'}`}>{c.d}</div>
+                {dayEvents.map(e=>(
+                  <div key={e.id} className="text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 truncate bg-[#FCE4F3] text-[#A0106A]">
+                    {e.time?.slice(0,5)} {e.title}
+                  </div>
+                ))}
+                {present.length>0 && (
+                  <div className="text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 bg-[#DCFCE7] text-[#15803d] leading-snug">
+                    {present.map(x=>x.crew_name).join(', ')}
+                  </div>
+                )}
+                {absent.length>0 && (
+                  <div className="text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 bg-[#FEE2E2] text-[#b91c1c] leading-snug">
+                    {absent.map(x=>x.crew_name).join(', ')}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+        )}
       </div>
 
       {/* Selected day panel */}
