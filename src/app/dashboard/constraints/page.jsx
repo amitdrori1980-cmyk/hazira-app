@@ -215,11 +215,10 @@ export default function ConstraintsPage() {
         const rawHours = hoursIdx >= 0 ? row[hoursIdx] : ''
         const hours = typeof rawHours === 'number' ? (() => { const t = Math.round(rawHours * 24 * 60); const h = Math.floor(t/60); const m = t%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0') })() : (rawHours?.toString().trim() || '')
         const notes = notesIdx >= 0 ? row[notesIdx]?.toString().trim() || '' : ''
-        const member = crew.find(c => c.full_name.trim() === name)
         const existing = await supabase.from('crew_constraints').select('id').eq('crew_name', name).eq('date', lastDate).maybeSingle()
         if (existing.data) { success++; continue }
         const { error } = await supabase.from('crew_constraints').insert({
-          crew_member_id: member?.id || null,
+          crew_member_id: null,
           crew_name: name,
           date: lastDate, hours, notes, available: false,
         })
@@ -237,9 +236,8 @@ export default function ConstraintsPage() {
     ev.preventDefault()
     if (!form.crew_name || !form.date) return
     setAdding(true)
-    const member = crew.find(c => c.display === form.crew_name.trim())
     await supabase.from('crew_constraints').insert({
-      crew_member_id: member?.id || null,
+      crew_member_id: null,
       crew_name: form.crew_name.trim(),
       date: form.date,
       available: form.available,
@@ -274,9 +272,8 @@ export default function ConstraintsPage() {
   async function saveEdit() {
     if (!editItem) return
     setSaving(true)
-    const member = crew.find(m => m.display === editForm.crew_name.trim())
     await supabase.from('crew_constraints').update({
-      crew_member_id: member?.id || null,
+      crew_member_id: null,
       crew_name: editForm.crew_name.trim(),
       date: editForm.date,
       available: editForm.available,
