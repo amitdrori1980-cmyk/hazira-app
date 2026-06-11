@@ -286,7 +286,7 @@ export default function CalendarPage() {
                       className={`min-h-[30px] rounded-lg pt-1 pb-0.5 cursor-pointer border transition-all ${
                         isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
                         isToday ? 'bg-[#FCE4F3] border-transparent' :
-                        'border-transparent hover:bg-gray-50'
+                        'border-gray-100 bg-gray-50 hover:bg-gray-100'
                       } ${c.inMonth ? '' : 'opacity-30'}`}>
                       <div className={`text-center ${viewMode === 'week' ? 'text-[11px] md:text-[20px]' : 'text-[12px] md:text-[14px]'} font-medium ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
                     </div>
