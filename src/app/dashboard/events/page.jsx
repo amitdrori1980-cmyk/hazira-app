@@ -12,7 +12,7 @@ function EventsPageInner() {
   const searchParams = useSearchParams()
   const [events, setEvents]         = useState([])
   const [showTrash, setShowTrash]   = useState(false)
-  const [hidePast, setHidePast]     = useState(false)
+  const [hidePast, setHidePast]     = useState(true)
   const [depts, setDepts]           = useState([])
   const [eventTypes, setEventTypes] = useState([])
   const [allCrew, setAllCrew]       = useState([])
@@ -297,7 +297,7 @@ function EventsPageInner() {
             </button>
             {!showTrash && pastCount > 0 && (
               <button onClick={()=>setHidePast(v=>!v)} className="text-[12px] text-gray-400 hover:text-[#E0197D] flex items-center gap-1">
-                <i className={hidePast ? 'ti ti-eye' : 'ti ti-eye-off'} style={{fontSize:13}}/> {hidePast ? ('הצג עבר (' + pastCount + ')') : ('כווץ עבר (' + pastCount + ')')}
+                <i className={hidePast ? 'ti ti-eye' : 'ti ti-eye-off'} style={{fontSize:13}}/> {hidePast ? ('הרחב (' + pastCount + ')') : ('כווץ (' + pastCount + ')')}
               </button>
             )}
           </div>
