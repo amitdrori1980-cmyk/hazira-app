@@ -42,7 +42,7 @@ export default function TeamPage() {
         supabase.from('profiles').select('*').order('full_name'),
         supabase.from('nav_items').select('label, href, manager_only').eq('enabled', true).order('sort_order'),
         user ? supabase.from('profiles').select('is_manager').eq('id', user.id).single() : Promise.resolve({ data: null }),
-        supabase.from('operations_crew').select('user_id'),
+        supabase.from('user_area_access').select('user_id').eq('area', 'operations'),
       ])
       setOpsSet(new Set((opsRows || []).map(r => r.user_id).filter(Boolean)))
       setTeam(sortTeam(profs || []))
@@ -174,7 +174,7 @@ export default function TeamPage() {
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {m.is_manager && <span className="text-[11px] bg-[#E3F0FF] text-[#1A4A8A] px-2 py-0.5 rounded-full">מנהל</span>}
-              {(opsSet.has(m.id) || m.dept === 'תפעול') && <span className="text-[11px] bg-[#E1F5EE] text-[#0a7a5f] px-2 py-0.5 rounded-full">צוות תפעול</span>}
+              {!m.is_manager && opsSet.has(m.id) && <span className="text-[11px] bg-[#E1F5EE] text-[#0a7a5f] px-2 py-0.5 rounded-full">צוות תפעול</span>}
               {m.dept && m.dept !== 'תפעול' && <span className="text-[11px] bg-[#FCE4F3] text-[#A0106A] px-2 py-0.5 rounded-full">{m.dept}</span>}
             </div>
             <div className="w-8 h-8 rounded-full bg-[#FCE4F3] text-[#E0197D] text-[11px] font-medium flex items-center justify-center flex-shrink-0">
