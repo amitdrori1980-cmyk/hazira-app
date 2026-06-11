@@ -441,7 +441,7 @@ export default function ConstraintsPage() {
                   hasData    ? 'border-gray-100 bg-gray-50' :
                                'border-transparent hover:border-gray-200 hover:bg-gray-50'
                 }`}>
-                <div className={`text-center text-[12px] font-medium mb-1 ${isToday||isSelected?'text-[#E0197D]':'text-gray-700'}`}>{d}</div>
+                <div className={`text-center text-[12px] md:text-[15px] font-medium mb-1 ${isToday||isSelected?'text-[#E0197D]':'text-gray-700'}`}>{d}</div>
                 {/* Mobile: dots */}
                 <div className="flex flex-wrap gap-0.5 md:hidden">
                   {dayEvents.slice(0,2).map(e=>(
@@ -452,22 +452,22 @@ export default function ConstraintsPage() {
                 </div>
                 {/* Desktop: text */}
                 {dayEvents.slice(0,3).map(e=>(
-                  <div key={e.id} className="hidden md:block text-[9px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FCE4F3] text-[#A0106A]">
+                  <div key={e.id} className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FCE4F3] text-[#A0106A]">
                     {e.time?.slice(0,5)} {e.title}
                   </div>
                 ))}
                 {present.length>0 && (
-                  <div className="hidden md:block text-[9px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#DCFCE7] text-[#15803d]">
+                  <div className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#DCFCE7] text-[#15803d]">
                     {present.map(c=>c.crew_name).join(', ')}
                   </div>
                 )}
                 {absent.length>0 && (
-                  <div className="hidden md:block text-[9px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FEE2E2] text-[#b91c1c]">
+                  <div className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FEE2E2] text-[#b91c1c]">
                     {absent.map(c=>c.crew_name).join(', ')}
                   </div>
                 )}
                 {dayEvents.length>3 && (
-                  <div className="hidden md:block text-[9px] text-gray-400 text-center">+{dayEvents.length-3} אירועים</div>
+                  <div className="hidden md:block text-[12px] text-gray-400 text-center">+{dayEvents.length-3} אירועים</div>
                 )}
               </div>
             )
