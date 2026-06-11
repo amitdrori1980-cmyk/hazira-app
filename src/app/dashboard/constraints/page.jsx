@@ -504,7 +504,7 @@ export default function ConstraintsPage() {
                   </div>
                 ))}
                 {present.length>0 && (
-                  <div className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FEF08A] text-[#713f12]">
+                  <div className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#eab308] text-[#713f12]">
                     {present.map(c=>c.crew_name).join(', ')}
                   </div>
                 )}
@@ -542,7 +542,7 @@ export default function ConstraintsPage() {
                   </div>
                 ))}
                 {present.length>0 && (
-                  <div className="text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 bg-[#FEF08A] text-[#713f12] leading-snug">
+                  <div className="text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 bg-[#eab308] text-[#713f12] leading-snug">
                     {present.map(x=>x.crew_name).join(', ')}
                   </div>
                 )}
@@ -608,7 +608,7 @@ export default function ConstraintsPage() {
                   <div className="text-[11px] font-semibold text-[#713f12] mb-2">נמצאים ({present.length})</div>
                   {present.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
-                      {present.map(c => <Chip key={c.id} c={c} tone="bg-[#FEF08A] text-[#713f12]" />)}
+                      {present.map(c => <Chip key={c.id} c={c} tone="bg-[#eab308] text-[#713f12]" />)}
                     </div>
                   ) : <div className="text-[12px] text-gray-400">—</div>}
                 </div>
