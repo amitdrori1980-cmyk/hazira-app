@@ -369,7 +369,7 @@ function EventsPageInner() {
                         {ev.description&&<div className="text-[11px] text-gray-400">{ev.description}</div>}
                         {ev.venue&&<div className="text-[11px] text-gray-500 flex items-center gap-1 flex-row-reverse justify-end"><i className="ti ti-map-pin" style={{fontSize:10,color:'#E0197D'}}/>{ev.venue}</div>}
                         {ev.crew_notes&&(
-                          <div className="text-[11px] text-[#A0106A] bg-[#FCE4F3] rounded px-1.5 py-0.5 mt-0.5 inline-block max-w-full whitespace-pre-wrap text-right">
+                          <div className="text-[11px] text-[#A0106A] mt-0.5 inline-block max-w-full whitespace-pre-wrap text-right">
                             📝 {ev.crew_notes}
                           </div>
                         )}
