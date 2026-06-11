@@ -209,7 +209,7 @@ export default function CalendarPage() {
 
   const selectedEvents = selectedDay
     ? filteredEvents
-        .filter(e => e.date === selectedDay)
+        .filter(e => e.date === selectedDay || (e.end_date && e.end_date >= e.date && selectedDay >= e.date && selectedDay <= e.end_date))
         .sort((a, b) => {
           // הצגות (ירוק) תמיד למעלה
           if (a.type === 'show' && b.type !== 'show') return -1
