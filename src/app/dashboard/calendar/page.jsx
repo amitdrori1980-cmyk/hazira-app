@@ -92,6 +92,8 @@ export default function CalendarPage() {
   const wheelTime = useRef(0)
   const wheelLock = useRef(false)
   const touchStart = useRef(null)
+  const detailRef = useRef(null)
+  const detailTouch = useRef(null)
   useEffect(() => {
     const el = gridRef.current
     if (!el) return
@@ -121,6 +123,29 @@ export default function CalendarPage() {
   function dateStr(y, m, d) {
     return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
   }
+
+  function shiftSelectedDay(dir) {
+    if (!selectedDay) return
+    const [yy, mm, dd] = selectedDay.split('-').map(Number)
+    const dt = new Date(yy, mm - 1, dd); dt.setDate(dt.getDate() + dir)
+    setSelectedDay(dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate()))
+  }
+
+  useEffect(() => {
+    const el = detailRef.current
+    if (!el || !selectedDay) return
+    function onStart(e) { detailTouch.current = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null }
+    function onEnd(e) {
+      const st = detailTouch.current; detailTouch.current = null
+      if (!st) return
+      const t = e.changedTouches[0]
+      const dx = t.clientX - st.x, dy = t.clientY - st.y
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) shiftSelectedDay(dx > 0 ? 1 : -1)
+    }
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchend', onEnd, { passive: true })
+    return () => { el.removeEventListener('touchstart', onStart); el.removeEventListener('touchend', onEnd) }
+  }, [selectedDay])
 
   const filteredEvents = selectedVenue === 'all'
     ? events
@@ -353,7 +378,7 @@ export default function CalendarPage() {
 
       {/* Selected day panel */}
       {selectedDay && (
-        <div className="bg-white border border-gray-100 rounded-xl p-4">
+        <div ref={detailRef} className="bg-white border border-gray-100 rounded-xl p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <button onClick={() => setSelectedDay(null)}
@@ -361,9 +386,17 @@ export default function CalendarPage() {
                 <i className="ti ti-arrow-right" style={{fontSize:15}}/>
                 חזרה ליומן
               </button>
-              <span className="text-[16px] font-semibold text-gray-900">
-                {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
-              </span>
+              <div className="flex items-center gap-1">
+                <button onClick={()=>shiftSelectedDay(-1)} title="יום קודם" className="text-gray-400 hover:text-[#E0197D] p-1 rounded-lg hover:bg-gray-50">
+                  <i className="ti ti-chevron-right" style={{fontSize:20}}/>
+                </button>
+                <span className="text-[16px] font-semibold text-gray-900 text-center min-w-[70px]">
+                  {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
+                </span>
+                <button onClick={()=>shiftSelectedDay(1)} title="יום הבא" className="text-gray-400 hover:text-[#E0197D] p-1 rounded-lg hover:bg-gray-50">
+                  <i className="ti ti-chevron-left" style={{fontSize:20}}/>
+                </button>
+              </div>
             </div>
             {profile?.is_manager && (
               <button
