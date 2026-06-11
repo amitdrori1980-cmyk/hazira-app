@@ -277,37 +277,79 @@ export default function CalendarPage() {
         <div className="flex flex-col gap-1.5">
           {weekData.map((wd, wi) => (
             <div key={wi}>
-              <div className="grid grid-cols-7 gap-1.5">
-                {wd.week.map((c, ci) => {
-                  const isToday = c.ds === todayDs
-                  const isSelected = selectedDay === c.ds
-                  return (
-                    <div key={ci} onClick={() => setSelectedDay(c.ds)}
-                      className={`min-h-[30px] rounded-lg pt-1 pb-0.5 cursor-pointer border transition-all ${
-                        isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
-                        isToday ? 'bg-[#FCE4F3] border-transparent' :
-                        'border-gray-100 bg-gray-50 hover:bg-gray-100'
-                      } ${c.inMonth ? '' : 'opacity-30'}`}>
-                      <div className={`text-center ${viewMode === 'week' ? 'text-[11px] md:text-[20px]' : 'text-[12px] md:text-[14px]'} font-medium ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
-                    </div>
-                  )
-                })}
-              </div>
-              <div className="grid grid-cols-7 gap-x-1.5 gap-y-1 mt-0.5" style={{ gridTemplateRows: `repeat(${wd.laneCount}, minmax(24px, auto))`, minHeight: viewMode === 'week' ? '6rem' : '5rem' }}>
-                {wd.segs.map((seg, si) => (
-                  <div key={seg.event.id + '-' + wi}
-                    onClick={() => setSelectedDay(seg.event.date)}
-                    style={{ gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`, gridRow: seg.lane + 1, backgroundColor: getTypeColors(seg.event.type).bg, color: getTypeColors(seg.event.type).text }}
-                    className={`min-w-0 ${viewMode === 'week' ? 'min-h-[16px] md:min-h-[30px] text-[9px] md:text-[16px]' : 'min-h-[22px] text-[9px] md:text-[12px]'} leading-tight px-1.5 py-1 overflow-hidden whitespace-nowrap md:text-ellipsis cursor-pointer ${
-                      seg.isStart && seg.isEnd ? 'rounded' :
-                      seg.isStart ? 'rounded-r-md rounded-l-none' :
-                      seg.isEnd ? 'rounded-l-md rounded-r-none' :
-                      'rounded-none'
-                    }`}>
-                    {seg.isStart ? <><span className="md:hidden">{(seg.event.title || '').split(' ')[0]}</span><span className="hidden md:inline">{seg.event.time ? seg.event.time.slice(0,5) + ' ' : ''}{seg.event.title}</span></> : ''}
+              {viewMode === 'week' ? (
+                <>
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {wd.week.map((c, ci) => {
+                      const isToday = c.ds === todayDs
+                      const isSelected = selectedDay === c.ds
+                      return (
+                        <div key={ci} onClick={() => setSelectedDay(c.ds)}
+                          className={`min-h-[30px] rounded-lg pt-1 pb-0.5 cursor-pointer border transition-all ${
+                            isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
+                            isToday ? 'bg-[#FCE4F3] border-transparent' :
+                            'border-gray-100 bg-gray-50 hover:bg-gray-100'
+                          } ${c.inMonth ? '' : 'opacity-30'}`}>
+                          <div className={`text-center text-[11px] md:text-[20px] font-medium ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
+                        </div>
+                      )
+                    })}
                   </div>
-                ))}
-              </div>
+                  <div className="grid grid-cols-7 gap-x-1.5 gap-y-1 mt-0.5" style={{ gridTemplateRows: `repeat(${wd.laneCount}, minmax(24px, auto))`, minHeight: '6rem' }}>
+                    {wd.segs.map((seg, si) => (
+                      <div key={seg.event.id + '-' + wi}
+                        onClick={() => setSelectedDay(seg.event.date)}
+                        style={{ gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`, gridRow: seg.lane + 1, backgroundColor: getTypeColors(seg.event.type).bg, color: getTypeColors(seg.event.type).text }}
+                        className={`min-w-0 min-h-[16px] md:min-h-[30px] text-[9px] md:text-[16px] leading-tight px-1.5 py-1 overflow-hidden whitespace-nowrap md:text-ellipsis cursor-pointer ${
+                          seg.isStart && seg.isEnd ? 'rounded' :
+                          seg.isStart ? 'rounded-r-md rounded-l-none' :
+                          seg.isEnd ? 'rounded-l-md rounded-r-none' :
+                          'rounded-none'
+                        }`}>
+                        {seg.isStart ? <><span className="md:hidden">{(seg.event.title || '').split(' ')[0]}</span><span className="hidden md:inline">{seg.event.time ? seg.event.time.slice(0,5) + ' ' : ''}{seg.event.title}</span></> : ''}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="grid grid-cols-7 gap-1.5">
+                  {wd.week.map((c, ci) => {
+                    const isToday = c.ds === todayDs
+                    const isSelected = selectedDay === c.ds
+                    const dayEvents = filteredEvents
+                      .filter(e => e.date === c.ds || (e.end_date && e.end_date >= e.date && c.ds >= e.date && c.ds <= e.end_date))
+                      .sort((a, b) => {
+                        if (a.type === 'show' && b.type !== 'show') return -1
+                        if (a.type !== 'show' && b.type === 'show') return 1
+                        return (a.time || '').localeCompare(b.time || '')
+                      })
+                    return (
+                      <div key={ci} onClick={() => setSelectedDay(c.ds)}
+                        className={`min-h-[72px] md:min-h-[150px] rounded-lg p-1.5 cursor-pointer border transition-all ${
+                          isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
+                          isToday ? 'bg-[#FCE4F3] border-transparent' :
+                          'border-gray-100 bg-gray-50 hover:bg-gray-100'
+                        } ${c.inMonth ? '' : 'opacity-30'}`}>
+                        <div className={`text-center text-[12px] md:text-[14px] font-medium mb-1 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
+                        <div className="flex flex-wrap gap-0.5 md:hidden justify-center">
+                          {dayEvents.slice(0, 4).map(e => (
+                            <span key={e.id} className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: getTypeColors(e.type).text }}/>
+                          ))}
+                        </div>
+                        {dayEvents.slice(0, 3).map(e => (
+                          <div key={e.id} className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate"
+                            style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
+                            {e.time ? e.time.slice(0,5) + ' ' : ''}{e.title}
+                          </div>
+                        ))}
+                        {dayEvents.length > 3 && (
+                          <div className="hidden md:block text-[9px] text-gray-400 text-center">+{dayEvents.length - 3}</div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           ))}
         </div>
