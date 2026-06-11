@@ -46,6 +46,7 @@ export default function ConstraintsPage() {
   const [importResult, setImportResult] = useState(null)
 
   const [showAdd, setShowAdd] = useState(false)
+  const [isManager, setIsManager] = useState(false)
   const [crewOpen, setCrewOpen] = useState(false)
   const [hiddenCrew, setHiddenCrew] = useState(new Set())
   const [showCrewFilter, setShowCrewFilter] = useState(false)
@@ -59,13 +60,16 @@ export default function ConstraintsPage() {
   useEffect(() => { load() }, [])
 
   async function load() {
+    const { data: { user } } = await supabase.auth.getUser()
     const [{ data: c }, { data: e }, { data: profs }, { data: cm }, { data: ops }] = await Promise.all([
       supabase.from('crew_constraints').select('*').order('date'),
       supabase.from('events').select('id,title,date,time,type').order('date'),
-      supabase.from('profiles').select('id,full_name,dept').order('full_name'),
+      supabase.from('profiles').select('id,full_name,dept,is_manager').order('full_name'),
       supabase.from('crew_members').select('id,full_name').order('full_name'),
       supabase.from('user_area_access').select('user_id').eq('area','operations'),
     ])
+    const me = (profs || []).find(p => p.id === user?.id)
+    setIsManager(!!me?.is_manager)
     // מקור העובדים: כל בעלי החשבונות חוץ מתפעול, ועוד חסרי-החשבון מרשימת הצוות
     const opsSet = new Set((ops || []).map(o => o.user_id))
     const merged = []
@@ -389,14 +393,18 @@ export default function ConstraintsPage() {
             )}
           </div>
           <div className="flex gap-2">
+            {isManager && (
             <button onClick={() => setShowAdd(!showAdd)}
               className="text-[12px] border border-[#E0197D] text-[#E0197D] px-3 py-1.5 rounded-lg hover:bg-[#FCE4F3]">
               <i className="ti ti-plus"/> הוסף ידנית
             </button>
+            )}
+            {isManager && (
 <label className={`text-[12px] border px-3 py-1.5 rounded-lg cursor-pointer transition-colors ${importing ? 'border-gray-200 text-gray-400' : 'border-[#6366f1] text-[#6366f1] hover:bg-[#EEF2FF]'}`}>
               {importing ? 'מייבא...' : <><i className="ti ti-file-spreadsheet"/> ייבוא</>}
               <input type="file" accept=".xlsx,.xls" onChange={handleFile} className="hidden" disabled={importing}/>
             </label>
+            )}
             <button onClick={exportExcel}
               className="text-[12px] border border-green-600 text-green-600 px-3 py-1.5 rounded-lg hover:bg-green-50 flex items-center gap-1">
               <i className="ti ti-table-export" style={{fontSize:13}}/>
@@ -627,16 +635,24 @@ export default function ConstraintsPage() {
             const Chip = ({ c, dot }) => (
               <span className="inline-flex items-center gap-1 rounded-full pr-2.5 pl-1 py-0.5 text-[12px] bg-gray-50 border border-gray-200 text-gray-700">
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/10" style={{background:dot}}/>
-                <button onClick={()=>toggleStatus(c)} title="לחץ כדי להפוך נמצא/לא נמצא"
-                  className="py-1 hover:opacity-70">{c.crew_name}</button>
-                <button onClick={()=>openEdit(c)} title="עריכה והערה"
-                  className="px-0.5 py-1 opacity-50 hover:opacity-100">
-                  <i className="ti ti-pencil" style={{fontSize:11}}/>
-                </button>
-                <button onClick={()=>deleteConstraint(c.id)} title="מחיקה"
-                  className="py-1 opacity-50 hover:opacity-100">
-                  <i className="ti ti-x" style={{fontSize:11}}/>
-                </button>
+                {isManager ? (
+                  <button onClick={()=>toggleStatus(c)} title="לחץ כדי להפוך נמצא/לא נמצא"
+                    className="py-1 hover:opacity-70">{c.crew_name}</button>
+                ) : (
+                  <span className="py-1 pl-1.5">{c.crew_name}</span>
+                )}
+                {isManager && (
+                  <button onClick={()=>openEdit(c)} title="עריכה והערה"
+                    className="px-0.5 py-1 opacity-50 hover:opacity-100">
+                    <i className="ti ti-pencil" style={{fontSize:11}}/>
+                  </button>
+                )}
+                {isManager && (
+                  <button onClick={()=>deleteConstraint(c.id)} title="מחיקה"
+                    className="py-1 opacity-50 hover:opacity-100">
+                    <i className="ti ti-x" style={{fontSize:11}}/>
+                  </button>
+                )}
               </span>
             )
             return (
@@ -662,8 +678,14 @@ export default function ConstraintsPage() {
                     <div className="text-[11px] font-semibold text-gray-700 mb-2">הערות</div>
                     <div className="space-y-1">
                       {withNotes.map(c => (
-                        <div key={c.id} className="text-[12px] text-gray-700 text-right">
-                          <span className="font-medium">{c.crew_name}:</span> {c.notes}
+                        <div key={c.id} className="text-[12px] text-gray-700 text-right flex items-start gap-1">
+                          <span><span className="font-medium">{c.crew_name}:</span> {c.notes}</span>
+                          {isManager && (
+                            <button onClick={()=>openEdit(c)} title="עריכת הערה"
+                              className="opacity-50 hover:opacity-100 flex-shrink-0 mt-0.5">
+                              <i className="ti ti-pencil" style={{fontSize:11}}/>
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
