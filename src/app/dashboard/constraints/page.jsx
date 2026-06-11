@@ -441,7 +441,7 @@ export default function ConstraintsPage() {
                   hasData    ? 'border-gray-100 bg-gray-50' :
                                'border-transparent hover:border-gray-200 hover:bg-gray-50'
                 }`}>
-                <div className={`text-center text-[12px] md:text-[15px] font-medium mb-1 ${isToday||isSelected?'text-[#E0197D]':'text-gray-700'}`}>{d}</div>
+                <div className={`text-center text-[12px] md:text-[14px] font-medium mb-1 ${isToday||isSelected?'text-[#E0197D]':'text-gray-700'}`}>{d}</div>
                 {/* Mobile: dots */}
                 <div className="flex flex-wrap gap-0.5 md:hidden">
                   {dayEvents.slice(0,2).map(e=>(
