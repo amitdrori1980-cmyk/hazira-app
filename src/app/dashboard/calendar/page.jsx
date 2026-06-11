@@ -7,6 +7,14 @@ const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','�
 const HE_DAYS = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']
 const TYPE_COLOR = { rehearsal:'bg-[#FCE4F3] text-[#A0106A]', show:'bg-[#E1F5EE] text-[#085041]', crew:'bg-[#FAEEDA] text-[#633806]', technical:'bg-[#FAECE7] text-[#4A1B0C]', strike:'bg-[#FAECE7] text-[#4A1B0C]' }
 const TYPE_LABEL = { rehearsal:'חזרה', show:'הצגה', crew:'צוות', technical:'טכני', strike:'פירוק' }
+function mixHex(a, b, t) {
+  const pa = (a || '#000000').replace('#',''), pb = (b || '#ffffff').replace('#','')
+  if (pa.length < 6 || pb.length < 6) return a
+  const ai = [0,2,4].map(i => parseInt(pa.slice(i,i+2),16))
+  const bi = [0,2,4].map(i => parseInt(pb.slice(i,i+2),16))
+  const m = ai.map((v,i) => Math.round(v*t + bi[i]*(1-t)))
+  return '#' + m.map(v => Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('')
+}
 
 export default function CalendarPage() {
   const router = useRouter()
@@ -31,7 +39,8 @@ export default function CalendarPage() {
     const c = (t && t.color) || ''
     const bg = (c.match(/bg-\[(#[0-9a-fA-F]+)\]/) || [])[1] || '#f3f4f6'
     const text = (c.match(/text-\[(#[0-9a-fA-F]+)\]/) || [])[1] || '#4b5563'
-    return { bg, text }
+    const dot = mixHex(text, bg, 0.55)
+    return { bg, text, dot }
   }
 
   useEffect(() => {
@@ -132,8 +141,7 @@ export default function CalendarPage() {
   }
 
   useEffect(() => {
-    const el = detailRef.current
-    if (!el || !selectedDay) return
+    if (!selectedDay) return
     function onStart(e) { detailTouch.current = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null }
     function onEnd(e) {
       const st = detailTouch.current; detailTouch.current = null
@@ -142,9 +150,9 @@ export default function CalendarPage() {
       const dx = t.clientX - st.x, dy = t.clientY - st.y
       if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) shiftSelectedDay(dx > 0 ? 1 : -1)
     }
-    el.addEventListener('touchstart', onStart, { passive: true })
-    el.addEventListener('touchend', onEnd, { passive: true })
-    return () => { el.removeEventListener('touchstart', onStart); el.removeEventListener('touchend', onEnd) }
+    window.addEventListener('touchstart', onStart, { passive: true })
+    window.addEventListener('touchend', onEnd, { passive: true })
+    return () => { window.removeEventListener('touchstart', onStart); window.removeEventListener('touchend', onEnd) }
   }, [selectedDay])
 
   const filteredEvents = selectedVenue === 'all'
@@ -354,7 +362,7 @@ export default function CalendarPage() {
                         <div className={`text-center text-[12px] md:text-[14px] font-medium mb-1 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
                         <div className="flex flex-wrap gap-0.5 md:hidden justify-center">
                           {dayEvents.slice(0, 4).map(e => (
-                            <span key={e.id} className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: getTypeColors(e.type).bg }}/>
+                            <span key={e.id} className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: getTypeColors(e.type).dot }}/>
                           ))}
                         </div>
                         {dayEvents.slice(0, 3).map(e => (
