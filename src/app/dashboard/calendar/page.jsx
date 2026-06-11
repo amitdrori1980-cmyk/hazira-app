@@ -227,7 +227,7 @@ export default function CalendarPage() {
 
   return (
     <div className="w-full">
-      <div ref={gridRef} className="bg-white border border-gray-100 rounded-xl p-5 mb-3">
+      <div ref={gridRef} className={`bg-white border border-gray-100 rounded-xl p-5 mb-3 ${selectedDay ? 'hidden' : ''}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
           <button onClick={exportExcel} className="text-sm text-gray-500 hover:text-green-600 px-3 py-1 border border-gray-200 rounded-lg flex items-center gap-1">
@@ -283,7 +283,7 @@ export default function CalendarPage() {
                   const isSelected = selectedDay === c.ds
                   return (
                     <div key={ci} onClick={() => setSelectedDay(c.ds)}
-                      className={`min-h-[26px] rounded-lg pt-1 pb-0.5 cursor-pointer border transition-all ${
+                      className={`min-h-[30px] rounded-lg pt-1 pb-0.5 cursor-pointer border transition-all ${
                         isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
                         isToday ? 'bg-[#FCE4F3] border-transparent' :
                         'border-transparent hover:bg-gray-50'
@@ -293,12 +293,12 @@ export default function CalendarPage() {
                   )
                 })}
               </div>
-              <div className="grid grid-cols-7 gap-x-1.5 gap-y-0.5 mt-0.5" style={{ gridTemplateRows: `repeat(${wd.laneCount}, minmax(18px, auto))`, minHeight: viewMode === 'week' ? '6rem' : '3.4rem' }}>
+              <div className="grid grid-cols-7 gap-x-1.5 gap-y-1 mt-0.5" style={{ gridTemplateRows: `repeat(${wd.laneCount}, minmax(24px, auto))`, minHeight: viewMode === 'week' ? '6rem' : '5rem' }}>
                 {wd.segs.map((seg, si) => (
                   <div key={seg.event.id + '-' + wi}
                     onClick={() => setSelectedDay(seg.event.date)}
                     style={{ gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`, gridRow: seg.lane + 1, backgroundColor: getTypeColors(seg.event.type).bg, color: getTypeColors(seg.event.type).text }}
-                    className={`min-w-0 ${viewMode === 'week' ? 'min-h-[16px] md:min-h-[30px] text-[9px] md:text-[16px]' : 'min-h-[16px] text-[9px] md:text-[12px]'} leading-tight px-1.5 py-0.5 overflow-hidden whitespace-nowrap md:text-ellipsis cursor-pointer ${
+                    className={`min-w-0 ${viewMode === 'week' ? 'min-h-[16px] md:min-h-[30px] text-[9px] md:text-[16px]' : 'min-h-[22px] text-[9px] md:text-[12px]'} leading-tight px-1.5 py-1 overflow-hidden whitespace-nowrap md:text-ellipsis cursor-pointer ${
                       seg.isStart && seg.isEnd ? 'rounded' :
                       seg.isStart ? 'rounded-r-md rounded-l-none' :
                       seg.isEnd ? 'rounded-l-md rounded-r-none' :
@@ -316,10 +316,17 @@ export default function CalendarPage() {
       {/* Selected day panel */}
       {selectedDay && (
         <div className="bg-white border border-gray-100 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[13px] font-medium text-gray-800">
-              {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
-            </span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setSelectedDay(null)}
+                className="flex items-center gap-1 text-[13px] text-gray-600 hover:text-[#E0197D] border border-gray-200 hover:border-[#E0197D] rounded-lg px-3 py-1.5 transition-colors">
+                <i className="ti ti-arrow-right" style={{fontSize:15}}/>
+                חזרה ליומן
+              </button>
+              <span className="text-[16px] font-semibold text-gray-900">
+                {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
+              </span>
+            </div>
             {profile?.is_manager && (
               <button
                 onClick={() => router.push(`/dashboard/events?date=${selectedDay}`)}
