@@ -151,8 +151,7 @@ export default function ConstraintsPage() {
   }
 
   useEffect(() => {
-    const el = detailRef.current
-    if (!el || !selectedDay) return
+    if (!selectedDay) return
     function onStart(e) { detailTouch.current = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null }
     function onEnd(e) {
       const st = detailTouch.current; detailTouch.current = null
@@ -161,9 +160,9 @@ export default function ConstraintsPage() {
       const dx = t.clientX - st.x, dy = t.clientY - st.y
       if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) shiftSelectedDay(dx > 0 ? 1 : -1)
     }
-    el.addEventListener('touchstart', onStart, { passive: true })
-    el.addEventListener('touchend', onEnd, { passive: true })
-    return () => { el.removeEventListener('touchstart', onStart); el.removeEventListener('touchend', onEnd) }
+    window.addEventListener('touchstart', onStart, { passive: true })
+    window.addEventListener('touchend', onEnd, { passive: true })
+    return () => { window.removeEventListener('touchstart', onStart); window.removeEventListener('touchend', onEnd) }
   }, [selectedDay])
 
   const todayDs = dateStr(today.getFullYear(), today.getMonth(), today.getDate())
