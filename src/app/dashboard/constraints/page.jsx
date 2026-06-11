@@ -6,6 +6,12 @@ import { supabase } from '@/lib/supabase'
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS   = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']
 
+// כינויים לתצוגה בתפריט (גובר על השם הפרטי האוטומטי)
+const NAME_OVERRIDES = {
+  'דניאל גמליאלי': 'דונדו',
+  'דניאל ק': 'דניאל ק',
+}
+
 function parseDate(val) {
   if (!val) return null
   if (typeof val === 'number') {
@@ -77,6 +83,15 @@ export default function ConstraintsPage() {
       seen.add(key); merged.push({ id: m.id, full_name: m.full_name })
     })
     merged.sort((a, b) => a.full_name.localeCompare(b.full_name, 'he'))
+    // שמות לתצוגה: שם פרטי בלבד; אם כמה חולקים שם פרטי, מוסיפים אות מהשם השני לבידול
+    const firstCount = {}
+    merged.forEach(m => { const f = m.full_name.trim().split(/\s+/)[0]; firstCount[f] = (firstCount[f] || 0) + 1 })
+    merged.forEach(m => {
+      const key = m.full_name.trim()
+      if (NAME_OVERRIDES[key]) { m.display = NAME_OVERRIDES[key]; return }
+      const parts = key.split(/\s+/)
+      m.display = (firstCount[parts[0]] > 1 && parts[1]) ? parts[0] + ' ' + parts[1][0] : parts[0]
+    })
     setConstraints(c || [])
     setEvents(e || [])
     setCrew(merged)
@@ -238,7 +253,7 @@ export default function ConstraintsPage() {
     ev.preventDefault()
     if (!form.crew_name || !form.date) return
     setAdding(true)
-    const member = crew.find(c => c.full_name.trim() === form.crew_name.trim())
+    const member = crew.find(c => c.display === form.crew_name.trim())
     await supabase.from('crew_constraints').insert({
       crew_member_id: member?.id || null,
       crew_name: form.crew_name.trim(),
@@ -270,7 +285,7 @@ export default function ConstraintsPage() {
   async function saveEdit() {
     if (!editItem) return
     setSaving(true)
-    const member = crew.find(m => m.full_name.trim() === editForm.crew_name.trim())
+    const member = crew.find(m => m.display === editForm.crew_name.trim())
     await supabase.from('crew_constraints').update({
       crew_member_id: member?.id || null,
       crew_name: editForm.crew_name.trim(),
@@ -365,12 +380,12 @@ export default function ConstraintsPage() {
                   onBlur={()=>setTimeout(()=>setCrewOpen(false),150)}
                   placeholder="בחר איש צוות..." required autoComplete="off"
                   className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right"/>
-                {crewOpen && crew.filter(c=>!form.crew_name||c.full_name.includes(form.crew_name)).length>0 && (
+                {crewOpen && crew.filter(c=>!form.crew_name||c.display.includes(form.crew_name)||c.full_name.includes(form.crew_name)).length>0 && (
                   <div className="absolute top-full right-0 left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
-                    {crew.filter(c=>!form.crew_name||c.full_name.includes(form.crew_name)).map(c=>(
-                      <div key={c.id} onMouseDown={()=>setForm(f=>({...f,crew_name:c.full_name}))}
+                    {crew.filter(c=>!form.crew_name||c.display.includes(form.crew_name)||c.full_name.includes(form.crew_name)).map(c=>(
+                      <div key={c.id} onMouseDown={()=>setForm(f=>({...f,crew_name:c.display}))}
                         className="px-3 py-2 text-[13px] text-right hover:bg-[#FCE4F3] cursor-pointer">
-                        {c.full_name}
+                        {c.display}
                       </div>
                     ))}
                   </div>
@@ -554,7 +569,10 @@ export default function ConstraintsPage() {
               <select value={editForm.crew_name} onChange={e=>setEditForm(f=>({...f,crew_name:e.target.value}))} size="1"
                 className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1] text-right">
                 <option value="">בחר איש צוות...</option>
-                {crew.map(m=><option key={m.id} value={m.full_name}>{m.full_name}</option>)}
+                {editForm.crew_name && !crew.some(m=>m.display===editForm.crew_name) && (
+                  <option value={editForm.crew_name}>{editForm.crew_name}</option>
+                )}
+                {crew.map(m=><option key={m.id} value={m.display}>{m.display}</option>)}
               </select>
               <div className="flex items-center gap-1">
                 <span className="text-[11px] text-gray-400 flex-shrink-0">תאריך</span>
