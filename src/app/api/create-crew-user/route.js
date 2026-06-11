@@ -20,7 +20,7 @@ export async function POST(request) {
 
   // 2. קלט
   const body = await request.json()
-  const { full_name, email, password, role, dept, is_manager, areas, add_to_operations } = body
+  const { full_name, email, password, dept, is_manager, areas, add_to_operations } = body
   if (!full_name || !email || !password) {
     return NextResponse.json({ error: 'חסרים שדות חובה (שם, אימייל, סיסמה)' }, { status: 400 })
   }
@@ -36,11 +36,12 @@ export async function POST(request) {
   const newId = created.user.id
 
   // 4. פרופיל + חיוב החלפת סיסמה בכניסה הראשונה
+  // צוות תפעול -> מחלקה "תפעול" והתפקיד נשמר ברשומת התפעול; צוות כללי -> המחלקה שנבחרה
   const { error: profErr } = await admin.from('profiles').upsert({
     id: newId,
     full_name,
-    role: role || '',
-    dept: dept || null,
+    role: add_to_operations ? (dept || '') : '',
+    dept: add_to_operations ? 'תפעול' : (dept || null),
     is_manager: !!is_manager,
     must_change_password: true
   })
@@ -57,10 +58,10 @@ export async function POST(request) {
     }
   }
 
-  // 6. רשומת צוות תפעול (לפי בחירה)
+  // 6. רשומת צוות תפעול (לפי בחירה) — התפקיד הוא הבחירה מהרשימה
   if (add_to_operations) {
     await admin.from('operations_crew').insert({
-      full_name, role: role || '', phone: '', email, user_id: newId, active: true
+      full_name, role: dept || '', phone: '', email, user_id: newId, active: true
     })
   }
 
