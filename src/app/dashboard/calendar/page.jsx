@@ -329,7 +329,7 @@ export default function CalendarPage() {
                         <div className={`text-center text-[12px] md:text-[14px] font-medium mb-1 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
                         <div className="flex flex-wrap gap-0.5 md:hidden justify-center">
                           {dayEvents.slice(0, 4).map(e => (
-                            <span key={e.id} className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: getTypeColors(e.type).text }}/>
+                            <span key={e.id} className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: getTypeColors(e.type).bg }}/>
                           ))}
                         </div>
                         {dayEvents.slice(0, 3).map(e => (
