@@ -443,6 +443,8 @@ export default function ConstraintsPage() {
             const isToday    = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d
             const isSelected = selectedDay===ds
             const { dayEvents, dayConstraints } = getDayData(ds)
+            const present = dayConstraints.filter(c => c.available)
+            const absent  = dayConstraints.filter(c => !c.available)
             const hasData = dayEvents.length > 0 || dayConstraints.length > 0
 
             return (
@@ -459,9 +461,8 @@ export default function ConstraintsPage() {
                   {dayEvents.slice(0,2).map(e=>(
                     <span key={e.id} className="w-2.5 h-2.5 rounded-full bg-[#E0197D] inline-block"/>
                   ))}
-                  {dayConstraints.slice(0,3).map(c=>(
-                    <span key={c.id} className={`w-2.5 h-2.5 rounded-full inline-block ${c.available ? 'bg-[#16a34a]' : 'bg-[#dc2626]'}`}/>
-                  ))}
+                  {present.length>0 && <span className="w-2.5 h-2.5 rounded-full inline-block bg-[#16a34a]"/>}
+                  {absent.length>0 && <span className="w-2.5 h-2.5 rounded-full inline-block bg-[#dc2626]"/>}
                 </div>
                 {/* Desktop: text */}
                 {dayEvents.slice(0,1).map(e=>(
@@ -469,13 +470,18 @@ export default function ConstraintsPage() {
                     {e.time?.slice(0,5)} {e.title}
                   </div>
                 ))}
-                {dayConstraints.slice(0,2).map(c=>(
-                  <div key={c.id} className={`hidden md:block text-[9px] px-1 py-0.5 rounded mb-0.5 truncate ${c.available ? 'bg-[#DCFCE7] text-[#15803d]' : 'bg-[#FEE2E2] text-[#b91c1c]'}`}>
-                    {c.crew_name?.split(' ')[0]}
+                {present.length>0 && (
+                  <div className="hidden md:block text-[9px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#DCFCE7] text-[#15803d]">
+                    {present.map(c=>c.crew_name).join(', ')}
                   </div>
-                ))}
-                {(dayEvents.length + dayConstraints.length) > 3 && (
-                  <div className="hidden md:block text-[9px] text-gray-400 text-center">+{dayEvents.length+dayConstraints.length-3}</div>
+                )}
+                {absent.length>0 && (
+                  <div className="hidden md:block text-[9px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FEE2E2] text-[#b91c1c]">
+                    {absent.map(c=>c.crew_name).join(', ')}
+                  </div>
+                )}
+                {dayEvents.length>1 && (
+                  <div className="hidden md:block text-[9px] text-gray-400 text-center">+{dayEvents.length-1} אירועים</div>
                 )}
               </div>
             )
