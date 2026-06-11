@@ -10,6 +10,15 @@ function areaOf(href) {
   return (href || '').replace('/dashboard/', '').split('/')[0] || 'dashboard'
 }
 
+function sortTeam(arr) {
+  return [...arr].sort((a, b) => {
+    const da = a.dept || '\uffff'   // ללא שיוך — בסוף
+    const db = b.dept || '\uffff'
+    if (da !== db) return da.localeCompare(db, 'he')
+    return (a.full_name || '').localeCompare(b.full_name || '', 'he')
+  })
+}
+
 export default function TeamPage() {
   const [team, setTeam] = useState([])
   const [areasList, setAreasList] = useState([])
@@ -29,7 +38,7 @@ export default function TeamPage() {
         supabase.from('nav_items').select('label, href, manager_only').eq('enabled', true).order('sort_order'),
         user ? supabase.from('profiles').select('is_manager').eq('id', user.id).single() : Promise.resolve({ data: null }),
       ])
-      setTeam(profs || [])
+      setTeam(sortTeam(profs || []))
       setIsManager(!!me?.is_manager)
       const seen = new Set()
       const list = []
@@ -83,7 +92,7 @@ export default function TeamPage() {
     }
     setMsg({ type: 'ok', text: `${form.full_name} נוצר/ה בהצלחה. בכניסה הראשונה תתבקש/י להחליף סיסמה.` })
     const { data: profs } = await supabase.from('profiles').select('*').order('full_name')
-    setTeam(profs || [])
+    setTeam(sortTeam(profs || []))
     setForm({ full_name:'', email:'', password:'', dept:'', is_manager:false })
     setSelectedAreas(new Set())
     setAddToOps(false)
