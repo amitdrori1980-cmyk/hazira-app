@@ -19,6 +19,7 @@ export default function OperationsPage() {
   const [pwDraft, setPwDraft] = useState({})
   const [savingAuth, setSavingAuth] = useState({})
   const [emailOrig, setEmailOrig] = useState({})
+  const [showPw, setShowPw] = useState({})
   const [showAdd, setShowAdd] = useState(false)
   const [inquiries, setInquiries] = useState([])
   const [myMember, setMyMember] = useState(null)
@@ -1088,7 +1089,7 @@ export default function OperationsPage() {
 
       {tab === 'team' && isManager && (
         <div>
-        <div className="max-w-4xl">
+        <div className="max-w-5xl">
           <div className="flex items-center justify-between mb-3 flex-row-reverse">
             <label className={`text-[13px] px-4 py-2 rounded-lg flex items-center gap-1.5 ${importingCrew ? 'bg-gray-200 text-gray-400' : 'bg-[#E0197D] text-white hover:bg-[#A0106A] cursor-pointer'}`}>
               <i className="ti ti-file-spreadsheet" style={{fontSize:14}}/> {importingCrew ? 'מייבא...' : 'ייבוא מאקסל'}
@@ -1096,7 +1097,7 @@ export default function OperationsPage() {
             </label>
             <div className="text-[12px] text-gray-400">{crew.length} אנשי צוות</div>
           </div>
-          <div className="bg-white border border-gray-100 rounded-xl overflow-x-auto">
+          <div className="hidden md:block bg-white border border-gray-100 rounded-xl overflow-x-auto">
             <table className="w-full text-[13px] text-right" dir="rtl">
               <thead>
                 <tr className="bg-gray-50 text-gray-500 text-[13px]">
@@ -1124,7 +1125,7 @@ export default function OperationsPage() {
                         ? <input value={member.email || ''} dir="ltr" onFocus={() => setEmailOrig(o => ({ ...o, [member.id]: member.email || '' }))} onChange={e => editEmail(member.id, e.target.value)} onBlur={() => saveEmail(member)} className="w-44 px-2 py-1 rounded border border-gray-200 outline-none focus:border-[#E0197D] focus:bg-pink-50 text-[13px] text-left"/>
                         : <span className="text-gray-400 text-[12px]">{member.email || '—'} · אין חשבון</span>}</td>
                       <td className="px-2 py-1">{member.user_id
-                        ? <input type="password" value={pwDraft[member.id] || ''} placeholder="סיסמה חדשה" dir="ltr" onChange={e => setPwDraft(d => ({ ...d, [member.id]: e.target.value }))} onBlur={() => savePassword(member)} className="w-32 px-2 py-1 rounded border border-gray-200 outline-none focus:border-[#E0197D] focus:bg-pink-50 text-[13px] text-left"/>
+                        ? <div className="relative inline-block"><input type={showPw[member.id] ? 'text' : 'password'} value={pwDraft[member.id] || ''} placeholder="סיסמה חדשה" dir="ltr" onChange={e => setPwDraft(d => ({ ...d, [member.id]: e.target.value }))} onBlur={() => savePassword(member)} className="w-32 px-2 py-1 pl-7 rounded border border-gray-200 outline-none focus:border-[#E0197D] focus:bg-pink-50 text-[13px] text-left"/><button type="button" onMouseDown={e => e.preventDefault()} onClick={() => setShowPw(s => ({ ...s, [member.id]: !s[member.id] }))} className="absolute left-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><i className={showPw[member.id] ? 'ti ti-eye-off' : 'ti ti-eye'} style={{fontSize:13}}/></button></div>
                         : <span className="text-gray-300">—</span>}</td>
                       <td className="px-2 py-1">{savingAuth[member.id]
                         ? <i className="ti ti-loader-2 animate-spin text-gray-400" style={{fontSize:13}}/>
@@ -1139,11 +1140,62 @@ export default function OperationsPage() {
                   <td className="px-2 py-1.5"><input value={newMember.role2} onChange={e => setNewMember(v => ({ ...v, role2: e.target.value }))} placeholder="תפקיד 2" className="w-20 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/></td>
                   <td className="px-2 py-1.5"><input value={newMember.role3} onChange={e => setNewMember(v => ({ ...v, role3: e.target.value }))} placeholder="תפקיד 3" className="w-20 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/></td>
                   <td className="px-2 py-1.5"><input value={newMember.email} onChange={e => setNewMember(v => ({ ...v, email: e.target.value }))} placeholder="מייל *" className="w-40 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/></td>
-                  <td className="px-2 py-1.5"><input type="password" value={newMember.password} onChange={e => setNewMember(v => ({ ...v, password: e.target.value }))} placeholder="סיסמה *" className="w-28 px-2 py-1.5 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/></td>
+                  <td className="px-2 py-1.5"><div className="relative inline-block"><input type={showPw.new ? 'text' : 'password'} value={newMember.password} onChange={e => setNewMember(v => ({ ...v, password: e.target.value }))} placeholder="סיסמה *" className="w-28 px-2 py-1.5 pl-7 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/><button type="button" onClick={() => setShowPw(s => ({ ...s, new: !s.new }))} className="absolute left-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><i className={showPw.new ? 'ti ti-eye-off' : 'ti ti-eye'} style={{fontSize:13}}/></button></div></td>
                   <td className="px-2 py-1.5"><button onClick={addMember} disabled={adding} className="text-[13px] bg-[#E0197D] text-white px-3 py-1.5 rounded-lg disabled:opacity-50 whitespace-nowrap">{adding ? '...' : 'הוסף'}</button></td>
                 </tr>
               </tbody>
             </table>
+          </div>
+          <div className="md:hidden space-y-3">
+            {crew.filter(m => m && m.id).map(member => {
+              const f = memberFields(member)
+              const inp = "px-2.5 py-2 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] focus:bg-pink-50 text-[13px]"
+              return (
+                <div key={member.id} className="bg-white border border-gray-100 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input value={f.first} onChange={e => editMember(member.id, 'first', e.target.value)} onBlur={() => persistMember(member)} placeholder="שם" className={`flex-1 min-w-0 ${inp}`} dir="rtl"/>
+                    <input value={f.last} onChange={e => editMember(member.id, 'last', e.target.value)} onBlur={() => persistMember(member)} placeholder="שם משפחה" className={`flex-1 min-w-0 ${inp}`} dir="rtl"/>
+                    {savingAuth[member.id]
+                      ? <i className="ti ti-loader-2 animate-spin text-gray-400 shrink-0" style={{fontSize:16}}/>
+                      : <button onClick={() => removeMember(member.id)} className="text-gray-300 hover:text-red-500 shrink-0"><i className="ti ti-trash" style={{fontSize:16}}/></button>}
+                  </div>
+                  <div className="flex gap-2">
+                    <input value={f.r1} onChange={e => editMember(member.id, 'r1', e.target.value)} onBlur={() => persistMember(member)} placeholder="תפקיד 1" className={`flex-1 min-w-0 ${inp}`} dir="rtl"/>
+                    <input value={f.r2} onChange={e => editMember(member.id, 'r2', e.target.value)} onBlur={() => persistMember(member)} placeholder="תפקיד 2" className={`flex-1 min-w-0 ${inp}`} dir="rtl"/>
+                    <input value={f.r3} onChange={e => editMember(member.id, 'r3', e.target.value)} onBlur={() => persistMember(member)} placeholder="תפקיד 3" className={`flex-1 min-w-0 ${inp}`} dir="rtl"/>
+                  </div>
+                  {member.user_id ? (
+                    <>
+                      <input value={member.email || ''} dir="ltr" onFocus={() => setEmailOrig(o => ({ ...o, [member.id]: member.email || '' }))} onChange={e => editEmail(member.id, e.target.value)} onBlur={() => saveEmail(member)} placeholder="מייל" className={`w-full text-left ${inp}`}/>
+                      <div className="relative">
+                        <input type={showPw[member.id] ? 'text' : 'password'} value={pwDraft[member.id] || ''} placeholder="סיסמה חדשה" dir="ltr" onChange={e => setPwDraft(d => ({ ...d, [member.id]: e.target.value }))} onBlur={() => savePassword(member)} className={`w-full text-left pl-10 ${inp}`}/>
+                        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => setShowPw(s => ({ ...s, [member.id]: !s[member.id] }))} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400"><i className={showPw[member.id] ? 'ti ti-eye-off' : 'ti ti-eye'} style={{fontSize:16}}/></button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-gray-400 text-[12px]">{member.email || '—'} · אין חשבון התחברות</div>
+                  )}
+                </div>
+              )
+            })}
+            <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-3 space-y-2">
+              <div className="text-[12px] font-semibold text-gray-500">הוספת איש צוות</div>
+              <div className="flex gap-2">
+                <input value={newMember.first_name} onChange={e => setNewMember(v => ({ ...v, first_name: e.target.value }))} placeholder="שם" className="flex-1 min-w-0 px-2.5 py-2 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/>
+                <input value={newMember.last_name} onChange={e => setNewMember(v => ({ ...v, last_name: e.target.value }))} placeholder="שם משפחה" className="flex-1 min-w-0 px-2.5 py-2 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/>
+              </div>
+              <div className="flex gap-2">
+                <input value={newMember.role1} onChange={e => setNewMember(v => ({ ...v, role1: e.target.value }))} placeholder="תפקיד 1" className="flex-1 min-w-0 px-2.5 py-2 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/>
+                <input value={newMember.role2} onChange={e => setNewMember(v => ({ ...v, role2: e.target.value }))} placeholder="תפקיד 2" className="flex-1 min-w-0 px-2.5 py-2 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/>
+                <input value={newMember.role3} onChange={e => setNewMember(v => ({ ...v, role3: e.target.value }))} placeholder="תפקיד 3" className="flex-1 min-w-0 px-2.5 py-2 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/>
+              </div>
+              <input value={newMember.email} onChange={e => setNewMember(v => ({ ...v, email: e.target.value }))} placeholder="מייל *" className="w-full px-2.5 py-2 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/>
+              <div className="relative">
+                <input type={showPw.new ? 'text' : 'password'} value={newMember.password} onChange={e => setNewMember(v => ({ ...v, password: e.target.value }))} placeholder="סיסמה *" className="w-full pl-10 px-2.5 py-2 rounded-lg border border-gray-200 outline-none focus:border-[#E0197D] text-[13px]" dir="rtl"/>
+                <button type="button" onClick={() => setShowPw(s => ({ ...s, new: !s.new }))} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400"><i className={showPw.new ? 'ti ti-eye-off' : 'ti ti-eye'} style={{fontSize:16}}/></button>
+              </div>
+              <button onClick={addMember} disabled={adding} className="w-full bg-[#E0197D] text-white py-2 rounded-lg disabled:opacity-50 text-[13px]">{adding ? '...' : 'הוסף'}</button>
+            </div>
           </div>
           <div className="text-[11px] text-gray-400 mt-2 text-right">כל השדות בשורה ניתנים לעריכה (לחיצה על השדה). שם ותפקידים נשמרים אוטומטית. שינוי מייל או הקלדת סיסמה חדשה מעדכן את חשבון ההתחברות של איש הצוות.</div>
         </div>
