@@ -56,18 +56,6 @@ function ProductionInquiries() {
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [printMode, setPrintMode] = useState(null)
-  const [focusId, setFocusId] = useState(null)
-  const focusedRef = useRef(false)
-  useEffect(() => { setFocusId(new URLSearchParams(window.location.search).get('focus')) }, [])
-  useEffect(() => {
-    if (focusedRef.current || !focusId || !events.length) return
-    const target = events.find(ev => String(ev.id) === String(focusId))
-    if (!target) return
-    focusedRef.current = true
-    setView(target.date && target.date < todayStr ? 'archive' : 'active')
-    setOpenEvent(focusId)
-    setTimeout(() => document.getElementById('prod-ev-' + focusId)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
-  }, [focusId, events])
 
   const getTypeStyle = v => { const t = eventTypes.find(t => t.value === v); return t ? t.color : 'bg-gray-100 text-gray-600' }
   const getTypeLabel = v => { const t = eventTypes.find(t => t.value === v); return t ? t.label : v }

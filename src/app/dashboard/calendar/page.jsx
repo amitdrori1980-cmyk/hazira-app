@@ -67,23 +67,14 @@ export default function CalendarPage() {
   }, [])
 
   const inInq = e => inqAdded.has(e.id) || inqRows.some(r => r.event_name === (e.title || '').trim() && (r.date || '') === (e.date || ''))
-  async function addToInquiries(e) {
+  function addToInquiries(e) {
     const name = (e.title || '').trim()
     if (!name) return
-    setInqBusy(e.id)
-    let q = supabase.from('production_events').select('id').eq('event_name', name)
-    q = e.date ? q.eq('date', e.date) : q.is('date', null)
-    const { data: existing } = await q
-    let id = existing && existing.length ? existing[0].id : null
-    if (!id) {
-      const day = e.date ? PROD_DAYS[new Date(e.date).getDay()] : null
-      const { data: created, error } = await supabase.from('production_events').insert({ event_name: name, date: e.date || null, day, venue: e.venue || null }).select('id').single()
-      if (error) { setInqBusy(null); alert('שגיאה בהוספה לבדיקת פניות: ' + error.message); return }
-      id = created.id
-      setInqRows(prev => [...prev, { event_name: name, date: e.date || null }])
-    }
-    setInqBusy(null)
-    router.push('/dashboard/production?focus=' + id)
+    const params = new URLSearchParams()
+    params.set('inq', name)
+    if (e.date) params.set('date', e.date)
+    if (e.venue) params.set('venue', e.venue)
+    router.push('/dashboard/production?' + params.toString())
   }
 
   const today = new Date()
