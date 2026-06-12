@@ -50,6 +50,7 @@ function ProductionInquiries() {
   const [openMonths, setOpenMonths] = useState({})
   const [collapsedMonths, setCollapsedMonths] = useState({})
   const [notesDraft, setNotesDraft] = useState({})
+  const dragId = useRef(null)
 
   const getTypeStyle = v => { const t = eventTypes.find(t => t.value === v); return t ? t.color : 'bg-gray-100 text-gray-600' }
   const getTypeLabel = v => { const t = eventTypes.find(t => t.value === v); return t ? t.label : v }
@@ -287,6 +288,9 @@ function ProductionInquiries() {
     })
   })()
 
+  const dateNum = d => d ? (Number(String(d).slice(0, 10).replace(/-/g, '')) || 99991231) : 99991231
+  const sortKey = e => (e.sort_order != null ? Number(e.sort_order) : dateNum(e.date))
+
   const activeMonthGroups = (() => {
     const groups = {}
     activeEvents.forEach(e => {
@@ -298,9 +302,9 @@ function ProductionInquiries() {
       if (b === '') return -1
       return a.localeCompare(b)
     }).map(key => {
-      if (key === '') return { key: 'a-nodate', label: 'ללא תאריך', events: groups[''].slice() }
+      if (key === '') return { key: 'a-nodate', label: 'ללא תאריך', events: groups[''].slice().sort((a, b) => sortKey(a) - sortKey(b)) }
       const [y, mo] = key.split('-')
-      return { key: 'a-' + key, label: HE_MONTHS[Number(mo) - 1] + ' ' + y, events: groups[key].slice().sort((a, b) => (a.date || '9999-12-31').localeCompare(b.date || '9999-12-31')) }
+      return { key: 'a-' + key, label: HE_MONTHS[Number(mo) - 1] + ' ' + y, events: groups[key].slice().sort((a, b) => sortKey(a) - sortKey(b)) }
     })
   })()
 
@@ -311,12 +315,31 @@ function ProductionInquiries() {
     setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, notes: val } : e))
   }
 
-  function RenderCard(ev) {
+  async function handleDrop(targetEv, groupEvents) {
+    const srcId = dragId.current
+    dragId.current = null
+    if (!srcId || !groupEvents || srcId === targetEv.id) return
+    const srcIdx = groupEvents.findIndex(e => e.id === srcId)
+    const tgtIdx = groupEvents.findIndex(e => e.id === targetEv.id)
+    if (srcIdx === -1 || tgtIdx === -1) return
+    const without = groupEvents.filter(e => e.id !== srcId)
+    let pos = without.findIndex(e => e.id === targetEv.id)
+    if (srcIdx < tgtIdx) pos += 1
+    const before = without[pos - 1]
+    const after = without[pos]
+    const beforeKey = before ? sortKey(before) : (after ? sortKey(after) - 1 : 0)
+    const afterKey = after ? sortKey(after) : (before ? sortKey(before) + 1 : 1)
+    const newOrder = (beforeKey + afterKey) / 2
+    await supabase.from('production_events').update({ sort_order: newOrder }).eq('id', srcId)
+    setEvents(prev => prev.map(e => e.id === srcId ? { ...e, sort_order: newOrder } : e))
+  }
+
+  function RenderCard(ev, groupEvents) {
         const evSlots = slots[ev.id] || emptySlots()
         const filledCount = evSlots.filter(s => s.name.trim()).length
         const firstEmptyHdr = evSlots.findIndex(s => !s.name.trim())
         return (
-          <div key={ev.id} id={'prod-ev-' + ev.id} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
+          <div key={ev.id} id={'prod-ev-' + ev.id} onDragOver={e => { if (groupEvents) e.preventDefault() }} onDrop={e => { e.preventDefault(); handleDrop(ev, groupEvents) }} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 flex-row-reverse">
               <div className="flex-1 min-w-0 text-right">
                 {editingEvent === ev.id ? (
@@ -378,6 +401,9 @@ function ProductionInquiries() {
                 )}
               </div>
               <div className="flex items-center gap-1">
+                {groupEvents && <span draggable onDragStart={() => { dragId.current = ev.id }} onDragEnd={() => { dragId.current = null }}
+                  className="text-gray-300 hover:text-gray-500 p-1 cursor-grab active:cursor-grabbing" title="גרור לשינוי סדר">
+                  <i className="ti ti-grip-vertical" style={{fontSize:14}}/></span>}
                 <button onClick={e=>{e.stopPropagation();pushToCalendar(ev)}}
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="עדכן ביומן">
                   <i className="ti ti-calendar-plus" style={{fontSize:13}}/></button>
@@ -533,7 +559,7 @@ function ProductionInquiries() {
                 </span>
                 <span className="text-[11px] text-gray-400">{g.events.length} אירועים</span>
               </button>
-              {!collapsedMonths[g.key] && <div className="mt-2">{g.events.map(ev => RenderCard(ev))}</div>}
+              {!collapsedMonths[g.key] && <div className="mt-2">{g.events.map(ev => RenderCard(ev, g.events))}</div>}
             </div>
           ))}
         </>
