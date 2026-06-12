@@ -155,9 +155,10 @@ export default function OperationsPage() {
     const role = [newMember.role1, newMember.role2, newMember.role3].map(s => s.trim()).filter(Boolean).join(', ')
     if (!full_name || !newMember.email || !newMember.password) return alert('שם, מייל וסיסמה הם שדות חובה')
     setAdding(true)
+    const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/create-crew-user', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
       body: JSON.stringify({ full_name, role, email: newMember.email, password: newMember.password })
     })
     const json = await res.json()
@@ -202,6 +203,8 @@ export default function OperationsPage() {
       let ok = 0, reactivated = 0, skipped = 0
       const added = []
       const failed = []
+      const { data: { session } } = await supabase.auth.getSession()
+      const authToken = session?.access_token || ''
       for (const r of dataRows) {
         const full_name = [get(r, ci.first), get(r, ci.last)].filter(Boolean).join(' ')
         const role = [get(r, ci.r1), get(r, ci.r2), get(r, ci.r3)].filter(Boolean).join(', ')
@@ -215,7 +218,7 @@ export default function OperationsPage() {
           continue
         }
         try {
-          const res = await fetch('/api/create-crew-user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ full_name, role, email, password }) })
+          const res = await fetch('/api/create-crew-user', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, body: JSON.stringify({ full_name, role, email, password }) })
           const json = await res.json()
           if (json.error) failed.push(full_name + ' — ' + String(json.error))
           else { added.push(json.member); ok++ }
