@@ -49,6 +49,7 @@ function ProductionInquiries() {
   const [archiveSearch, setArchiveSearch] = useState('')
   const [openMonths, setOpenMonths] = useState({})
   const [collapsedMonths, setCollapsedMonths] = useState({})
+  const [notesDraft, setNotesDraft] = useState({})
 
   const getTypeStyle = v => { const t = eventTypes.find(t => t.value === v); return t ? t.color : 'bg-gray-100 text-gray-600' }
   const getTypeLabel = v => { const t = eventTypes.find(t => t.value === v); return t ? t.label : v }
@@ -303,13 +304,20 @@ function ProductionInquiries() {
     })
   })()
 
+  async function saveNotes(ev) {
+    const val = notesDraft[ev.id] ?? (ev.notes || '')
+    if (val === (ev.notes || '')) return
+    await supabase.from('production_events').update({ notes: val }).eq('id', ev.id)
+    setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, notes: val } : e))
+  }
+
   function RenderCard(ev) {
         const evSlots = slots[ev.id] || emptySlots()
         const filledCount = evSlots.filter(s => s.name.trim()).length
         const firstEmptyHdr = evSlots.findIndex(s => !s.name.trim())
         return (
           <div key={ev.id} id={'prod-ev-' + ev.id} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
-            <div className="flex items-center gap-3 px-4 py-3 flex-row-reverse">
+            <div className="flex items-start gap-3 px-4 py-3 flex-row-reverse">
               <div className="flex-1 min-w-0 text-right">
                 {editingEvent === ev.id ? (
                   <div className="flex gap-2 flex-row-reverse" onClick={e=>e.stopPropagation()}>
@@ -363,14 +371,20 @@ function ProductionInquiries() {
                   </>
                 )}
               </div>
-              <div className="flex items-center gap-1">
-                <button onClick={e=>{e.stopPropagation();pushToCalendar(ev)}}
-                  className="text-gray-300 hover:text-[#E0197D] p-1" title="עדכן ביומן">
-                  <i className="ti ti-calendar-plus" style={{fontSize:13}}/></button>
-                <button onClick={e=>{e.stopPropagation();setEditingEvent(ev.id);setEditEventVal({event_name:ev.event_name,date:ev.date||'',day:ev.day||'',venue:ev.venue||'',type:ev.type||''})}}
-                  className="text-gray-300 hover:text-gray-600 p-1"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
-                <button onClick={e=>{e.stopPropagation();if(window.confirm('למחוק את האירוע?'))deleteEvent(ev.id)}}
-                  className="text-gray-300 hover:text-red-500 p-1"><i className="ti ti-trash" style={{fontSize:13}}/></button>
+              <div className="flex flex-col items-start gap-1.5 flex-shrink-0">
+                <div className="flex items-center gap-1">
+                  <button onClick={e=>{e.stopPropagation();pushToCalendar(ev)}}
+                    className="text-gray-300 hover:text-[#E0197D] p-1" title="עדכן ביומן">
+                    <i className="ti ti-calendar-plus" style={{fontSize:13}}/></button>
+                  <button onClick={e=>{e.stopPropagation();setEditingEvent(ev.id);setEditEventVal({event_name:ev.event_name,date:ev.date||'',day:ev.day||'',venue:ev.venue||'',type:ev.type||''})}}
+                    className="text-gray-300 hover:text-gray-600 p-1"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
+                  <button onClick={e=>{e.stopPropagation();if(window.confirm('למחוק את האירוע?'))deleteEvent(ev.id)}}
+                    className="text-gray-300 hover:text-red-500 p-1"><i className="ti ti-trash" style={{fontSize:13}}/></button>
+                </div>
+                <textarea value={notesDraft[ev.id] ?? (ev.notes || '')} onClick={e=>e.stopPropagation()}
+                  onChange={e=>setNotesDraft(d=>({...d,[ev.id]:e.target.value}))} onBlur={()=>saveNotes(ev)}
+                  placeholder="הערות..." dir="rtl" rows={2}
+                  className="w-40 md:w-52 text-[12px] px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-y text-right"/>
               </div>
             </div>
           </div>
