@@ -383,8 +383,8 @@ function ProductionInquiries() {
                 </div>
                 <textarea value={notesDraft[ev.id] ?? (ev.notes || '')} onClick={e=>e.stopPropagation()}
                   onChange={e=>setNotesDraft(d=>({...d,[ev.id]:e.target.value}))} onBlur={()=>saveNotes(ev)}
-                  placeholder="הערות..." dir="rtl" rows={2}
-                  className="w-40 md:w-52 text-[12px] px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-y text-right"/>
+                  placeholder="הערות..." dir="ltr" rows={2}
+                  className="w-40 md:w-52 text-[12px] px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-y text-left"/>
               </div>
             </div>
           </div>
