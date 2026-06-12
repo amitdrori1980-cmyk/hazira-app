@@ -48,12 +48,14 @@ export default function PermissionsPage() {
       if (!me?.is_manager) { setAllowed(false); return }
       setAllowed(true)
 
-      const [{ data: profs }, { data: at }, { data: nav }] = await Promise.all([
+      const [{ data: profs }, { data: at }, { data: nav }, { data: opsCrew }] = await Promise.all([
         supabase.from('profiles').select('id, full_name, role, dept, is_manager').order('full_name'),
         supabase.from('area_tables').select('area'),
         supabase.from('nav_items').select('href, label, icon'),
+        supabase.from('operations_crew').select('user_id').eq('active', true),
       ])
-      setUsers(profs || [])
+      const opsCrewSet = new Set((opsCrew || []).map(r => r.user_id).filter(Boolean))
+      setUsers((profs || []).filter(p => !opsCrewSet.has(p.id)))
 
       const navMap = {}
       ;(nav || []).forEach(n => {
