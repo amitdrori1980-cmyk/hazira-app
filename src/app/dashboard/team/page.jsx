@@ -38,14 +38,16 @@ export default function TeamPage() {
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      const [{ data: profs }, { data: nav }, { data: me }, { data: opsRows }] = await Promise.all([
+      const [{ data: profs }, { data: nav }, { data: me }, { data: opsRows }, { data: opsCrew }] = await Promise.all([
         supabase.from('profiles').select('*').order('full_name'),
         supabase.from('nav_items').select('label, href, manager_only').eq('enabled', true).order('sort_order'),
         user ? supabase.from('profiles').select('is_manager').eq('id', user.id).single() : Promise.resolve({ data: null }),
         supabase.from('user_area_access').select('user_id').eq('area', 'operations'),
+        supabase.from('operations_crew').select('user_id').eq('active', true),
       ])
       setOpsSet(new Set((opsRows || []).map(r => r.user_id).filter(Boolean)))
-      setTeam(sortTeam(profs || []))
+      const opsCrewSet = new Set((opsCrew || []).map(r => r.user_id).filter(Boolean))
+      setTeam(sortTeam((profs || []).filter(p => !opsCrewSet.has(p.id))))
       setIsManager(!!me?.is_manager)
       const seen = new Set()
       const list = []
@@ -99,7 +101,9 @@ export default function TeamPage() {
     }
     setMsg({ type: 'ok', text: `${form.full_name} נוצר/ה בהצלחה. בכניסה הראשונה תתבקש/י להחליף סיסמה.` })
     const { data: profs } = await supabase.from('profiles').select('*').order('full_name')
-    setTeam(sortTeam(profs || []))
+    const { data: opsCrew2 } = await supabase.from('operations_crew').select('user_id').eq('active', true)
+    const opsCrewSet2 = new Set((opsCrew2 || []).map(r => r.user_id).filter(Boolean))
+    setTeam(sortTeam((profs || []).filter(p => !opsCrewSet2.has(p.id))))
     setForm({ full_name:'', email:'', password:'', dept:'', is_manager:false })
     setSelectedAreas(new Set())
     setAddToOps(false)
