@@ -626,7 +626,7 @@ export default function OperationsPage() {
         {isManager && (
           <button onClick={() => setTab('team')}
             className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'team' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
-            צוות
+            צוות תפעול
           </button>
         )}
       </div>
