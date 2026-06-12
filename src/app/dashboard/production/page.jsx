@@ -53,6 +53,9 @@ function ProductionInquiries() {
   const dragId = useRef(null)
   const [draggingId, setDraggingId] = useState(null)
   const [dragOver, setDragOver] = useState({ id: null, after: false })
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [printMode, setPrintMode] = useState(null)
 
   const getTypeStyle = v => { const t = eventTypes.find(t => t.value === v); return t ? t.color : 'bg-gray-100 text-gray-600' }
   const getTypeLabel = v => { const t = eventTypes.find(t => t.value === v); return t ? t.label : v }
@@ -333,17 +336,26 @@ function ProductionInquiries() {
     setEvents(prev => prev.map(e => e.id === srcId ? { ...e, sort_order: newOrder } : e))
   }
 
+  function toggleSelect(id) {
+    setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+  function exportSelectedPdf() {
+    if (!selectedIds.size) return
+    setPrintMode('selected')
+    setTimeout(() => { window.print(); setPrintMode(null) }, 80)
+  }
+
   function RenderCard(ev, groupEvents) {
         const evSlots = slots[ev.id] || emptySlots()
         const filledCount = evSlots.filter(s => s.name.trim()).length
         const firstEmptyHdr = evSlots.findIndex(s => !s.name.trim())
         return (
-          <div key={ev.id} className={`mb-3 transition-opacity duration-150 ${draggingId === ev.id ? 'opacity-40' : ''}`}>
+          <div key={ev.id} className={`mb-3 transition-opacity duration-150 ${draggingId === ev.id ? 'opacity-40' : ''} ${printMode === 'selected' && !selectedIds.has(ev.id) ? 'hidden' : ''}`}>
             {groupEvents && dragOver.id === ev.id && !dragOver.after && draggingId !== ev.id && <div className="h-1 bg-[#E0197D] rounded-full mx-2 mb-2 transition-all"/>}
             <div id={'prod-ev-' + ev.id}
               onDragOver={e => { if (!groupEvents) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; const r = e.currentTarget.getBoundingClientRect(); const af = (e.clientY - r.top) > r.height / 2; if (dragOver.id !== ev.id || dragOver.after !== af) setDragOver({ id: ev.id, after: af }) }}
               onDrop={e => { e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); const af = (e.clientY - r.top) > r.height / 2; handleDrop(ev, groupEvents, e.dataTransfer.getData('text/plain'), af); setDraggingId(null); setDragOver({ id: null, after: false }) }}
-              className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+              className={`bg-white border rounded-xl overflow-hidden ${selectMode && selectedIds.has(ev.id) ? 'border-[#E0197D] ring-2 ring-[#E0197D]/40' : 'border-gray-100'}`}>
             <div className="flex items-center gap-3 px-4 py-3 flex-row-reverse">
               <div className="flex-1 min-w-0 text-right">
                 {editingEvent === ev.id ? (
@@ -405,8 +417,10 @@ function ProductionInquiries() {
                 )}
               </div>
               <div className="flex items-center gap-1">
+                {selectMode && <input type="checkbox" checked={selectedIds.has(ev.id)} onChange={() => toggleSelect(ev.id)} onClick={e => e.stopPropagation()}
+                  className="no-print w-4 h-4 cursor-pointer ml-1" style={{accentColor:'#E0197D'}}/>}
                 {groupEvents && <span draggable onDragStart={e => { dragId.current = ev.id; setDraggingId(ev.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', ev.id); const el = document.getElementById('prod-ev-' + ev.id); if (el) e.dataTransfer.setDragImage(el, 24, 24) }} onDragEnd={() => { dragId.current = null; setDraggingId(null); setDragOver({ id: null, after: false }) }}
-                  className="text-gray-300 hover:text-gray-500 p-1 cursor-grab active:cursor-grabbing" title="גרור לשינוי סדר">
+                  className="no-print text-gray-300 hover:text-gray-500 p-1 cursor-grab active:cursor-grabbing" title="גרור לשינוי סדר">
                   <i className="ti ti-grip-vertical" style={{fontSize:14}}/></span>}
                 <button onClick={e=>{e.stopPropagation();pushToCalendar(ev)}}
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="עדכן ביומן">
@@ -426,11 +440,30 @@ function ProductionInquiries() {
   return (
     <div className="max-w-7xl">
       <style dangerouslySetInnerHTML={{__html: `@media print { body * { visibility: hidden !important; } .prod-print-area, .prod-print-area * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .prod-print-area { position: absolute; top: 0; left: 0; right: 0; padding: 12px; } .no-print { display: none !important; } @page { margin: 8mm; } }`}} />
-      <div className="flex justify-end gap-2 mb-4">
-        <button onClick={() => window.print()}
-          className="bg-white border border-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-1">
-          <i className="ti ti-file-type-pdf"/> ייצוא PDF
-        </button>
+      <div className="flex justify-end gap-2 mb-4 no-print">
+        {selectMode ? (
+          <>
+            <button onClick={exportSelectedPdf} disabled={!selectedIds.size}
+              className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1 disabled:opacity-50">
+              <i className="ti ti-file-type-pdf"/> ייצא מסומנים ({selectedIds.size})
+            </button>
+            <button onClick={() => { setSelectMode(false); setSelectedIds(new Set()) }}
+              className="bg-white border border-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-1">
+              <i className="ti ti-x"/> בטל סימון
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={() => window.print()}
+              className="bg-white border border-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-1">
+              <i className="ti ti-file-type-pdf"/> ייצוא PDF
+            </button>
+            <button onClick={() => setSelectMode(true)}
+              className="bg-white border border-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-1">
+              <i className="ti ti-checkbox"/> בחר לייצוא
+            </button>
+          </>
+        )}
         <button onClick={openImport}
           className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1">
           <i className="ti ti-calendar-down"/> ייבא מהיומן
@@ -546,7 +579,7 @@ function ProductionInquiries() {
       <div className="prod-print-area">
       {view === 'active' && activeEvents.length > 0 && (
         <>
-          <div className="flex justify-end mb-2">
+          <div className="flex justify-end mb-2 no-print">
             <button onClick={() => {
               const allCollapsed = activeMonthGroups.every(g => collapsedMonths[g.key])
               if (allCollapsed) setCollapsedMonths({})
@@ -556,16 +589,16 @@ function ProductionInquiries() {
             </button>
           </div>
           {activeMonthGroups.map(g => (
-            <div key={g.key} className="mb-3">
+            <div key={g.key} className={`mb-3 ${printMode === 'selected' && !g.events.some(e => selectedIds.has(e.id)) ? 'hidden' : ''}`}>
               <button onClick={() => setCollapsedMonths(p => ({ ...p, [g.key]: !p[g.key] }))}
                 className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl flex-row-reverse hover:bg-gray-100">
                 <span className="text-[13px] font-semibold text-gray-700 flex items-center gap-2 flex-row-reverse">
-                  <i className={`ti ${collapsedMonths[g.key] ? 'ti-chevron-down' : 'ti-chevron-up'} text-gray-400`} style={{fontSize:15}}/>
+                  <i className={`ti ${collapsedMonths[g.key] ? 'ti-chevron-down' : 'ti-chevron-up'} text-gray-400 no-print`} style={{fontSize:15}}/>
                   {g.label}
                 </span>
                 <span className="text-[11px] text-gray-400">{g.events.length} אירועים</span>
               </button>
-              {!collapsedMonths[g.key] && <div className="mt-2">{g.events.map(ev => RenderCard(ev, g.events))}</div>}
+              {(!collapsedMonths[g.key] || printMode === 'selected') && <div className="mt-2">{g.events.map(ev => RenderCard(ev, g.events))}</div>}
             </div>
           ))}
         </>
