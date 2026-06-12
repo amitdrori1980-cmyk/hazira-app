@@ -16,6 +16,9 @@ export default function OperationsPage() {
   const [isManager, setIsManager] = useState(false)
   const [newMember, setNewMember] = useState({ first_name: '', last_name: '', role1: '', role2: '', role3: '', email: '', password: '' })
   const [adding, setAdding] = useState(false)
+  const [pwDraft, setPwDraft] = useState({})
+  const [savingAuth, setSavingAuth] = useState({})
+  const [emailOrig, setEmailOrig] = useState({})
   const [showAdd, setShowAdd] = useState(false)
   const [inquiries, setInquiries] = useState([])
   const [myMember, setMyMember] = useState(null)
@@ -149,6 +152,41 @@ export default function OperationsPage() {
   }
   async function persistMember(m) {
     await supabase.from('operations_crew').update({ full_name: m.full_name, role: m.role }).eq('id', m.id)
+  }
+  function editEmail(id, value) {
+    setCrew(prev => prev.map(m => m.id === id ? { ...m, email: value } : m))
+  }
+  async function saveCrewAuth(member, payload) {
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/update-crew-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+      body: JSON.stringify({ user_id: member.user_id, member_id: member.id, ...payload })
+    })
+    const json = await res.json().catch(() => ({ error: 'שגיאת רשת' }))
+    return json
+  }
+  async function saveEmail(member) {
+    const email = (member.email || '').trim()
+    const orig = emailOrig[member.id] ?? ''
+    if (!email || email === orig) return
+    if (!member.user_id) { alert('לאיש צוות זה אין חשבון התחברות, לא ניתן לשנות מייל'); editEmail(member.id, orig); return }
+    setSavingAuth(s => ({ ...s, [member.id]: true }))
+    const json = await saveCrewAuth(member, { email })
+    setSavingAuth(s => ({ ...s, [member.id]: false }))
+    if (json.error) { alert('שגיאה בעדכון מייל: ' + json.error); editEmail(member.id, orig) }
+    else setEmailOrig(o => ({ ...o, [member.id]: email }))
+  }
+  async function savePassword(member) {
+    const pw = (pwDraft[member.id] || '').trim()
+    if (!pw) return
+    if (!member.user_id) { alert('לאיש צוות זה אין חשבון התחברות, לא ניתן לשנות סיסמה'); return }
+    if (pw.length < 8) { alert('הסיסמה צריכה להיות 8 תווים לפחות'); return }
+    setSavingAuth(s => ({ ...s, [member.id]: true }))
+    const json = await saveCrewAuth(member, { password: pw })
+    setSavingAuth(s => ({ ...s, [member.id]: false }))
+    if (json.error) alert('שגיאה בעדכון סיסמה: ' + json.error)
+    else { setPwDraft(d => ({ ...d, [member.id]: '' })); alert('הסיסמה עודכנה') }
   }
 
   async function addMember() {
@@ -1077,14 +1115,20 @@ export default function OperationsPage() {
                   const f = memberFields(member)
                   return (
                     <tr key={member.id} className="border-t border-gray-100">
-                      <td className="px-2 py-1"><input value={f.first} onChange={e => editMember(member.id, 'first', e.target.value)} onBlur={() => persistMember(member)} className="w-24 px-2 py-1 rounded outline-none focus:bg-gray-50 text-[13px]" dir="rtl"/></td>
-                      <td className="px-2 py-1"><input value={f.last} onChange={e => editMember(member.id, 'last', e.target.value)} onBlur={() => persistMember(member)} className="w-24 px-2 py-1 rounded outline-none focus:bg-gray-50 text-[13px]" dir="rtl"/></td>
-                      <td className="px-2 py-1"><input value={f.r1} onChange={e => editMember(member.id, 'r1', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded outline-none focus:bg-gray-50 text-[13px]" dir="rtl"/></td>
-                      <td className="px-2 py-1"><input value={f.r2} onChange={e => editMember(member.id, 'r2', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded outline-none focus:bg-gray-50 text-[13px]" dir="rtl"/></td>
-                      <td className="px-2 py-1"><input value={f.r3} onChange={e => editMember(member.id, 'r3', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded outline-none focus:bg-gray-50 text-[13px]" dir="rtl"/></td>
-                      <td className="px-3 py-1 text-gray-500 whitespace-nowrap">{member.email || '—'}</td>
-                      <td className="px-3 py-1 text-gray-300">••••••</td>
-                      <td className="px-2 py-1"><button onClick={() => removeMember(member.id)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:13}}/></button></td>
+                      <td className="px-2 py-1"><input value={f.first} onChange={e => editMember(member.id, 'first', e.target.value)} onBlur={() => persistMember(member)} className="w-24 px-2 py-1 rounded border border-gray-200 outline-none focus:border-[#E0197D] focus:bg-pink-50 text-[13px]" dir="rtl"/></td>
+                      <td className="px-2 py-1"><input value={f.last} onChange={e => editMember(member.id, 'last', e.target.value)} onBlur={() => persistMember(member)} className="w-24 px-2 py-1 rounded border border-gray-200 outline-none focus:border-[#E0197D] focus:bg-pink-50 text-[13px]" dir="rtl"/></td>
+                      <td className="px-2 py-1"><input value={f.r1} onChange={e => editMember(member.id, 'r1', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded border border-gray-200 outline-none focus:border-[#E0197D] focus:bg-pink-50 text-[13px]" dir="rtl"/></td>
+                      <td className="px-2 py-1"><input value={f.r2} onChange={e => editMember(member.id, 'r2', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded border border-gray-200 outline-none focus:border-[#E0197D] focus:bg-pink-50 text-[13px]" dir="rtl"/></td>
+                      <td className="px-2 py-1"><input value={f.r3} onChange={e => editMember(member.id, 'r3', e.target.value)} onBlur={() => persistMember(member)} className="w-20 px-2 py-1 rounded border border-gray-200 outline-none focus:border-[#E0197D] focus:bg-pink-50 text-[13px]" dir="rtl"/></td>
+                      <td className="px-2 py-1">{member.user_id
+                        ? <input value={member.email || ''} dir="ltr" onFocus={() => setEmailOrig(o => ({ ...o, [member.id]: member.email || '' }))} onChange={e => editEmail(member.id, e.target.value)} onBlur={() => saveEmail(member)} className="w-44 px-2 py-1 rounded border border-gray-200 outline-none focus:border-[#E0197D] focus:bg-pink-50 text-[13px] text-left"/>
+                        : <span className="text-gray-400 text-[12px]">{member.email || '—'} · אין חשבון</span>}</td>
+                      <td className="px-2 py-1">{member.user_id
+                        ? <input type="password" value={pwDraft[member.id] || ''} placeholder="סיסמה חדשה" dir="ltr" onChange={e => setPwDraft(d => ({ ...d, [member.id]: e.target.value }))} onBlur={() => savePassword(member)} className="w-32 px-2 py-1 rounded border border-gray-200 outline-none focus:border-[#E0197D] focus:bg-pink-50 text-[13px] text-left"/>
+                        : <span className="text-gray-300">—</span>}</td>
+                      <td className="px-2 py-1">{savingAuth[member.id]
+                        ? <i className="ti ti-loader-2 animate-spin text-gray-400" style={{fontSize:13}}/>
+                        : <button onClick={() => removeMember(member.id)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:13}}/></button>}</td>
                     </tr>
                   )
                 })}
@@ -1101,7 +1145,7 @@ export default function OperationsPage() {
               </tbody>
             </table>
           </div>
-          <div className="text-[11px] text-gray-400 mt-2 text-right">שם פרטי+משפחה והתפקידים נשמרים אוטומטית בעריכה. מייל וסיסמה נקבעים רק בהוספת איש צוות חדש.</div>
+          <div className="text-[11px] text-gray-400 mt-2 text-right">כל השדות בשורה ניתנים לעריכה (לחיצה על השדה). שם ותפקידים נשמרים אוטומטית. שינוי מייל או הקלדת סיסמה חדשה מעדכן את חשבון ההתחברות של איש הצוות.</div>
         </div>
         </div>
       )}
