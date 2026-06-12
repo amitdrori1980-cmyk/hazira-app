@@ -350,7 +350,8 @@ function ProductionInquiries() {
                       <span>{filledCount}/{SLOTS} אנשים</span>
                     </div>
                     {/* רשימת אנשים גלויה תמיד — שם ניטרלי + נקודת צבע לסטטוס, לחיצה פותחת תפריט */}
-                    <div dir="rtl" className="flex gap-1.5 justify-start mt-1.5 flex-wrap md:flex-nowrap md:overflow-x-auto md:pb-1 [scrollbar-width:thin]" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-stretch gap-2 mt-1.5">
+                    <div dir="rtl" className="flex gap-1.5 justify-start flex-wrap md:flex-nowrap md:overflow-x-auto md:pb-1 [scrollbar-width:thin] flex-1 min-w-0" onClick={e => e.stopPropagation()}>
                       {evSlots.map((slot, idx) => {
                         if (!slot.name.trim() && idx !== firstEmptyHdr) return null
                         const st = getStatus(slot.status)
@@ -368,6 +369,11 @@ function ProductionInquiries() {
                         )
                       })}
                     </div>
+                    <textarea value={notesDraft[ev.id] ?? (ev.notes || '')} onClick={e=>e.stopPropagation()}
+                      onChange={e=>setNotesDraft(d=>({...d,[ev.id]:e.target.value}))} onBlur={()=>saveNotes(ev)}
+                      placeholder="הערות" dir="ltr" rows={1}
+                      className="w-28 shrink-0 self-stretch text-[11px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-y text-left"/>
+                    </div>
                   </>
                 )}
               </div>
@@ -380,12 +386,6 @@ function ProductionInquiries() {
                 <button onClick={e=>{e.stopPropagation();if(window.confirm('למחוק את האירוע?'))deleteEvent(ev.id)}}
                   className="text-gray-300 hover:text-red-500 p-1"><i className="ti ti-trash" style={{fontSize:13}}/></button>
               </div>
-            </div>
-            <div dir="ltr" className="px-4 pb-3">
-              <textarea value={notesDraft[ev.id] ?? (ev.notes || '')} onClick={e=>e.stopPropagation()}
-                onChange={e=>setNotesDraft(d=>({...d,[ev.id]:e.target.value}))} onBlur={()=>saveNotes(ev)}
-                placeholder="הערות..." rows={2}
-                className="w-full md:w-96 text-[12px] px-2.5 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-y text-left"/>
             </div>
           </div>
         )
