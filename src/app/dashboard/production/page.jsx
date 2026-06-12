@@ -48,6 +48,7 @@ function ProductionInquiries() {
   const [view, setView] = useState('active')
   const [archiveSearch, setArchiveSearch] = useState('')
   const [openMonths, setOpenMonths] = useState({})
+  const [collapsedMonths, setCollapsedMonths] = useState({})
 
   const getTypeStyle = v => { const t = eventTypes.find(t => t.value === v); return t ? t.color : 'bg-gray-100 text-gray-600' }
   const getTypeLabel = v => { const t = eventTypes.find(t => t.value === v); return t ? t.label : v }
@@ -285,6 +286,23 @@ function ProductionInquiries() {
     })
   })()
 
+  const activeMonthGroups = (() => {
+    const groups = {}
+    activeEvents.forEach(e => {
+      const key = (e.date || '').slice(0, 7)
+      ;(groups[key] = groups[key] || []).push(e)
+    })
+    return Object.keys(groups).sort((a, b) => {
+      if (a === '') return 1
+      if (b === '') return -1
+      return a.localeCompare(b)
+    }).map(key => {
+      if (key === '') return { key: 'a-nodate', label: 'ללא תאריך', events: groups[''].slice() }
+      const [y, mo] = key.split('-')
+      return { key: 'a-' + key, label: HE_MONTHS[Number(mo) - 1] + ' ' + y, events: groups[key].slice().sort((a, b) => (a.date || '9999-12-31').localeCompare(b.date || '9999-12-31')) }
+    })
+  })()
+
   function RenderCard(ev) {
         const evSlots = slots[ev.id] || emptySlots()
         const filledCount = evSlots.filter(s => s.name.trim()).length
@@ -480,7 +498,32 @@ function ProductionInquiries() {
         </div>
       )}
       <div className="prod-print-area">
-      {view === 'active' && activeEvents.map(ev => RenderCard(ev))}
+      {view === 'active' && activeEvents.length > 0 && (
+        <>
+          <div className="flex justify-end mb-2">
+            <button onClick={() => {
+              const allCollapsed = activeMonthGroups.every(g => collapsedMonths[g.key])
+              if (allCollapsed) setCollapsedMonths({})
+              else { const next = {}; activeMonthGroups.forEach(g => { next[g.key] = true }); setCollapsedMonths(next) }
+            }} className="text-[11px] text-gray-500 hover:text-[#E0197D]">
+              {activeMonthGroups.every(g => collapsedMonths[g.key]) ? 'הרחב הכל' : 'כווץ הכל'}
+            </button>
+          </div>
+          {activeMonthGroups.map(g => (
+            <div key={g.key} className="mb-3">
+              <button onClick={() => setCollapsedMonths(p => ({ ...p, [g.key]: !p[g.key] }))}
+                className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl flex-row-reverse hover:bg-gray-100">
+                <span className="text-[13px] font-semibold text-gray-700 flex items-center gap-2 flex-row-reverse">
+                  <i className={`ti ${collapsedMonths[g.key] ? 'ti-chevron-down' : 'ti-chevron-up'} text-gray-400`} style={{fontSize:15}}/>
+                  {g.label}
+                </span>
+                <span className="text-[11px] text-gray-400">{g.events.length} אירועים</span>
+              </button>
+              {!collapsedMonths[g.key] && <div className="mt-2">{g.events.map(ev => RenderCard(ev))}</div>}
+            </div>
+          ))}
+        </>
+      )}
       {view === 'active' && events.length > 0 && activeEvents.length === 0 && (
         <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">אין אירועים פעילים</div>
       )}
