@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']
+const PROD_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
 const TYPE_COLOR = { rehearsal:'bg-[#FCE4F3] text-[#A0106A]', show:'bg-[#E1F5EE] text-[#085041]', crew:'bg-[#FAEEDA] text-[#633806]', technical:'bg-[#FAECE7] text-[#4A1B0C]', strike:'bg-[#FAECE7] text-[#4A1B0C]' }
 const TYPE_LABEL = { rehearsal:'חזרה', show:'הצגה', crew:'צוות', technical:'טכני', strike:'פירוק' }
 function mixHex(a, b, t) {
@@ -31,6 +32,9 @@ export default function CalendarPage() {
   const [editForm, setEditForm] = useState({})
   const [savingEdit, setSavingEdit] = useState(false)
   const [eventTypes, setEventTypes] = useState([])
+  const [inqRows, setInqRows] = useState([])
+  const [inqAdded, setInqAdded] = useState(new Set())
+  const [inqBusy, setInqBusy] = useState(null)
 
   const getTypeStyle = v => { const t = eventTypes.find(t => t.value === v); return t ? t.color : 'bg-gray-100 text-gray-600' }
   const getTypeLabel = v => { const t = eventTypes.find(t => t.value === v); return t ? t.label : v }
@@ -56,9 +60,31 @@ export default function CalendarPage() {
       setVenues((vs||[]).map(v => v.name))
       const { data: ts } = await supabase.from('event_types').select('*').order('sort_order')
       setEventTypes(ts || [])
+      const { data: pe } = await supabase.from('production_events').select('event_name, date')
+      setInqRows(pe || [])
     }
     load()
   }, [])
+
+  const inInq = e => inqAdded.has(e.id) || inqRows.some(r => r.event_name === (e.title || '').trim() && (r.date || '') === (e.date || ''))
+  async function addToInquiries(e) {
+    if (inInq(e)) { router.push('/dashboard/production'); return }
+    const name = (e.title || '').trim()
+    if (!name) return
+    setInqBusy(e.id)
+    let q = supabase.from('production_events').select('id').eq('event_name', name)
+    q = e.date ? q.eq('date', e.date) : q.is('date', null)
+    const { data: existing } = await q
+    if (existing && existing.length) {
+      setInqRows(prev => [...prev, { event_name: name, date: e.date || null }]); setInqBusy(null); return
+    }
+    const day = e.date ? PROD_DAYS[new Date(e.date).getDay()] : null
+    const { error } = await supabase.from('production_events').insert({ event_name: name, date: e.date || null, day, venue: e.venue || null })
+    setInqBusy(null)
+    if (error) { alert('שגיאה בהוספה לבדיקת פניות: ' + error.message); return }
+    setInqAdded(prev => new Set(prev).add(e.id))
+    setInqRows(prev => [...prev, { event_name: name, date: e.date || null }])
+  }
 
   const today = new Date()
   const firstDay = new Date(calYear, calMonth, 1).getDay()
@@ -431,6 +457,13 @@ export default function CalendarPage() {
                     <button onClick={() => { setEditingEvent(e.id); setEditForm({ title:e.title, date:e.date, end_date:e.end_date||'', time:e.time||'', type:e.type||'show', venue:e.venue||'', description:e.description||'' }) }}
                       className="text-gray-300 hover:text-[#E0197D] p-1 flex-shrink-0">
                       <i className="ti ti-pencil" style={{fontSize:13}}/>
+                    </button>
+                  )}
+                  {profile?.is_manager && (
+                    <button onClick={() => addToInquiries(e)} disabled={inqBusy === e.id}
+                      className={`p-1 flex-shrink-0 ${inInq(e) ? 'text-[#E0197D]' : 'text-gray-300 hover:text-[#E0197D]'}`}
+                      title={inInq(e) ? 'נמצא בבדיקת פניות — פתח' : 'הוסף לבדיקת פניות'}>
+                      <i className={`ti ${inInq(e) ? 'ti-clipboard-check' : 'ti-clipboard-plus'}`} style={{fontSize:13}}/>
                     </button>
                   )}
                   <div className="flex-1">
