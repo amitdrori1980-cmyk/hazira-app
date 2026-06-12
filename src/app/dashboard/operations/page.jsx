@@ -129,6 +129,7 @@ export default function OperationsPage() {
   }
 
   function memberFields(m) {
+    m = m || {}
     const parts = (m.full_name || '').trim().split(' ')
     const roles = (m.role || '').split(',').map(s => s.trim())
     return { first: parts[0] || '', last: parts.slice(1).join(' '), r1: roles[0] || '', r2: roles[1] || '', r3: roles[2] || '' }
@@ -183,19 +184,30 @@ export default function OperationsPage() {
       const ws = wb.Sheets[wb.SheetNames[0]]
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }).filter(r => r.some(c => String(c).trim() !== ''))
       if (rows.length < 2) { alert('הקובץ ריק או חסר נתונים'); setImportingCrew(false); return }
-      const header = rows[0].map(h => String(h).trim())
+      const isMail = h => h.includes('מייל') || h.includes('אימייל') || h.toLowerCase().includes('mail')
+      let hi = rows.findIndex(r => {
+        const cells = r.map(c => String(c).trim())
+        return cells.some(h => h.includes('שם') && !h.includes('משפחה')) && cells.some(isMail)
+      })
+      if (hi === -1) hi = 0
+      const header = rows[hi].map(h => String(h).trim())
       let ci = {
         first: header.findIndex(h => h.includes('שם') && !h.includes('משפחה')),
         last: header.findIndex(h => h.includes('משפחה')),
         r1: header.findIndex(h => h.includes('תפקיד 1') || h === 'תפקיד'),
         r2: header.findIndex(h => h.includes('תפקיד 2')),
         r3: header.findIndex(h => h.includes('תפקיד 3')),
-        email: header.findIndex(h => h.includes('מייל') || h.includes('אימייל') || h.toLowerCase().includes('mail')),
+        email: header.findIndex(isMail),
         password: header.findIndex(h => h.includes('סיסמה') || h.toLowerCase().includes('pass'))
       }
-      let dataRows
-      if (ci.email === -1 || ci.first === -1) { ci = { first: 0, last: 1, r1: 2, r2: 3, r3: 4, email: 5, password: 6 }; dataRows = rows }
-      else { dataRows = rows.slice(1) }
+      let dataRows = rows.slice(hi + 1)
+      if (ci.email === -1) {
+        const counts = {}
+        dataRows.forEach(r => r.forEach((c, idx) => { if (String(c).includes('@')) counts[idx] = (counts[idx] || 0) + 1 }))
+        const best = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0]
+        if (best !== undefined) ci.email = Number(best)
+      }
+      if (ci.first === -1) ci.first = 0
       const get = (r, i) => i >= 0 ? String(r[i] || '').trim() : ''
       const allEmails = dataRows.map(r => get(r, ci.email)).filter(Boolean)
       const { data: existingRows } = await supabase.from('operations_crew').select('*').in('email', allEmails)
@@ -209,7 +221,8 @@ export default function OperationsPage() {
         const full_name = [get(r, ci.first), get(r, ci.last)].filter(Boolean).join(' ')
         const role = [get(r, ci.r1), get(r, ci.r2), get(r, ci.r3)].filter(Boolean).join(', ')
         const email = get(r, ci.email), password = get(r, ci.password)
-        if (!full_name || !email) { skipped++; continue }
+        if (!email || !email.includes('@')) continue
+        if (!full_name) { skipped++; continue }
         const ex = byEmail[email.toLowerCase()]
         if (ex) {
           const { data: upd, error: uerr } = await supabase.from('operations_crew').update({ active: true, full_name, role }).eq('id', ex.id).select().single()
@@ -225,7 +238,12 @@ export default function OperationsPage() {
           else { added.push(json.member); ok++ }
         } catch (err) { failed.push(full_name + ' — שגיאת רשת') }
       }
-      if (added.length) setCrew(prev => { const map = {}; prev.forEach(m => map[m.id] = m); added.forEach(m => map[m.id] = m); return Object.values(map) })
+      if (added.length) setCrew(prev => {
+        const map = {}
+        prev.forEach(m => { if (m && m.id) map[m.id] = m })
+        added.forEach(m => { if (m && m.id) map[m.id] = m })
+        return Object.values(map)
+      })
       let summary = 'יובאו ' + ok + ' אנשי צוות חדשים.'
       if (reactivated) summary += ' ' + reactivated + ' קיימים עודכנו/הופעלו מחדש.'
       if (skipped) summary += ' דולגו ' + skipped + ' (חסר שם/מייל, או אנשים חדשים ללא סיסמה).'
@@ -1055,7 +1073,7 @@ export default function OperationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {crew.map(member => {
+                {crew.filter(m => m && m.id).map(member => {
                   const f = memberFields(member)
                   return (
                     <tr key={member.id} className="border-t border-gray-100">
