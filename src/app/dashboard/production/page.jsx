@@ -315,8 +315,8 @@ function ProductionInquiries() {
     setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, notes: val } : e))
   }
 
-  async function handleDrop(targetEv, groupEvents) {
-    const srcId = dragId.current
+  async function handleDrop(targetEv, groupEvents, srcIdArg) {
+    const srcId = dragId.current || srcIdArg
     dragId.current = null
     if (!srcId || !groupEvents || srcId === targetEv.id) return
     const srcIdx = groupEvents.findIndex(e => e.id === srcId)
@@ -339,7 +339,7 @@ function ProductionInquiries() {
         const filledCount = evSlots.filter(s => s.name.trim()).length
         const firstEmptyHdr = evSlots.findIndex(s => !s.name.trim())
         return (
-          <div key={ev.id} id={'prod-ev-' + ev.id} onDragOver={e => { if (groupEvents) e.preventDefault() }} onDrop={e => { e.preventDefault(); handleDrop(ev, groupEvents) }} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
+          <div key={ev.id} id={'prod-ev-' + ev.id} onDragOver={e => { if (groupEvents) { e.preventDefault(); e.dataTransfer.dropEffect = 'move' } }} onDrop={e => { e.preventDefault(); handleDrop(ev, groupEvents, e.dataTransfer.getData('text/plain')) }} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 flex-row-reverse">
               <div className="flex-1 min-w-0 text-right">
                 {editingEvent === ev.id ? (
@@ -401,7 +401,7 @@ function ProductionInquiries() {
                 )}
               </div>
               <div className="flex items-center gap-1">
-                {groupEvents && <span draggable onDragStart={() => { dragId.current = ev.id }} onDragEnd={() => { dragId.current = null }}
+                {groupEvents && <span draggable onDragStart={e => { dragId.current = ev.id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', ev.id) }} onDragEnd={() => { dragId.current = null }}
                   className="text-gray-300 hover:text-gray-500 p-1 cursor-grab active:cursor-grabbing" title="גרור לשינוי סדר">
                   <i className="ti ti-grip-vertical" style={{fontSize:14}}/></span>}
                 <button onClick={e=>{e.stopPropagation();pushToCalendar(ev)}}
