@@ -209,7 +209,7 @@ export default function OperationsPage() {
         const full_name = [get(r, ci.first), get(r, ci.last)].filter(Boolean).join(' ')
         const role = [get(r, ci.r1), get(r, ci.r2), get(r, ci.r3)].filter(Boolean).join(', ')
         const email = get(r, ci.email), password = get(r, ci.password)
-        if (!full_name || !email || !password) { skipped++; continue }
+        if (!full_name || !email) { skipped++; continue }
         const ex = byEmail[email.toLowerCase()]
         if (ex) {
           const { data: upd, error: uerr } = await supabase.from('operations_crew').update({ active: true, full_name, role }).eq('id', ex.id).select().single()
@@ -217,6 +217,7 @@ export default function OperationsPage() {
           else { added.push(upd); reactivated++ }
           continue
         }
+        if (!password) { skipped++; continue }
         try {
           const res = await fetch('/api/create-crew-user', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, body: JSON.stringify({ full_name, role, email, password }) })
           const json = await res.json()
@@ -227,7 +228,7 @@ export default function OperationsPage() {
       if (added.length) setCrew(prev => { const map = {}; prev.forEach(m => map[m.id] = m); added.forEach(m => map[m.id] = m); return Object.values(map) })
       let summary = 'יובאו ' + ok + ' אנשי צוות חדשים.'
       if (reactivated) summary += ' ' + reactivated + ' קיימים עודכנו/הופעלו מחדש.'
-      if (skipped) summary += ' דולגו ' + skipped + ' (שורות ללא שם/מייל/סיסמה).'
+      if (skipped) summary += ' דולגו ' + skipped + ' (חסר שם/מייל, או אנשים חדשים ללא סיסמה).'
       if (failed.length) summary += '\n\nנכשלו ' + failed.length + ':\n' + failed.map(x => '• ' + x).join('\n')
       alert(summary)
     } catch (err) {
