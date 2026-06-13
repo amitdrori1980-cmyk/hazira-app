@@ -176,7 +176,7 @@ function ProductionInquiries() {
     }
   }
 
-  async function pushToCalendar(ev) {
+  async function syncEventToCalendarAndConstraints(ev) {
     const evSlots = slots[ev.id] || emptySlots()
     // רק מי שאישר (צהוב)
     const confirmed = evSlots.filter(s => s.status === 'yellow' && s.name.trim()).map(s => s.name.trim())
@@ -190,10 +190,7 @@ function ProductionInquiries() {
 
     if (existing) {
       const { error } = await supabase.from('events').update({ crew_notes: crewList || null }).eq('id', existing.id)
-      if (error) return alert('שגיאה: ' + error.message)
-      alert(confirmed.length
-        ? `האירוע כבר קיים ביומן — עודכנה רשימת הצוות (${confirmed.length} שאישרו).`
-        : 'האירוע כבר קיים ביומן — אין כרגע מי שאישר, רשימת הצוות נוקתה.')
+      if (error) return { error: error.message }
     } else {
       const { error } = await supabase.from('events').insert({
         title: ev.event_name,
@@ -203,8 +200,7 @@ function ProductionInquiries() {
         venue: ev.venue || null,
         crew_notes: crewList || null,
       })
-      if (error) return alert('שגיאה: ' + error.message)
-      alert(`האירוע נוסף ליומן${confirmed.length ? ` עם ${confirmed.length} אנשי צוות שאישרו` : ''}!`)
+      if (error) return { error: error.message }
     }
 
     // סנכרון ללוח האילוצים: כל מי שאישר (צהוב) -> שורת "נמצא" אמיתית בתאריך האירוע
@@ -222,6 +218,29 @@ function ProductionInquiries() {
         .map(n => ({ crew_member_id: null, crew_name: n, date: ev.date, available: true, notes: evTag }))
       if (toInsert.length) await supabase.from('crew_constraints').insert(toInsert)
     }
+    return { confirmed: confirmed.length, created: !existing }
+  }
+
+  async function pushToCalendar(ev) {
+    const r = await syncEventToCalendarAndConstraints(ev)
+    if (r.error) return alert('שגיאה: ' + r.error)
+    if (r.created) alert(`האירוע נוסף ליומן${r.confirmed ? ` עם ${r.confirmed} אנשי צוות שאישרו` : ''}!`)
+    else alert(r.confirmed
+      ? `האירוע כבר קיים ביומן — עודכנה רשימת הצוות (${r.confirmed} שאישרו).`
+      : 'האירוע כבר קיים ביומן — אין כרגע מי שאישר, רשימת הצוות נוקתה.')
+  }
+
+  async function pushSelectedToCalendar() {
+    if (!selectedIds.size) return
+    const sel = events.filter(e => selectedIds.has(e.id))
+    if (!window.confirm(`לעדכן ${sel.length} אירועים מסומנים — ליומן ולאילוצים?`)) return
+    let ok = 0, created = 0, totalConfirmed = 0, errors = 0
+    for (const ev of sel) {
+      const r = await syncEventToCalendarAndConstraints(ev)
+      if (r.error) errors++
+      else { ok++; if (r.created) created++; totalConfirmed += (r.confirmed || 0) }
+    }
+    alert(`עודכנו ${ok} אירועים — ליומן ולאילוצים` + (created ? ` (${created} חדשים)` : '') + `, ובסך הכול ${totalConfirmed} אישורי צוות` + (errors ? `. ${errors} נכשלו.` : '.'))
   }
 
   async function saveEventEdit() {
@@ -453,8 +472,12 @@ function ProductionInquiries() {
       <div className="flex justify-end gap-2 mb-4 no-print">
         {selectMode ? (
           <>
-            <button onClick={exportSelectedPdf} disabled={!selectedIds.size}
+            <button onClick={pushSelectedToCalendar} disabled={!selectedIds.size}
               className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1 disabled:opacity-50">
+              <i className="ti ti-calendar-check"/> עדכן מסומנים ({selectedIds.size})
+            </button>
+            <button onClick={exportSelectedPdf} disabled={!selectedIds.size}
+              className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1 disabled:opacity-50">
               <i className="ti ti-file-type-pdf"/> ייצא מסומנים ({selectedIds.size})
             </button>
             <button onClick={() => { setSelectMode(false); setSelectedIds(new Set()) }}
