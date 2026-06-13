@@ -35,6 +35,7 @@ function EventsPageInner() {
     load()
     const date = searchParams.get('date')
     if (date) {
+      setForm(f => ({ ...f, date }))
       setTimeout(() => {
         document.getElementById('add-event-form')?.scrollIntoView({ behavior: 'smooth' })
       }, 300)
