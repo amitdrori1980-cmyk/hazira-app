@@ -881,7 +881,7 @@ export default function SpecsPage() {
             <div className="text-[12px] text-gray-400 mb-4 text-right">הפריטים הקיימים יימחקו ויוחלפו בתבנית</div>
             <div className="flex flex-col gap-2 mb-4 max-h-60 overflow-y-auto">
               {templates.length === 0 ? (
-                <div className="text-center text-[13px] text-gray-400 py-4">אין מפרטים — צור מפרט בטאב "מפרטים כלליים הפקות"</div>
+                <div className="text-center text-[13px] text-gray-400 py-4">אין מפרטים — צור מפרט בטאב "מפרטים"</div>
               ) : templates.map(t => (
                 <button key={t.id} onClick={() => loadTemplate(t.id)} disabled={loadingTemplate}
                   className="text-right px-4 py-3 border border-gray-200 rounded-lg hover:border-[#E0197D] hover:bg-[#FCE4F3] transition-colors disabled:opacity-50">
@@ -900,7 +900,7 @@ export default function SpecsPage() {
       {/* Mode tabs */}
       <div className="flex gap-2 mb-4">
         {[
-          {id:'templates', label:'מפרטים כלליים הפקות'},
+          {id:'templates', label:'מפרטים'},
           {id:'venues', label:'אולמות'},
           {id:'rundowns', label:'לוזים'},
           {id:'files', label:'📁 מפרטים כללי'},
