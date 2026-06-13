@@ -1579,28 +1579,19 @@ export default function ProductionPage() {
       if (!data.user) return
       const { data: p } = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
       setProfile(p)
-      setTab(p?.is_manager ? 'inquiries' : 'files')
+      setTab('inquiries')
     })
   }, [])
 
   if (!tab) return null
 
-  const tabs = profile?.is_manager
-    ? [{ id: 'inquiries', label: 'בדיקת פניות' }, { id: 'files', label: 'לוזים כללי' }]
-    : [{ id: 'files', label: 'לוזים כללי' }]
+  const isManager = profile?.is_manager
 
   return (
     <div>
-      <div className="flex gap-2 mb-4">
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className={`text-[13px] px-4 py-2 rounded-lg border transition-colors ${tab===t.id?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-600 hover:border-[#E0197D]'}`}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-      {tab === 'inquiries' && <ProductionInquiries />}
-      {tab === 'files'     && <GeneralSchedulesMode />}
+      {isManager
+        ? <ProductionInquiries />
+        : <div className="text-center text-gray-400 text-sm py-16">הלוזים עברו לאזור "מפרטים ולוזים", בלשונית "לוזים".</div>}
     </div>
   )
 }
