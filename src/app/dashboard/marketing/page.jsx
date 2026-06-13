@@ -218,6 +218,8 @@ function Monitor() {
   const [curWeeks, setCurWeeks] = useState([])
   const [archMonths, setArchMonths] = useState([])
   const [openMonths, setOpenMonths] = useState({})
+  const [showPast, setShowPast] = useState(false)
+  const [showFuture, setShowFuture] = useState(false)
   const todayStr = toStr(new Date())
 
   useEffect(() => { load() }, [])
@@ -288,10 +290,10 @@ function Monitor() {
               {day.items.map(it => {
                 const overdue = !it.done && it.date < todayStr
                 return (
-                  <span key={it.id} title={it.eventTitle + (it.free_text ? ' \u00b7 ' + it.free_text : '')}
+                  <span key={it.id} title={it.eventTitle + (it.free_text ? ' · ' + it.free_text : '')}
                     className={`text-[12px] rounded-lg px-2 py-1 border ${it.done ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A] line-through' : overdue ? 'bg-red-50 border-red-100 text-red-500' : 'bg-gray-50 border-gray-200 text-gray-700'}`}>
                     {it.label}
-                    <span className="text-gray-400 mr-1">\u00b7 {it.eventTitle}</span>
+                    <span className="text-gray-400 mr-1">· {it.eventTitle}</span>
                   </span>
                 )
               })}
@@ -321,20 +323,44 @@ function Monitor() {
 
       {loading ? (
         <div className="text-center text-gray-400 text-[13px] py-8">טוען…</div>
-      ) : view === 'current' ? (
-        curWeeks.length === 0 ? (
-          <div className="text-center text-gray-400 text-[13px] py-8">אין פעולות מתוכננות</div>
-        ) : (
-          <div dir="rtl" className="flex flex-col gap-4">
-            {curWeeks.map(w => (
-              <div key={w.week}>
-                <div className="text-[13px] font-bold text-[#A0106A] bg-[#FCE4F3] rounded-lg px-3 py-1.5 mb-2">שבוע {weekRangeLabel(w.week)}</div>
-                {renderDays(w.days)}
-              </div>
-            ))}
+      ) : view === 'current' ? ((() => {
+        const curWk = weekKey(todayStr)
+        const pastWeeks = curWeeks.filter(w => w.week < curWk)
+        const thisWeek = curWeeks.find(w => w.week === curWk)
+        const futureWeeks = curWeeks.filter(w => w.week > curWk)
+        const renderWeek = (w) => (
+          <div key={w.week}>
+            <div className="text-[13px] font-bold text-[#A0106A] bg-[#FCE4F3] rounded-lg px-3 py-1.5 mb-2">שבוע {weekRangeLabel(w.week)}</div>
+            {renderDays(w.days)}
           </div>
         )
-      ) : (
+        if (curWeeks.length === 0) return <div className="text-center text-gray-400 text-[13px] py-8">אין פעולות מתוכננות</div>
+        return (
+          <div dir="rtl" className="flex flex-col gap-4">
+            {pastWeeks.length > 0 && (
+              <div>
+                <button onClick={() => setShowPast(x => !x)} className="text-[12px] text-gray-500 hover:text-[#E0197D] flex items-center gap-1 mb-2">
+                  <i className={`ti ti-chevron-${showPast ? 'down' : 'left'}`} style={{ fontSize: 14 }} />
+                  שבועות קודמים ({pastWeeks.length})
+                </button>
+                {showPast && <div className="flex flex-col gap-4">{pastWeeks.map(renderWeek)}</div>}
+              </div>
+            )}
+            {thisWeek ? renderWeek(thisWeek) : (
+              <div className="text-center text-gray-400 text-[13px] py-6">אין פעולות בשבוע הנוכחי</div>
+            )}
+            {futureWeeks.length > 0 && (
+              <div>
+                <button onClick={() => setShowFuture(x => !x)} className="text-[12px] text-gray-500 hover:text-[#E0197D] flex items-center gap-1 mb-2">
+                  <i className={`ti ti-chevron-${showFuture ? 'down' : 'left'}`} style={{ fontSize: 14 }} />
+                  שבועות הבאים ({futureWeeks.length})
+                </button>
+                {showFuture && <div className="flex flex-col gap-4">{futureWeeks.map(renderWeek)}</div>}
+              </div>
+            )}
+          </div>
+        )
+      })()) : (
         archMonths.length === 0 ? (
           <div className="text-center text-gray-400 text-[13px] py-8">אין אירועי עבר בארכיון</div>
         ) : (
