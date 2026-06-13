@@ -42,6 +42,19 @@ function weekendShift(dt) {
 function planDate(showDs, offset) {
   return toStr(weekendShift(addDays(showDs, offset)))
 }
+function fmtShort(ds) {
+  const [y, m, d] = ds.split('-')
+  return `${d}/${m}`
+}
+function weekKey(ds) {
+  const [y, m, d] = ds.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  dt.setDate(dt.getDate() - dt.getDay()) // חזרה ליום ראשון של אותו שבוע
+  return toStr(dt)
+}
+function weekRangeLabel(wk) {
+  return `${fmtShort(wk)}–${fmtShort(toStr(addDays(wk, 6)))}`
+}
 function endOf(e) { return e.end_date || e.date }
 function resolveShowType(types) {
   const list = types || []
@@ -86,7 +99,12 @@ export default function MarketingPage() {
         ))}
       </div>
 
-      {tab === 'dashboard' && <Dashboard />}
+      {tab === 'dashboard' && (
+        <div className="flex flex-col gap-4">
+          <Dashboard />
+          <Monitor />
+        </div>
+      )}
       {tab === 'gantts' && <Gantts />}
       {tab === 'tasks' && (
         <div className="bg-white border border-gray-100 rounded-xl p-12 text-center text-gray-400">
@@ -167,6 +185,104 @@ function Dashboard() {
                   className="text-[13px] px-4 py-1.5 rounded-lg bg-[#E0197D] text-white hover:bg-[#A0106A] transition-colors disabled:opacity-50">
                   {busy === ev.id ? '…' : 'החלפתי'}
                 </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ===================== מוניטור — לוז שבועי =====================
+function Monitor() {
+  const [loading, setLoading] = useState(true)
+  const [weeks, setWeeks] = useState([])
+  const todayStr = toStr(new Date())
+
+  useEffect(() => { load() }, [])
+
+  async function load() {
+    setLoading(true)
+    const today = toStr(new Date())
+    const [{ data: types }, { data: evs }, { data: rows }] = await Promise.all([
+      supabase.from('event_types').select('value,label'),
+      supabase.from('events').select('id,title,date,type').order('date'),
+      supabase.from('marketing_plan').select('event_id,action_key,custom_date,custom_label,done,deleted,free_text'),
+    ])
+    const showType = resolveShowType(types)
+    const map = {}
+    const hidden = new Set()
+    for (const r of (rows || [])) {
+      map[`${r.event_id}::${r.action_key}`] = r
+      if (r.action_key === '__event__' && r.deleted) hidden.add(String(r.event_id))
+    }
+    const shows = (evs || []).filter(e => e.type === showType && e.date >= today && !hidden.has(String(e.id)))
+    const items = []
+    for (const ev of shows) {
+      for (const a of PLAN_ACTIONS) {
+        const c = map[`${ev.id}::${a.key}`] || {}
+        if (c.deleted) continue
+        const date = c.custom_date || planDate(ev.date, a.offset)
+        items.push({
+          id: `${ev.id}::${a.key}`,
+          date,
+          eventTitle: ev.title,
+          label: c.custom_label || a.label,
+          done: !!c.done,
+          free_text: c.free_text || '',
+        })
+      }
+    }
+    items.sort((x, y) => x.date.localeCompare(y.date) || x.eventTitle.localeCompare(y.eventTitle))
+    const groups = []
+    const idx = {}
+    for (const it of items) {
+      const wk = weekKey(it.date)
+      if (!(wk in idx)) { idx[wk] = groups.length; groups.push({ week: wk, items: [] }) }
+      groups[idx[wk]].items.push(it)
+    }
+    setWeeks(groups)
+    setLoading(false)
+  }
+
+  return (
+    <div className="bg-white border border-gray-100 rounded-xl p-5">
+      <div className="flex items-center gap-2 flex-row-reverse mb-4">
+        <i className="ti ti-calendar text-[#E0197D]" style={{ fontSize: 18 }} />
+        <h2 className="text-[15px] font-bold text-gray-800">מוניטור — לוז שבועי</h2>
+      </div>
+
+      {loading ? (
+        <div className="text-center text-gray-400 text-[13px] py-8">טוען…</div>
+      ) : weeks.length === 0 ? (
+        <div className="text-center text-gray-400 text-[13px] py-8">אין פעולות מתוכננות</div>
+      ) : (
+        <div dir="rtl" className="flex flex-col gap-4">
+          {weeks.map(w => (
+            <div key={w.week}>
+              <div className="text-[13px] font-bold text-[#A0106A] bg-[#FCE4F3] rounded-lg px-3 py-1.5 mb-2">
+                שבוע {weekRangeLabel(w.week)}
+              </div>
+              <div className="flex flex-col">
+                {w.items.map(it => {
+                  const overdue = !it.done && it.date < todayStr
+                  return (
+                    <div key={it.id} className={`flex items-center gap-3 px-2 py-2 border-b border-gray-100 last:border-0 ${it.done ? 'opacity-70' : ''}`}>
+                      <div className="w-16 shrink-0 text-[12px] leading-tight">
+                        <div className="text-gray-600">יום {dayName(it.date)}</div>
+                        <div className="text-gray-400">{fmtShort(it.date)}</div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-[13px] ${it.done ? 'line-through text-gray-400' : 'text-gray-800'}`}>{it.label}</div>
+                        <div className="text-[11px] text-gray-400 truncate">{it.eventTitle}{it.free_text ? ' · ' + it.free_text : ''}</div>
+                      </div>
+                      <span className={`text-[11px] rounded-full px-2 py-0.5 shrink-0 ${it.done ? 'bg-[#FCE4F3] text-[#A0106A]' : overdue ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500'}`}>
+                        {it.done ? 'בוצע' : overdue ? 'באיחור' : 'ממתין'}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           ))}
