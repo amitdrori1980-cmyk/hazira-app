@@ -468,7 +468,7 @@ function ProductionInquiries() {
 
   return (
     <div className="max-w-7xl">
-      <style dangerouslySetInnerHTML={{__html: `@media print { html, body { height: auto !important; overflow: visible !important; } body * { visibility: hidden !important; } .prod-print-area, .prod-print-area * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .fixed.inset-0 { position: static !important; display: block !important; overflow: visible !important; height: auto !important; } .overflow-hidden, .overflow-y-auto { overflow: visible !important; height: auto !important; } aside, .no-print { display: none !important; } .prod-print-area { position: static !important; padding: 12px; } @page { margin: 8mm; } }`}} />
+      <style dangerouslySetInnerHTML={{__html: `@media print { html, body { height: auto !important; overflow: visible !important; } body * { visibility: hidden !important; } .prod-print-area, .prod-print-area * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .fixed.inset-0 { position: static !important; display: block !important; overflow: visible !important; height: auto !important; } .overflow-hidden, .overflow-y-auto { overflow: visible !important; height: auto !important; } aside, .no-print { display: none !important; } .prod-print-area { position: static !important; padding: 12px; } .prod-print-area [id^=prod-ev-] { break-inside: avoid !important; page-break-inside: avoid !important; } @page { margin: 8mm; } }`}} />
       <div className="flex justify-end gap-2 mb-4 no-print">
         {selectMode ? (
           <>
