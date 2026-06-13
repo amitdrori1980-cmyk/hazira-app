@@ -9,6 +9,7 @@ const TABS = [
 ]
 
 const HE_DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
+const HE_MONTHS = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
 const EMPTY_CELL = { custom_date: null, notes: null, done: false, custom_label: null, deleted: false, free_text: null }
 
 // ---------- date helpers ----------
@@ -16,6 +17,10 @@ function fmtDate(ds) {
   if (!ds) return ''
   const [y, m, d] = ds.split('-')
   return `${d}/${m}/${y}`
+}
+function fmtShort(ds) {
+  const [y, m, d] = ds.split('-')
+  return `${d}/${m}`
 }
 function dayName(ds) {
   if (!ds) return ''
@@ -31,7 +36,6 @@ function addDays(ds, n) {
   dt.setDate(dt.getDate() + n)
   return dt
 }
-// שישי(5)/שבת(6) -> מקדימים ליום חמישי שלפני
 function weekendShift(dt) {
   const x = new Date(dt)
   const day = x.getDay()
@@ -42,18 +46,33 @@ function weekendShift(dt) {
 function planDate(showDs, offset) {
   return toStr(weekendShift(addDays(showDs, offset)))
 }
-function fmtShort(ds) {
-  const [y, m, d] = ds.split('-')
-  return `${d}/${m}`
-}
 function weekKey(ds) {
   const [y, m, d] = ds.split('-').map(Number)
   const dt = new Date(y, m - 1, d)
-  dt.setDate(dt.getDate() - dt.getDay()) // חזרה ליום ראשון של אותו שבוע
+  dt.setDate(dt.getDate() - dt.getDay())
   return toStr(dt)
 }
 function weekRangeLabel(wk) {
-  return `${fmtShort(wk)}–${fmtShort(toStr(addDays(wk, 6)))}`
+  return `${fmtShort(wk)}\u2013${fmtShort(toStr(addDays(wk, 6)))}`
+}
+function ymKey(ds) {
+  const [y, m] = ds.split('-')
+  return `${y}-${m}`
+}
+function ymLabel(ym) {
+  const [y, m] = ym.split('-')
+  return `${HE_MONTHS[parseInt(m, 10) - 1]} ${y}`
+}
+function groupWeekDay(items) {
+  const weekMap = {}
+  const order = []
+  for (const it of items) {
+    const wk = weekKey(it.date)
+    if (!weekMap[wk]) { weekMap[wk] = {}; order.push(wk) }
+    if (!weekMap[wk][it.date]) weekMap[wk][it.date] = []
+    weekMap[wk][it.date].push(it)
+  }
+  return order.map(wk => ({ week: wk, days: Object.keys(weekMap[wk]).sort().map(date => ({ date, items: weekMap[wk][date] })) }))
 }
 function endOf(e) { return e.end_date || e.date }
 function resolveShowType(types) {
@@ -195,7 +214,10 @@ function Dashboard() {
 // ===================== מוניטור — לוז שבועי =====================
 function Monitor() {
   const [loading, setLoading] = useState(true)
-  const [weeks, setWeeks] = useState([])
+  const [view, setView] = useState('current')
+  const [curWeeks, setCurWeeks] = useState([])
+  const [archMonths, setArchMonths] = useState([])
+  const [openMonths, setOpenMonths] = useState({})
   const todayStr = toStr(new Date())
 
   useEffect(() => { load() }, [])
@@ -215,84 +237,126 @@ function Monitor() {
       map[`${r.event_id}::${r.action_key}`] = r
       if (r.action_key === '__event__' && r.deleted) hidden.add(String(r.event_id))
     }
-    const shows = (evs || []).filter(e => e.type === showType && e.date >= today && !hidden.has(String(e.id)))
-    const items = []
-    for (const ev of shows) {
-      for (const a of PLAN_ACTIONS) {
-        const c = map[`${ev.id}::${a.key}`] || {}
-        if (c.deleted) continue
-        const date = c.custom_date || planDate(ev.date, a.offset)
-        items.push({
-          id: `${ev.id}::${a.key}`,
-          date,
-          eventTitle: ev.title,
-          label: c.custom_label || a.label,
-          done: !!c.done,
-          free_text: c.free_text || '',
-        })
+    const shows = (evs || []).filter(e => e.type === showType && !hidden.has(String(e.id)))
+    function buildItems(evList) {
+      const items = []
+      for (const ev of evList) {
+        for (const a of PLAN_ACTIONS) {
+          const c = map[`${ev.id}::${a.key}`] || {}
+          if (c.deleted) continue
+          items.push({
+            id: `${ev.id}::${a.key}`,
+            date: c.custom_date || planDate(ev.date, a.offset),
+            eventDate: ev.date,
+            eventTitle: ev.title,
+            label: c.custom_label || a.label,
+            done: !!c.done,
+            free_text: c.free_text || '',
+          })
+        }
       }
+      items.sort((x, y) => x.date.localeCompare(y.date) || x.eventTitle.localeCompare(y.eventTitle))
+      return items
     }
-    items.sort((x, y) => x.date.localeCompare(y.date) || x.eventTitle.localeCompare(y.eventTitle))
-    // קיבוץ לפי שבוע ובתוכו לפי יום (כל יום = שורה אחת עם כל הפעולות, גם ממופעים שונים)
-    const weekMap = {}
-    const weekOrder = []
-    for (const it of items) {
-      const wk = weekKey(it.date)
-      if (!weekMap[wk]) { weekMap[wk] = {}; weekOrder.push(wk) }
-      if (!weekMap[wk][it.date]) weekMap[wk][it.date] = []
-      weekMap[wk][it.date].push(it)
+    // נוכחי — מופעים עתידיים, לפי שבוע ויום
+    setCurWeeks(groupWeekDay(buildItems(shows.filter(e => e.date >= today))))
+    // ארכיון — מופעים שעברו, תיקייה לפי חודש האירוע, ובתוכה לפי יום
+    const pastItems = buildItems(shows.filter(e => e.date < today))
+    const monthMap = {}
+    const order = []
+    for (const it of pastItems) {
+      const ym = ymKey(it.eventDate)
+      if (!monthMap[ym]) { monthMap[ym] = {}; order.push(ym) }
+      if (!monthMap[ym][it.date]) monthMap[ym][it.date] = []
+      monthMap[ym][it.date].push(it)
     }
-    const groups = weekOrder.map(wk => ({
-      week: wk,
-      days: Object.keys(weekMap[wk]).sort().map(date => ({ date, items: weekMap[wk][date] })),
-    }))
-    setWeeks(groups)
+    order.sort((a, b) => b.localeCompare(a))
+    setArchMonths(order.map(ym => ({ ym, days: Object.keys(monthMap[ym]).sort().map(date => ({ date, items: monthMap[ym][date] })) })))
     setLoading(false)
+  }
+
+  function renderDays(days) {
+    return (
+      <div className="flex flex-col">
+        {days.map(day => (
+          <div key={day.date} className="flex items-start gap-3 px-2 py-2 border-b border-gray-100 last:border-0">
+            <div className="w-16 shrink-0 text-[12px] leading-tight pt-1">
+              <div className="text-gray-600 font-medium">יום {dayName(day.date)}</div>
+              <div className="text-gray-400">{fmtShort(day.date)}</div>
+            </div>
+            <div className="flex-1 min-w-0 flex flex-wrap gap-1.5">
+              {day.items.map(it => {
+                const overdue = !it.done && it.date < todayStr
+                return (
+                  <span key={it.id} title={it.eventTitle + (it.free_text ? ' \u00b7 ' + it.free_text : '')}
+                    className={`text-[12px] rounded-lg px-2 py-1 border ${it.done ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A] line-through' : overdue ? 'bg-red-50 border-red-100 text-red-500' : 'bg-gray-50 border-gray-200 text-gray-700'}`}>
+                    {it.label}
+                    <span className="text-gray-400 mr-1">\u00b7 {it.eventTitle}</span>
+                  </span>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    )
   }
 
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-5">
-      <div className="flex items-center gap-2 flex-row-reverse mb-4">
-        <i className="ti ti-calendar text-[#E0197D]" style={{ fontSize: 18 }} />
-        <h2 className="text-[15px] font-bold text-gray-800">מוניטור — לוז שבועי</h2>
+      <div className="flex items-center justify-between gap-3 mb-4" dir="rtl">
+        <div className="flex items-center gap-2">
+          <i className="ti ti-calendar text-[#E0197D]" style={{ fontSize: 18 }} />
+          <h2 className="text-[15px] font-bold text-gray-800">מוניטור — לוז שבועי</h2>
+        </div>
+        <div className="flex gap-1.5">
+          {[{ id: 'current', label: 'נוכחי' }, { id: 'archive', label: 'ארכיון' }].map(v => (
+            <button key={v.id} onClick={() => setView(v.id)}
+              className={`text-[12px] px-3 py-1 rounded-lg border transition-colors ${view === v.id ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+              {v.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center text-gray-400 text-[13px] py-8">טוען…</div>
-      ) : weeks.length === 0 ? (
-        <div className="text-center text-gray-400 text-[13px] py-8">אין פעולות מתוכננות</div>
+      ) : view === 'current' ? (
+        curWeeks.length === 0 ? (
+          <div className="text-center text-gray-400 text-[13px] py-8">אין פעולות מתוכננות</div>
+        ) : (
+          <div dir="rtl" className="flex flex-col gap-4">
+            {curWeeks.map(w => (
+              <div key={w.week}>
+                <div className="text-[13px] font-bold text-[#A0106A] bg-[#FCE4F3] rounded-lg px-3 py-1.5 mb-2">שבוע {weekRangeLabel(w.week)}</div>
+                {renderDays(w.days)}
+              </div>
+            ))}
+          </div>
+        )
       ) : (
-        <div dir="rtl" className="flex flex-col gap-4">
-          {weeks.map(w => (
-            <div key={w.week}>
-              <div className="text-[13px] font-bold text-[#A0106A] bg-[#FCE4F3] rounded-lg px-3 py-1.5 mb-2">
-                שבוע {weekRangeLabel(w.week)}
-              </div>
-              <div className="flex flex-col">
-                {w.days.map(day => (
-                  <div key={day.date} className="flex items-start gap-3 px-2 py-2 border-b border-gray-100 last:border-0">
-                    <div className="w-16 shrink-0 text-[12px] leading-tight pt-1">
-                      <div className="text-gray-600 font-medium">יום {dayName(day.date)}</div>
-                      <div className="text-gray-400">{fmtShort(day.date)}</div>
+        archMonths.length === 0 ? (
+          <div className="text-center text-gray-400 text-[13px] py-8">אין אירועי עבר בארכיון</div>
+        ) : (
+          <div dir="rtl" className="flex flex-col gap-2">
+            {archMonths.map(m => {
+              const isOpen = !!openMonths[m.ym]
+              return (
+                <div key={m.ym} className="border border-gray-100 rounded-xl overflow-hidden">
+                  <button onClick={() => setOpenMonths(o => ({ ...o, [m.ym]: !o[m.ym] }))}
+                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <i className="ti ti-folder text-[#E0197D]" style={{ fontSize: 16 }} />
+                      <span className="text-[13px] font-bold text-gray-800">{ymLabel(m.ym)}</span>
                     </div>
-                    <div className="flex-1 min-w-0 flex flex-wrap gap-1.5">
-                      {day.items.map(it => {
-                        const overdue = !it.done && it.date < todayStr
-                        return (
-                          <span key={it.id} title={it.eventTitle + (it.free_text ? ' · ' + it.free_text : '')}
-                            className={`text-[12px] rounded-lg px-2 py-1 border ${it.done ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A] line-through' : overdue ? 'bg-red-50 border-red-100 text-red-500' : 'bg-gray-50 border-gray-200 text-gray-700'}`}>
-                            {it.label}
-                            <span className="text-gray-400 mr-1">· {it.eventTitle}</span>
-                          </span>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+                    <i className={`ti ti-chevron-${isOpen ? 'down' : 'left'} text-gray-400`} style={{ fontSize: 15 }} />
+                  </button>
+                  {isOpen && <div className="border-t border-gray-100 px-2 py-1">{renderDays(m.days)}</div>}
+                </div>
+              )
+            })}
+          </div>
+        )
       )}
     </div>
   )
@@ -302,9 +366,12 @@ function Monitor() {
 function Gantts() {
   const [loading, setLoading] = useState(true)
   const [events, setEvents] = useState([])
+  const [past, setPast] = useState([])
   const [plan, setPlan] = useState({})
   const planRef = useRef({})
   const [open, setOpen] = useState(null)
+  const [view, setView] = useState('active')
+  const [openMonths, setOpenMonths] = useState({})
   const [noteModal, setNoteModal] = useState(null)
   const [editModal, setEditModal] = useState(null)
 
@@ -320,22 +387,24 @@ function Gantts() {
     ])
     const showType = resolveShowType(types)
     const hidden = new Set((rows || []).filter(r => r.action_key === '__event__' && r.deleted).map(r => String(r.event_id)))
-    const shows = (evs || []).filter(e => e.type === showType && e.date >= todayStr && !hidden.has(String(e.id)))
+    const all = (evs || []).filter(e => e.type === showType && !hidden.has(String(e.id)))
+    const upcoming = all.filter(e => e.date >= todayStr)
+    const pastEv = all.filter(e => e.date < todayStr).sort((a, b) => b.date.localeCompare(a.date))
     const map = {}
     for (const r of (rows || [])) {
       map[`${r.event_id}::${r.action_key}`] = { custom_date: r.custom_date, notes: r.notes, done: r.done, custom_label: r.custom_label, deleted: r.deleted, free_text: r.free_text }
     }
     planRef.current = map
-    setEvents(shows)
+    setEvents(upcoming)
+    setPast(pastEv)
     setPlan(map)
-    setOpen(shows[0]?.id ?? null)
+    setOpen(upcoming[0]?.id ?? null)
     setLoading(false)
   }
 
   function cell(eventId, actionKey) {
     return plan[`${eventId}::${actionKey}`] || EMPTY_CELL
   }
-
   async function persist(eventId, actionKey, patch) {
     const k = `${eventId}::${actionKey}`
     const cur = planRef.current[k] || EMPTY_CELL
@@ -367,7 +436,6 @@ function Gantts() {
     for (const a of vis) if (cell(ev.id, a.key).done) d++
     return { done: d, total: vis.length }
   }
-
   function deleteAction(ev, action) {
     if (!confirm(`למחוק את הפעולה "${labelOf(ev, action)}"?`)) return
     persist(ev.id, action.key, { deleted: true })
@@ -376,100 +444,152 @@ function Gantts() {
     if (!confirm(`להסיר את "${ev.title}" מאזור הגאנטים?\n(האירוע עצמו לא יימחק מהיומן)`)) return
     await persist(ev.id, '__event__', { deleted: true })
     setEvents(es => es.filter(e => e.id !== ev.id))
+    setPast(es => es.filter(e => e.id !== ev.id))
+  }
+
+  function renderEventCard(ev) {
+    const isOpen = open === ev.id
+    const pr = progress(ev)
+    const vis = visibleActions(ev)
+    return (
+      <div key={ev.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+        <div className="w-full flex items-center justify-between gap-3 px-4 py-3">
+          <button onClick={() => setOpen(isOpen ? null : ev.id)}
+            className="flex items-center gap-2 flex-1 text-right hover:opacity-80 transition-opacity">
+            <i className={`ti ti-chevron-${isOpen ? 'down' : 'left'} text-gray-400`} style={{ fontSize: 16 }} />
+            <div>
+              <div className="text-[14px] font-bold text-gray-800">{ev.title}</div>
+              <div className="text-[12px] text-gray-400">מופע ב{dayName(ev.date)}, {fmtDate(ev.date)}</div>
+            </div>
+          </button>
+          <div className="flex items-center gap-2">
+            <span className={`text-[12px] rounded-full px-2.5 py-0.5 ${pr.total > 0 && pr.done === pr.total ? 'bg-[#FCE4F3] text-[#A0106A]' : 'bg-gray-100 text-gray-500'}`}>
+              {pr.done}/{pr.total} בוצעו
+            </span>
+            <button onClick={() => deleteEvent(ev)} title="הסר אירוע מהגאנטים"
+              className="text-gray-300 hover:text-red-500 transition-colors"><i className="ti ti-trash" style={{ fontSize: 16 }} /></button>
+          </div>
+        </div>
+
+        {isOpen && (
+          <div className="border-t-2 border-gray-200">
+            {vis.length === 0 && (
+              <div className="px-4 py-4 text-center text-[12px] text-gray-300">כל הפעולות נמחקו</div>
+            )}
+            {vis.map(action => {
+              const c = cell(ev.id, action.key)
+              const d = effDate(ev, action)
+              const isCustom = !!c.custom_date
+              return (
+                <div key={action.key}
+                  className={`flex items-center gap-2 px-4 py-2.5 border-b border-gray-200 last:border-0 ${c.done ? 'bg-[#FCE4F3]' : ''}`}>
+                  <div className="w-52 shrink-0">
+                    <span className={`text-[13px] ${c.done ? 'text-[#A0106A] font-medium' : 'text-gray-800'}`}>{labelOf(ev, action)}</span>
+                  </div>
+
+                  <input type="text" defaultValue={c.free_text || ''} placeholder="טקסט חופשי…"
+                    onBlur={e => { if ((e.target.value || '') !== (c.free_text || '')) persist(ev.id, action.key, { free_text: e.target.value }) }}
+                    className="flex-1 min-w-0 text-[12.5px] border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 bg-white focus:outline-none focus:border-[#E0197D]" />
+
+                  <span className="text-[11px] text-gray-400 w-12 text-center shrink-0">יום {dayName(d)}</span>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <input type="date" value={d}
+                      onChange={e => persist(ev.id, action.key, { custom_date: e.target.value })}
+                      className="text-[12px] border border-gray-200 rounded-lg px-2 py-1 text-gray-700 bg-white" />
+                    {isCustom && (
+                      <button title="חזרה לתאריך אוטומטי" onClick={() => persist(ev.id, action.key, { custom_date: null })}
+                        className="text-gray-300 hover:text-[#E0197D]"><i className="ti ti-rotate" style={{ fontSize: 15 }} /></button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button title="הערות" onClick={() => setNoteModal({ eventId: ev.id, action, label: labelOf(ev, action), draft: c.notes || '' })}
+                      className={c.notes ? 'text-[#E0197D]' : 'text-gray-300 hover:text-[#E0197D]'}>
+                      <i className="ti ti-note" style={{ fontSize: 17 }} />
+                    </button>
+                    <button title="עריכת שם הפעולה" onClick={() => setEditModal({ eventId: ev.id, action, label: labelOf(ev, action) })}
+                      className="text-gray-300 hover:text-[#E0197D]">
+                      <i className="ti ti-pencil" style={{ fontSize: 16 }} />
+                    </button>
+                    <button title="מחיקת פעולה" onClick={() => deleteAction(ev, action)}
+                      className="text-gray-300 hover:text-red-500">
+                      <i className="ti ti-trash" style={{ fontSize: 16 }} />
+                    </button>
+                  </div>
+
+                  <button onClick={() => persist(ev.id, action.key, { done: !c.done })}
+                    className={`text-[12px] px-3 py-1 rounded-lg border transition-colors whitespace-nowrap shrink-0 ${c.done ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+                    {c.done ? '✓ בוצע' : 'בוצע'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // תיקיות ארכיון לפי חודש
+  const folders = []
+  const fidx = {}
+  for (const ev of past) {
+    const ym = ymKey(ev.date)
+    if (!(ym in fidx)) { fidx[ym] = folders.length; folders.push({ ym, events: [] }) }
+    folders[fidx[ym]].events.push(ev)
   }
 
   if (loading) return <div className="text-center text-gray-400 text-[13px] py-10">טוען…</div>
-  if (events.length === 0) return (
-    <div className="bg-white border border-gray-100 rounded-xl p-10 text-center text-gray-400 text-[13px]">
-      אין מופעים עתידיים ביומן. הוסף אירוע מסוג "מופע" כדי לבנות עבורו תכנית פעולה.
-    </div>
-  )
 
   return (
     <div dir="rtl" className="flex flex-col gap-3">
-      {events.map(ev => {
-        const isOpen = open === ev.id
-        const pr = progress(ev)
-        const vis = visibleActions(ev)
-        return (
-          <div key={ev.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-            <div className="w-full flex items-center justify-between gap-3 px-4 py-3">
-              <button onClick={() => setOpen(isOpen ? null : ev.id)}
-                className="flex items-center gap-2 flex-1 text-right hover:opacity-80 transition-opacity">
-                <i className={`ti ti-chevron-${isOpen ? 'down' : 'left'} text-gray-400`} style={{ fontSize: 16 }} />
-                <div>
-                  <div className="text-[14px] font-bold text-gray-800">{ev.title}</div>
-                  <div className="text-[12px] text-gray-400">מופע ב{dayName(ev.date)}, {fmtDate(ev.date)}</div>
-                </div>
-              </button>
-              <div className="flex items-center gap-2">
-                <span className={`text-[12px] rounded-full px-2.5 py-0.5 ${pr.total > 0 && pr.done === pr.total ? 'bg-[#FCE4F3] text-[#A0106A]' : 'bg-gray-100 text-gray-500'}`}>
-                  {pr.done}/{pr.total} בוצעו
-                </span>
-                <button onClick={() => deleteEvent(ev)} title="הסר אירוע מהגאנטים"
-                  className="text-gray-300 hover:text-red-500 transition-colors"><i className="ti ti-trash" style={{ fontSize: 16 }} /></button>
-              </div>
-            </div>
+      <div className="flex gap-1.5 justify-end">
+        {[{ id: 'active', label: 'פעילים' }, { id: 'archive', label: 'ארכיון' }].map(v => (
+          <button key={v.id} onClick={() => setView(v.id)}
+            className={`text-[12px] px-3 py-1 rounded-lg border transition-colors ${view === v.id ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+            {v.label}
+          </button>
+        ))}
+      </div>
 
-            {isOpen && (
-              <div className="border-t-2 border-gray-200">
-                {vis.length === 0 && (
-                  <div className="px-4 py-4 text-center text-[12px] text-gray-300">כל הפעולות נמחקו</div>
-                )}
-                {vis.map(action => {
-                  const c = cell(ev.id, action.key)
-                  const d = effDate(ev, action)
-                  const isCustom = !!c.custom_date
-                  return (
-                    <div key={action.key}
-                      className={`flex items-center gap-2 px-4 py-2.5 border-b border-gray-200 last:border-0 ${c.done ? 'bg-[#FCE4F3]' : ''}`}>
-                      <div className="w-52 shrink-0">
-                        <span className={`text-[13px] ${c.done ? 'text-[#A0106A] font-medium' : 'text-gray-800'}`}>{labelOf(ev, action)}</span>
-                      </div>
-
-                      <input type="text" defaultValue={c.free_text || ''} placeholder="טקסט חופשי…"
-                        onBlur={e => { if ((e.target.value || '') !== (c.free_text || '')) persist(ev.id, action.key, { free_text: e.target.value }) }}
-                        className="flex-1 min-w-0 text-[12.5px] border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 bg-white focus:outline-none focus:border-[#E0197D]" />
-
-                      <span className="text-[11px] text-gray-400 w-12 text-center shrink-0">יום {dayName(d)}</span>
-
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <input type="date" value={d}
-                          onChange={e => persist(ev.id, action.key, { custom_date: e.target.value })}
-                          className="text-[12px] border border-gray-200 rounded-lg px-2 py-1 text-gray-700 bg-white" />
-                        {isCustom && (
-                          <button title="חזרה לתאריך אוטומטי" onClick={() => persist(ev.id, action.key, { custom_date: null })}
-                            className="text-gray-300 hover:text-[#E0197D]"><i className="ti ti-rotate" style={{ fontSize: 15 }} /></button>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button title="הערות" onClick={() => setNoteModal({ eventId: ev.id, action, label: labelOf(ev, action), draft: c.notes || '' })}
-                          className={c.notes ? 'text-[#E0197D]' : 'text-gray-300 hover:text-[#E0197D]'}>
-                          <i className="ti ti-note" style={{ fontSize: 17 }} />
-                        </button>
-                        <button title="עריכת שם הפעולה" onClick={() => setEditModal({ eventId: ev.id, action, label: labelOf(ev, action) })}
-                          className="text-gray-300 hover:text-[#E0197D]">
-                          <i className="ti ti-pencil" style={{ fontSize: 16 }} />
-                        </button>
-                        <button title="מחיקת פעולה" onClick={() => deleteAction(ev, action)}
-                          className="text-gray-300 hover:text-red-500">
-                          <i className="ti ti-trash" style={{ fontSize: 16 }} />
-                        </button>
-                      </div>
-
-                      <button onClick={() => persist(ev.id, action.key, { done: !c.done })}
-                        className={`text-[12px] px-3 py-1 rounded-lg border transition-colors whitespace-nowrap shrink-0 ${c.done ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
-                        {c.done ? '✓ בוצע' : 'בוצע'}
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+      {view === 'active' ? (
+        events.length === 0 ? (
+          <div className="bg-white border border-gray-100 rounded-xl p-10 text-center text-gray-400 text-[13px]">
+            אין מופעים עתידיים ביומן. הוסף אירוע מסוג "מופע" כדי לבנות עבורו תכנית פעולה.
           </div>
+        ) : (
+          events.map(renderEventCard)
         )
-      })}
+      ) : (
+        folders.length === 0 ? (
+          <div className="bg-white border border-gray-100 rounded-xl p-10 text-center text-gray-400 text-[13px]">
+            אין אירועי עבר בארכיון
+          </div>
+        ) : (
+          folders.map(f => {
+            const isOpen = !!openMonths[f.ym]
+            return (
+              <div key={f.ym} className="border border-gray-100 rounded-xl overflow-hidden bg-white">
+                <button onClick={() => setOpenMonths(o => ({ ...o, [f.ym]: !o[f.ym] }))}
+                  className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <i className="ti ti-folder text-[#E0197D]" style={{ fontSize: 16 }} />
+                    <span className="text-[13px] font-bold text-gray-800">{ymLabel(f.ym)}</span>
+                    <span className="text-[11px] bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{f.events.length}</span>
+                  </div>
+                  <i className={`ti ti-chevron-${isOpen ? 'down' : 'left'} text-gray-400`} style={{ fontSize: 15 }} />
+                </button>
+                {isOpen && (
+                  <div className="border-t border-gray-100 p-3 flex flex-col gap-3 bg-gray-50">
+                    {f.events.map(renderEventCard)}
+                  </div>
+                )}
+              </div>
+            )
+          })
+        )
+      )}
 
       {noteModal && (
         <NoteModal modal={noteModal} onClose={() => setNoteModal(null)}
