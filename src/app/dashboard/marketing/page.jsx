@@ -59,9 +59,7 @@ function endOf(e) { return e.end_date || e.date }
 function resolveShowType(types) {
   const list = types || []
   const exact = list.find(t => t.label === 'מופע' || t.value === 'מופע')
-  if (exact) return exact.value
-  const inc = list.find(t => (t.label || '').includes('מופע') || (t.value || '').includes('מופע'))
-  return inc ? inc.value : 'מופע'
+  return exact ? exact.value : 'מופע'
 }
 
 // תכנית הפעולה — היסטים בימים מתאריך המופע (מהמוקדם למאוחר)
@@ -235,13 +233,19 @@ function Monitor() {
       }
     }
     items.sort((x, y) => x.date.localeCompare(y.date) || x.eventTitle.localeCompare(y.eventTitle))
-    const groups = []
-    const idx = {}
+    // קיבוץ לפי שבוע ובתוכו לפי יום (כל יום = שורה אחת עם כל הפעולות, גם ממופעים שונים)
+    const weekMap = {}
+    const weekOrder = []
     for (const it of items) {
       const wk = weekKey(it.date)
-      if (!(wk in idx)) { idx[wk] = groups.length; groups.push({ week: wk, items: [] }) }
-      groups[idx[wk]].items.push(it)
+      if (!weekMap[wk]) { weekMap[wk] = {}; weekOrder.push(wk) }
+      if (!weekMap[wk][it.date]) weekMap[wk][it.date] = []
+      weekMap[wk][it.date].push(it)
     }
+    const groups = weekOrder.map(wk => ({
+      week: wk,
+      days: Object.keys(weekMap[wk]).sort().map(date => ({ date, items: weekMap[wk][date] })),
+    }))
     setWeeks(groups)
     setLoading(false)
   }
@@ -265,24 +269,26 @@ function Monitor() {
                 שבוע {weekRangeLabel(w.week)}
               </div>
               <div className="flex flex-col">
-                {w.items.map(it => {
-                  const overdue = !it.done && it.date < todayStr
-                  return (
-                    <div key={it.id} className={`flex items-center gap-3 px-2 py-2 border-b border-gray-100 last:border-0 ${it.done ? 'opacity-70' : ''}`}>
-                      <div className="w-16 shrink-0 text-[12px] leading-tight">
-                        <div className="text-gray-600">יום {dayName(it.date)}</div>
-                        <div className="text-gray-400">{fmtShort(it.date)}</div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-[13px] ${it.done ? 'line-through text-gray-400' : 'text-gray-800'}`}>{it.label}</div>
-                        <div className="text-[11px] text-gray-400 truncate">{it.eventTitle}{it.free_text ? ' · ' + it.free_text : ''}</div>
-                      </div>
-                      <span className={`text-[11px] rounded-full px-2 py-0.5 shrink-0 ${it.done ? 'bg-[#FCE4F3] text-[#A0106A]' : overdue ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500'}`}>
-                        {it.done ? 'בוצע' : overdue ? 'באיחור' : 'ממתין'}
-                      </span>
+                {w.days.map(day => (
+                  <div key={day.date} className="flex items-start gap-3 px-2 py-2 border-b border-gray-100 last:border-0">
+                    <div className="w-16 shrink-0 text-[12px] leading-tight pt-1">
+                      <div className="text-gray-600 font-medium">יום {dayName(day.date)}</div>
+                      <div className="text-gray-400">{fmtShort(day.date)}</div>
                     </div>
-                  )
-                })}
+                    <div className="flex-1 min-w-0 flex flex-wrap gap-1.5">
+                      {day.items.map(it => {
+                        const overdue = !it.done && it.date < todayStr
+                        return (
+                          <span key={it.id} title={it.eventTitle + (it.free_text ? ' · ' + it.free_text : '')}
+                            className={`text-[12px] rounded-lg px-2 py-1 border ${it.done ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A] line-through' : overdue ? 'bg-red-50 border-red-100 text-red-500' : 'bg-gray-50 border-gray-200 text-gray-700'}`}>
+                            {it.label}
+                            <span className="text-gray-400 mr-1">· {it.eventTitle}</span>
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
