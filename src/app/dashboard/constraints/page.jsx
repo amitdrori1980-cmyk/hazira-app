@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 import { supabase } from '@/lib/supabase'
 
@@ -28,7 +29,9 @@ function parseDate(val) {
 }
 
 export default function ConstraintsPage() {
+  const router = useRouter()
   const [constraints, setConstraints] = useState([])
+  const [inqRows, setInqRows] = useState([])
   const [events, setEvents]           = useState([])
   const [crew, setCrew]               = useState([])
   const [loading, setLoading]         = useState(true)
@@ -61,12 +64,13 @@ export default function ConstraintsPage() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    const [{ data: c }, { data: e }, { data: profs }, { data: cm }, { data: ops }] = await Promise.all([
+    const [{ data: c }, { data: e }, { data: profs }, { data: cm }, { data: ops }, { data: pe }] = await Promise.all([
       supabase.from('crew_constraints').select('*').order('date'),
-      supabase.from('events').select('id,title,date,time,type').order('date'),
+      supabase.from('events').select('id,title,date,time,type,venue').order('date'),
       supabase.from('profiles').select('id,full_name,dept,is_manager').order('full_name'),
       supabase.from('crew_members').select('id,full_name').order('full_name'),
       supabase.from('user_area_access').select('user_id').eq('area','operations'),
+      supabase.from('production_events').select('event_name, date'),
     ])
     const me = (profs || []).find(p => p.id === user?.id)
     setIsManager(!!me?.is_manager)
@@ -100,6 +104,7 @@ export default function ConstraintsPage() {
     })
     setConstraints(c || [])
     setEvents(e || [])
+    setInqRows(pe || [])
     setCrew(merged)
     setLoading(false)
   }
@@ -214,6 +219,17 @@ export default function ConstraintsPage() {
   }
 
   const selectedData = selectedDay ? getDayData(selectedDay) : null
+
+  const inInq = e => inqRows.some(r => r.event_name === (e.title || '').trim() && (r.date || '') === (e.date || ''))
+  function jumpToInquiry(e) {
+    const name = (e.title || '').trim()
+    if (!name) return
+    const params = new URLSearchParams()
+    params.set('inq', name)
+    if (e.date) params.set('date', e.date)
+    if (e.venue) params.set('venue', e.venue)
+    router.push('/dashboard/production?' + params.toString())
+  }
 
   async function exportExcel() {
     const XLSX = await import('xlsx-js-style')
@@ -623,6 +639,13 @@ export default function ConstraintsPage() {
                 <div key={e.id} className="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0 flex-row-reverse">
                   <span className="flex-1 text-[13px] text-right">{e.title}</span>
                   <span className="text-[11px] text-gray-700">{e.time?.slice(0,5)}</span>
+                  {isManager && (
+                    <button onClick={()=>jumpToInquiry(e)}
+                      title={inInq(e) ? 'נמצא בבדיקת פניות — הקפץ' : 'הקפצה לבדיקת פניות'}
+                      className={`p-1 flex-shrink-0 ${inInq(e) ? 'text-[#E0197D]' : 'text-gray-300 hover:text-[#E0197D]'}`}>
+                      <i className={`ti ${inInq(e) ? 'ti-clipboard-check' : 'ti-clipboard-plus'}`} style={{fontSize:14}}/>
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
