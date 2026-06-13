@@ -713,14 +713,12 @@ export default function ConstraintsPage() {
               <div style={{width:26}}/>
             </div>
             <div className="flex flex-col gap-3">
-              <select value={editForm.crew_name} onChange={e=>setEditForm(f=>({...f,crew_name:e.target.value}))} size="1"
-                className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1] text-right">
-                <option value="">בחר איש צוות...</option>
-                {editForm.crew_name && !crew.some(m=>m.display===editForm.crew_name) && (
-                  <option value={editForm.crew_name}>{editForm.crew_name}</option>
-                )}
-                {crew.map(m=><option key={m.id} value={m.display}>{m.display}</option>)}
-              </select>
+              <input value={editForm.crew_name} onChange={e=>setEditForm(f=>({...f,crew_name:e.target.value}))}
+                list="edit-crew-list" placeholder="בחר או הקלד איש צוות..." autoComplete="off"
+                className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#6366f1] text-right"/>
+              <datalist id="edit-crew-list">
+                {crew.map(m=><option key={m.id} value={m.display}/>)}
+              </datalist>
               <div className="flex items-center gap-1">
                 <span className="text-[11px] text-gray-400 flex-shrink-0">תאריך</span>
                 <input value={editForm.date} onChange={e=>setEditForm(f=>({...f,date:e.target.value}))}
