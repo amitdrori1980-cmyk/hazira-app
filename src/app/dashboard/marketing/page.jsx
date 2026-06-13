@@ -400,6 +400,9 @@ function Gantts() {
   const [openMonths, setOpenMonths] = useState({})
   const [noteModal, setNoteModal] = useState(null)
   const [editModal, setEditModal] = useState(null)
+  const [allShows, setAllShows] = useState([])
+  const [hiddenSet, setHiddenSet] = useState(new Set())
+  const [importOpen, setImportOpen] = useState(false)
 
   useEffect(() => { load() }, [])
 
@@ -413,14 +416,17 @@ function Gantts() {
     ])
     const showType = resolveShowType(types)
     const hidden = new Set((rows || []).filter(r => r.action_key === '__event__' && r.deleted).map(r => String(r.event_id)))
-    const all = (evs || []).filter(e => e.type === showType && !hidden.has(String(e.id)))
-    const upcoming = all.filter(e => e.date >= todayStr)
-    const pastEv = all.filter(e => e.date < todayStr).sort((a, b) => b.date.localeCompare(a.date))
+    const allShowsList = (evs || []).filter(e => e.type === showType)
+    const visible = allShowsList.filter(e => !hidden.has(String(e.id)))
+    const upcoming = visible.filter(e => e.date >= todayStr)
+    const pastEv = visible.filter(e => e.date < todayStr).sort((a, b) => b.date.localeCompare(a.date))
     const map = {}
     for (const r of (rows || [])) {
       map[`${r.event_id}::${r.action_key}`] = { custom_date: r.custom_date, notes: r.notes, done: r.done, custom_label: r.custom_label, deleted: r.deleted, free_text: r.free_text }
     }
     planRef.current = map
+    setAllShows(allShowsList)
+    setHiddenSet(hidden)
     setEvents(upcoming)
     setPast(pastEv)
     setPlan(map)
@@ -471,6 +477,14 @@ function Gantts() {
     await persist(ev.id, '__event__', { deleted: true })
     setEvents(es => es.filter(e => e.id !== ev.id))
     setPast(es => es.filter(e => e.id !== ev.id))
+    setHiddenSet(h => { const n = new Set(h); n.add(String(ev.id)); return n })
+  }
+  async function importEvent(ev) {
+    await persist(ev.id, '__event__', { deleted: false })
+    setHiddenSet(h => { const n = new Set(h); n.delete(String(ev.id)); return n })
+    const todayStr = toStr(new Date())
+    if (ev.date >= todayStr) setEvents(es => [...es.filter(e => e.id !== ev.id), ev].sort((a, b) => a.date.localeCompare(b.date)))
+    else setPast(es => [...es.filter(e => e.id !== ev.id), ev].sort((a, b) => b.date.localeCompare(a.date)))
   }
 
   function renderEventCard(ev) {
@@ -570,13 +584,19 @@ function Gantts() {
 
   return (
     <div dir="rtl" className="flex flex-col gap-3">
-      <div className="flex gap-1.5 justify-end">
-        {[{ id: 'active', label: 'פעילים' }, { id: 'archive', label: 'ארכיון' }].map(v => (
-          <button key={v.id} onClick={() => setView(v.id)}
-            className={`text-[12px] px-3 py-1 rounded-lg border transition-colors ${view === v.id ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
-            {v.label}
-          </button>
-        ))}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex gap-1.5">
+          {[{ id: 'active', label: 'פעילים' }, { id: 'archive', label: 'ארכיון' }].map(v => (
+            <button key={v.id} onClick={() => setView(v.id)}
+              className={`text-[12px] px-3 py-1 rounded-lg border transition-colors ${view === v.id ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+              {v.label}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => setImportOpen(true)}
+          className="text-[12px] px-3 py-1 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] transition-colors flex items-center gap-1">
+          <i className="ti ti-download" style={{ fontSize: 14 }} /> ייבוא אירוע מהיומן
+        </button>
       </div>
 
       {view === 'active' ? (
@@ -625,6 +645,53 @@ function Gantts() {
         <EditModal modal={editModal} onClose={() => setEditModal(null)}
           onSave={(text) => { persist(editModal.eventId, editModal.action.key, { custom_label: text || null }); setEditModal(null) }} />
       )}
+      {importOpen && (
+        <ImportModal allShows={allShows} hiddenSet={hiddenSet} onClose={() => setImportOpen(false)} onImport={importEvent} />
+      )}
+    </div>
+  )
+}
+
+function ImportModal({ allShows, hiddenSet, onClose, onImport }) {
+  const [q, setQ] = useState('')
+  const list = (allShows || [])
+    .filter(e => !q || (e.title || '').includes(q))
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date))
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div dir="rtl" className="bg-white rounded-2xl p-5 w-full max-w-lg max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <h3 className="text-[15px] font-bold text-gray-800 mb-1">ייבוא אירוע מהיומן</h3>
+        <p className="text-[12px] text-gray-400 mb-3">מוצגים אירועים מסוג "מופע" בלבד</p>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="חיפוש לפי שם…"
+          className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 text-gray-800 mb-3 focus:outline-none focus:border-[#E0197D]" />
+        <div className="overflow-y-auto flex flex-col gap-1.5">
+          {list.length === 0 ? (
+            <div className="text-center text-gray-400 text-[13px] py-6">לא נמצאו אירועי מופע</div>
+          ) : (
+            list.map(e => {
+              const inGantts = !hiddenSet.has(String(e.id))
+              return (
+                <div key={e.id} className="flex items-center justify-between gap-3 px-3 py-2 border border-gray-100 rounded-lg">
+                  <div className="min-w-0">
+                    <div className="text-[13px] text-gray-800 truncate">{e.title}</div>
+                    <div className="text-[11px] text-gray-400">{dayName(e.date)}, {fmtDate(e.date)}</div>
+                  </div>
+                  {inGantts ? (
+                    <span className="text-[11px] text-gray-400 shrink-0">כבר בגאנטים</span>
+                  ) : (
+                    <button onClick={() => onImport(e)}
+                      className="text-[12px] px-3 py-1 rounded-lg bg-[#E0197D] text-white hover:bg-[#A0106A] shrink-0">ייבוא</button>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+        <div className="flex justify-end mt-3">
+          <button onClick={onClose} className="text-[13px] px-4 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">סגירה</button>
+        </div>
+      </div>
     </div>
   )
 }
