@@ -76,14 +76,18 @@ function Dashboard() {
     const showType = resolveShowType(types)
     const doneSet = new Set((done || []).map(d => String(d.event_id)))
     const shows = (evs || []).filter(e => e.type === showType)
-    const ended = shows
-      .filter(e => endOf(e) < todayStr && !doneSet.has(String(e.id)))
+    // ההודעה מתייחסת תמיד למופע האחרון שהסתיים (מהיום שאחרי הסיום),
+    // ומוצגת רק אם טרם סומנה — כך תמיד הודעה אחת לכל היותר.
+    const endedShows = shows
+      .filter(e => endOf(e) < todayStr)
       .sort((a, b) => endOf(b).localeCompare(endOf(a)))
+    const latest = endedShows[0] || null
+    const note = (latest && !doneSet.has(String(latest.id))) ? latest : null
     const upcoming = shows
       .filter(e => e.date >= todayStr)
       .sort((a, b) => a.date.localeCompare(b.date))
     setNextEv(upcoming[0] || null)
-    setNotes(ended)
+    setNotes(note ? [note] : [])
     setLoading(false)
   }
 
