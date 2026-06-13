@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 const TABS = [
@@ -9,6 +9,7 @@ const TABS = [
 ]
 
 const HE_DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
+const EMPTY_CELL = { custom_date: null, notes: null, done: false, custom_label: null, deleted: false, free_text: null }
 
 // ---------- date helpers ----------
 function fmtDate(ds) {
@@ -180,6 +181,7 @@ function Gantts() {
   const [loading, setLoading] = useState(true)
   const [events, setEvents] = useState([])
   const [plan, setPlan] = useState({})
+  const planRef = useRef({})
   const [open, setOpen] = useState(null)
   const [noteModal, setNoteModal] = useState(null)
   const [editModal, setEditModal] = useState(null)
@@ -192,15 +194,16 @@ function Gantts() {
     const [{ data: types }, { data: evs }, { data: rows }] = await Promise.all([
       supabase.from('event_types').select('value,label'),
       supabase.from('events').select('id,title,date,type').order('date'),
-      supabase.from('marketing_plan').select('event_id,action_key,custom_date,notes,done,custom_label,deleted'),
+      supabase.from('marketing_plan').select('event_id,action_key,custom_date,notes,done,custom_label,deleted,free_text'),
     ])
     const showType = resolveShowType(types)
     const hidden = new Set((rows || []).filter(r => r.action_key === '__event__' && r.deleted).map(r => String(r.event_id)))
     const shows = (evs || []).filter(e => e.type === showType && e.date >= todayStr && !hidden.has(String(e.id)))
     const map = {}
     for (const r of (rows || [])) {
-      map[`${r.event_id}::${r.action_key}`] = { custom_date: r.custom_date, notes: r.notes, done: r.done, custom_label: r.custom_label, deleted: r.deleted }
+      map[`${r.event_id}::${r.action_key}`] = { custom_date: r.custom_date, notes: r.notes, done: r.done, custom_label: r.custom_label, deleted: r.deleted, free_text: r.free_text }
     }
+    planRef.current = map
     setEvents(shows)
     setPlan(map)
     setOpen(shows[0]?.id ?? null)
@@ -208,19 +211,22 @@ function Gantts() {
   }
 
   function cell(eventId, actionKey) {
-    return plan[`${eventId}::${actionKey}`] || { custom_date: null, notes: null, done: false, custom_label: null, deleted: false }
+    return plan[`${eventId}::${actionKey}`] || EMPTY_CELL
   }
 
   async function persist(eventId, actionKey, patch) {
     const k = `${eventId}::${actionKey}`
-    const cur = plan[k] || { custom_date: null, notes: null, done: false, custom_label: null, deleted: false }
+    const cur = planRef.current[k] || EMPTY_CELL
     const next = { ...cur, ...patch }
-    setPlan(p => ({ ...p, [k]: next }))
+    const merged = { ...planRef.current, [k]: next }
+    planRef.current = merged
+    setPlan(merged)
     const { error } = await supabase.from('marketing_plan').upsert(
       {
         event_id: String(eventId), action_key: actionKey,
         custom_date: next.custom_date || null, notes: next.notes || null,
-        done: !!next.done, custom_label: next.custom_label || null, deleted: !!next.deleted,
+        done: !!next.done, custom_label: next.custom_label || null,
+        deleted: !!next.deleted, free_text: next.free_text || null,
       },
       { onConflict: 'event_id,action_key' }
     )
@@ -284,7 +290,7 @@ function Gantts() {
             </div>
 
             {isOpen && (
-              <div className="border-t border-gray-100">
+              <div className="border-t-2 border-gray-200">
                 {vis.length === 0 && (
                   <div className="px-4 py-4 text-center text-[12px] text-gray-300">כל הפעולות נמחקו</div>
                 )}
@@ -294,14 +300,18 @@ function Gantts() {
                   const isCustom = !!c.custom_date
                   return (
                     <div key={action.key}
-                      className={`flex items-center gap-2 px-4 py-2.5 border-b border-gray-50 last:border-0 ${c.done ? 'bg-[#FCE4F3]' : ''}`}>
-                      <div className="flex-1 min-w-0">
+                      className={`flex items-center gap-2 px-4 py-2.5 border-b border-gray-200 last:border-0 ${c.done ? 'bg-[#FCE4F3]' : ''}`}>
+                      <div className="w-52 shrink-0">
                         <span className={`text-[13px] ${c.done ? 'text-[#A0106A] font-medium' : 'text-gray-800'}`}>{labelOf(ev, action)}</span>
                       </div>
 
+                      <input type="text" defaultValue={c.free_text || ''} placeholder="טקסט חופשי…"
+                        onBlur={e => { if ((e.target.value || '') !== (c.free_text || '')) persist(ev.id, action.key, { free_text: e.target.value }) }}
+                        className="flex-1 min-w-0 text-[12.5px] border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 bg-white focus:outline-none focus:border-[#E0197D]" />
+
                       <span className="text-[11px] text-gray-400 w-12 text-center shrink-0">יום {dayName(d)}</span>
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <input type="date" value={d}
                           onChange={e => persist(ev.id, action.key, { custom_date: e.target.value })}
                           className="text-[12px] border border-gray-200 rounded-lg px-2 py-1 text-gray-700 bg-white" />
@@ -312,7 +322,7 @@ function Gantts() {
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <button title="הערות" onClick={() => setNoteModal({ eventId: ev.id, action, draft: c.notes || '' })}
+                        <button title="הערות" onClick={() => setNoteModal({ eventId: ev.id, action, label: labelOf(ev, action), draft: c.notes || '' })}
                           className={c.notes ? 'text-[#E0197D]' : 'text-gray-300 hover:text-[#E0197D]'}>
                           <i className="ti ti-note" style={{ fontSize: 17 }} />
                         </button>
@@ -357,7 +367,7 @@ function NoteModal({ modal, onClose, onSave }) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div dir="rtl" className="bg-white rounded-2xl p-5 w-full max-w-md" onClick={e => e.stopPropagation()}>
         <h3 className="text-[15px] font-bold text-gray-800 mb-1">הערות לפעולה</h3>
-        <p className="text-[12px] text-gray-400 mb-3">{modal.action ? (modal.label || '') : ''}</p>
+        <p className="text-[12px] text-gray-400 mb-3">{modal.label || ''}</p>
         <textarea value={text} onChange={e => setText(e.target.value)} rows={6}
           placeholder="פרטים על הפעולה…"
           className="w-full text-[13px] border border-gray-200 rounded-lg p-3 text-gray-800 resize-none focus:outline-none focus:border-[#E0197D]" />
