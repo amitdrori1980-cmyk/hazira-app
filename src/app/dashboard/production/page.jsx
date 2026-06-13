@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, Fragment } from 'react'
 import HaziraLogo from '@/components/HaziraLogo'
 import { supabase } from '@/lib/supabase'
 import * as XLSX from 'xlsx-js-style'
@@ -469,12 +469,8 @@ function ProductionInquiries() {
 
   return (
     <div className="max-w-7xl">
-      <style dangerouslySetInnerHTML={{__html: `.prod-print-header { display: none; } @media print { html, body { height: auto !important; overflow: visible !important; } body * { visibility: hidden !important; } .prod-print-area, .prod-print-area *, .prod-print-header, .prod-print-header * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .fixed.inset-0 { position: static !important; display: block !important; overflow: visible !important; height: auto !important; } main { display: block !important; } main > div:first-child { display: none !important; } .overflow-hidden, .overflow-y-auto { overflow: visible !important; height: auto !important; } aside, .no-print { display: none !important; } .prod-print-header { display: flex !important; position: fixed; top: 0; left: 0; right: 0; align-items: center; gap: 10px; padding: 4px 12px 6px; border-bottom: 2px solid #E0197D; background: #fff; direction: ltr; } .prod-print-area { position: static !important; padding: 12px; } .prod-print-area tr.prod-ev-card { break-inside: avoid !important; page-break-inside: avoid !important; } @page { margin: 22mm 8mm 10mm 8mm; } }`}} />
-      <div className="prod-print-header">
-        <HaziraLogo size={30} />
-        <span style={{flex:1, textAlign:'center', fontWeight:700, fontSize:17, color:'#A0106A'}}>תכנון הפקה</span>
-        <span style={{width:30, display:'inline-block'}} />
-      </div>
+      <style dangerouslySetInnerHTML={{__html: `.prod-print-thead { display: none; } @media print { html, body { height: auto !important; overflow: visible !important; } body * { visibility: hidden !important; } .prod-print-area, .prod-print-area * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .fixed.inset-0 { position: static !important; display: block !important; overflow: visible !important; height: auto !important; } main { display: block !important; } main > div:first-child { display: none !important; } .overflow-hidden, .overflow-y-auto { overflow: visible !important; height: auto !important; } aside, .no-print { display: none !important; } .prod-print-thead { display: table-header-group !important; } .prod-print-header-inner { display: flex; align-items: center; gap: 10px; padding: 2px 12px 8px; border-bottom: 2px solid #E0197D; direction: ltr; } .prod-print-area { position: static !important; padding: 12px; } .prod-print-area tr.prod-ev-card { break-inside: avoid !important; page-break-inside: avoid !important; } @page { margin: 12mm 8mm; } }`}} />
+      
       <div className="flex justify-end gap-2 mb-4 no-print">
         {selectMode ? (
           <>
@@ -627,29 +623,40 @@ function ProductionInquiries() {
               {activeMonthGroups.every(g => collapsedMonths[g.key]) ? 'הרחב הכל' : 'כווץ הכל'}
             </button>
           </div>
-          {activeMonthGroups.map(g => (
-            <div key={g.key} className={`mb-3 ${printMode === 'selected' && !g.events.some(e => selectedIds.has(e.id)) ? 'hidden' : ''}`}>
-              <button onClick={() => setCollapsedMonths(p => ({ ...p, [g.key]: !p[g.key] }))}
-                className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl flex-row-reverse hover:bg-gray-100">
-                <span className="text-[13px] font-semibold text-gray-700 flex items-center gap-2 flex-row-reverse">
-                  <i className={`ti ${collapsedMonths[g.key] ? 'ti-chevron-down' : 'ti-chevron-up'} text-gray-400 no-print`} style={{fontSize:15}}/>
-                  {g.label}
-                </span>
-                <span className="text-[11px] text-gray-400">{g.events.length} אירועים</span>
-              </button>
-              {(!collapsedMonths[g.key] || printMode === 'selected') && (
-                <table className="mt-2 w-full" style={{ borderCollapse: 'collapse' }}>
-                  <tbody>
-                    {g.events.map(ev => (
-                      <tr key={ev.id} className={`prod-ev-card ${printMode === 'selected' && !selectedIds.has(ev.id) ? 'hidden' : ''}`}>
-                        <td style={{ padding: 0, verticalAlign: 'top' }}>{RenderCard(ev, g.events)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          ))}
+          <table className="w-full" style={{ borderCollapse: 'collapse' }}>
+            <thead className="prod-print-thead">
+              <tr><td>
+                <div className="prod-print-header-inner">
+                  <HaziraLogo size={30} />
+                  <span style={{ flex: 1, textAlign: 'center', fontWeight: 700, fontSize: 17, color: '#A0106A' }}>תכנון הפקה</span>
+                  <span style={{ width: 30, display: 'inline-block' }} />
+                </div>
+              </td></tr>
+            </thead>
+            <tbody>
+              {activeMonthGroups.map(g => (
+                <Fragment key={g.key}>
+                  <tr className={`${printMode === 'selected' && !g.events.some(e => selectedIds.has(e.id)) ? 'hidden' : ''}`}>
+                    <td style={{ padding: 0 }}>
+                      <button onClick={() => setCollapsedMonths(p => ({ ...p, [g.key]: !p[g.key] }))}
+                        className="w-full flex items-center justify-between px-4 py-2.5 mb-2 bg-gray-50 border border-gray-100 rounded-xl flex-row-reverse hover:bg-gray-100">
+                        <span className="text-[13px] font-semibold text-gray-700 flex items-center gap-2 flex-row-reverse">
+                          <i className={`ti ${collapsedMonths[g.key] ? 'ti-chevron-down' : 'ti-chevron-up'} text-gray-400 no-print`} style={{fontSize:15}}/>
+                          {g.label}
+                        </span>
+                        <span className="text-[11px] text-gray-400">{g.events.length} אירועים</span>
+                      </button>
+                    </td>
+                  </tr>
+                  {(!collapsedMonths[g.key] || printMode === 'selected') && g.events.map(ev => (
+                    <tr key={ev.id} className={`prod-ev-card ${printMode === 'selected' && !selectedIds.has(ev.id) ? 'hidden' : ''}`}>
+                      <td style={{ padding: 0, verticalAlign: 'top' }}>{RenderCard(ev, g.events)}</td>
+                    </tr>
+                  ))}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
         </>
       )}
       {view === 'active' && events.length > 0 && activeEvents.length === 0 && (
