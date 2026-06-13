@@ -598,7 +598,7 @@ function GeneralFilesMode() {
       const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${f.name}`)
       return `${f.name}: ${data.publicUrl}`
     }).join('%0D%0A')
-    window.location.href = `mailto:?subject=${encodeURIComponent('מפרטים כלליים')}&body=${encodeURIComponent(selected.map(f => { const { data } = supabase.storage.from('venues').getPublicUrl(FOLDER + '/' + f.name); return f.name + ': ' + data.publicUrl }).join('\n'))}`
+    window.location.href = `mailto:?subject=${encodeURIComponent('מידע כללי הזירה')}&body=${encodeURIComponent(selected.map(f => { const { data } = supabase.storage.from('venues').getPublicUrl(FOLDER + '/' + f.name); return f.name + ': ' + data.publicUrl }).join('\n'))}`
   }
 
   function sendByWhatsapp() {
@@ -608,7 +608,7 @@ function GeneralFilesMode() {
       const { data } = supabase.storage.from('venues').getPublicUrl(`${FOLDER}/${f.name}`)
       return `${f.name}: ${data.publicUrl}`
     }).join('\n')
-    window.open(`https://wa.me/?text=${encodeURIComponent('מפרטים כלליים\n' + text)}`, '_blank')
+    window.open(`https://wa.me/?text=${encodeURIComponent('מידע כללי הזירה\n' + text)}`, '_blank')
   }
 
   const anySelected = files.some(f => selectedFiles[f.name])
@@ -903,7 +903,7 @@ export default function SpecsPage() {
           {id:'templates', label:'מפרטים'},
           {id:'venues', label:'אולמות'},
           {id:'rundowns', label:'לוזים'},
-          {id:'files', label:'📁 מפרטים כללי'},
+          {id:'files', label:'📁 מידע כללי הזירה'},
           {id:'showfolders', label:'תיקי הצגות'},
         ].map(tab=>(
           <button key={tab.id} onClick={()=>setMode(tab.id)}
