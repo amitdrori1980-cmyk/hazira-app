@@ -8,11 +8,18 @@ const TABS = [
   { id: 'tasks',     label: 'משימות',  icon: 'ti-checklist' },
 ]
 
+const HE_DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
+
 // ---------- date helpers ----------
 function fmtDate(ds) {
   if (!ds) return ''
   const [y, m, d] = ds.split('-')
   return `${d}/${m}/${y}`
+}
+function dayName(ds) {
+  if (!ds) return ''
+  const [y, m, d] = ds.split('-').map(Number)
+  return HE_DAYS[new Date(y, m - 1, d).getDay()]
 }
 function toStr(dt) {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
@@ -111,8 +118,6 @@ function Dashboard() {
     const showType = resolveShowType(types)
     const doneSet = new Set((done || []).map(d => String(d.event_id)))
     const shows = (evs || []).filter(e => e.type === showType)
-    // ההודעה מתייחסת תמיד למופע האחרון שהסתיים (מהיום שאחרי הסיום),
-    // ומוצגת רק אם טרם סומנה — כך תמיד הודעה אחת לכל היותר.
     const endedShows = shows
       .filter(e => endOf(e) < todayStr)
       .sort((a, b) => endOf(b).localeCompare(endOf(a)))
@@ -177,6 +182,7 @@ function Gantts() {
   const [plan, setPlan] = useState({})
   const [open, setOpen] = useState(null)
   const [noteModal, setNoteModal] = useState(null)
+  const [editModal, setEditModal] = useState(null)
 
   useEffect(() => { load() }, [])
 
@@ -186,12 +192,15 @@ function Gantts() {
     const [{ data: types }, { data: evs }, { data: rows }] = await Promise.all([
       supabase.from('event_types').select('value,label'),
       supabase.from('events').select('id,title,date,type').order('date'),
-      supabase.from('marketing_plan').select('event_id,action_key,custom_date,notes,done'),
+      supabase.from('marketing_plan').select('event_id,action_key,custom_date,notes,done,custom_label,deleted'),
     ])
     const showType = resolveShowType(types)
-    const shows = (evs || []).filter(e => e.type === showType && e.date >= todayStr)
+    const hidden = new Set((rows || []).filter(r => r.action_key === '__event__' && r.deleted).map(r => String(r.event_id)))
+    const shows = (evs || []).filter(e => e.type === showType && e.date >= todayStr && !hidden.has(String(e.id)))
     const map = {}
-    for (const r of (rows || [])) map[`${r.event_id}::${r.action_key}`] = { custom_date: r.custom_date, notes: r.notes, done: r.done }
+    for (const r of (rows || [])) {
+      map[`${r.event_id}::${r.action_key}`] = { custom_date: r.custom_date, notes: r.notes, done: r.done, custom_label: r.custom_label, deleted: r.deleted }
+    }
     setEvents(shows)
     setPlan(map)
     setOpen(shows[0]?.id ?? null)
@@ -199,29 +208,46 @@ function Gantts() {
   }
 
   function cell(eventId, actionKey) {
-    return plan[`${eventId}::${actionKey}`] || { custom_date: null, notes: null, done: false }
+    return plan[`${eventId}::${actionKey}`] || { custom_date: null, notes: null, done: false, custom_label: null, deleted: false }
   }
 
   async function persist(eventId, actionKey, patch) {
     const k = `${eventId}::${actionKey}`
-    const cur = plan[k] || { custom_date: null, notes: null, done: false }
+    const cur = plan[k] || { custom_date: null, notes: null, done: false, custom_label: null, deleted: false }
     const next = { ...cur, ...patch }
     setPlan(p => ({ ...p, [k]: next }))
     const { error } = await supabase.from('marketing_plan').upsert(
-      { event_id: String(eventId), action_key: actionKey, custom_date: next.custom_date || null, notes: next.notes || null, done: !!next.done },
+      {
+        event_id: String(eventId), action_key: actionKey,
+        custom_date: next.custom_date || null, notes: next.notes || null,
+        done: !!next.done, custom_label: next.custom_label || null, deleted: !!next.deleted,
+      },
       { onConflict: 'event_id,action_key' }
     )
     if (error) alert('שגיאה בשמירה: ' + error.message)
   }
 
+  function labelOf(ev, action) { return cell(ev.id, action.key).custom_label || action.label }
   function effDate(ev, action) {
     const c = cell(ev.id, action.key)
     return c.custom_date || planDate(ev.date, action.offset)
   }
+  function visibleActions(ev) { return PLAN_ACTIONS.filter(a => !cell(ev.id, a.key).deleted) }
   function progress(ev) {
+    const vis = visibleActions(ev)
     let d = 0
-    for (const a of PLAN_ACTIONS) if (cell(ev.id, a.key).done) d++
-    return d
+    for (const a of vis) if (cell(ev.id, a.key).done) d++
+    return { done: d, total: vis.length }
+  }
+
+  function deleteAction(ev, action) {
+    if (!confirm(`למחוק את הפעולה "${labelOf(ev, action)}"?`)) return
+    persist(ev.id, action.key, { deleted: true })
+  }
+  async function deleteEvent(ev) {
+    if (!confirm(`להסיר את "${ev.title}" מאזור הגאנטים?\n(האירוע עצמו לא יימחק מהיומן)`)) return
+    await persist(ev.id, '__event__', { deleted: true })
+    setEvents(es => es.filter(e => e.id !== ev.id))
   }
 
   if (loading) return <div className="text-center text-gray-400 text-[13px] py-10">טוען…</div>
@@ -235,35 +261,45 @@ function Gantts() {
     <div dir="rtl" className="flex flex-col gap-3">
       {events.map(ev => {
         const isOpen = open === ev.id
-        const done = progress(ev)
+        const pr = progress(ev)
+        const vis = visibleActions(ev)
         return (
           <div key={ev.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-            <button onClick={() => setOpen(isOpen ? null : ev.id)}
-              className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-right">
-              <div className="flex items-center gap-2">
+            <div className="w-full flex items-center justify-between gap-3 px-4 py-3">
+              <button onClick={() => setOpen(isOpen ? null : ev.id)}
+                className="flex items-center gap-2 flex-1 text-right hover:opacity-80 transition-opacity">
                 <i className={`ti ti-chevron-${isOpen ? 'down' : 'left'} text-gray-400`} style={{ fontSize: 16 }} />
                 <div>
                   <div className="text-[14px] font-bold text-gray-800">{ev.title}</div>
-                  <div className="text-[12px] text-gray-400">מופע בתאריך {fmtDate(ev.date)}</div>
+                  <div className="text-[12px] text-gray-400">מופע ב{dayName(ev.date)}, {fmtDate(ev.date)}</div>
                 </div>
+              </button>
+              <div className="flex items-center gap-2">
+                <span className={`text-[12px] rounded-full px-2.5 py-0.5 ${pr.total > 0 && pr.done === pr.total ? 'bg-[#FCE4F3] text-[#A0106A]' : 'bg-gray-100 text-gray-500'}`}>
+                  {pr.done}/{pr.total} בוצעו
+                </span>
+                <button onClick={() => deleteEvent(ev)} title="הסר אירוע מהגאנטים"
+                  className="text-gray-300 hover:text-red-500 transition-colors"><i className="ti ti-trash" style={{ fontSize: 16 }} /></button>
               </div>
-              <span className={`text-[12px] rounded-full px-2.5 py-0.5 ${done === PLAN_ACTIONS.length ? 'bg-[#FCE4F3] text-[#A0106A]' : 'bg-gray-100 text-gray-500'}`}>
-                {done}/{PLAN_ACTIONS.length} בוצעו
-              </span>
-            </button>
+            </div>
 
             {isOpen && (
               <div className="border-t border-gray-100">
-                {PLAN_ACTIONS.map(action => {
+                {vis.length === 0 && (
+                  <div className="px-4 py-4 text-center text-[12px] text-gray-300">כל הפעולות נמחקו</div>
+                )}
+                {vis.map(action => {
                   const c = cell(ev.id, action.key)
                   const d = effDate(ev, action)
                   const isCustom = !!c.custom_date
                   return (
                     <div key={action.key}
-                      className={`flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 ${c.done ? 'bg-[#FCE4F3]' : ''}`}>
+                      className={`flex items-center gap-2 px-4 py-2.5 border-b border-gray-50 last:border-0 ${c.done ? 'bg-[#FCE4F3]' : ''}`}>
                       <div className="flex-1 min-w-0">
-                        <span className={`text-[13px] ${c.done ? 'text-[#A0106A] font-medium' : 'text-gray-800'}`}>{action.label}</span>
+                        <span className={`text-[13px] ${c.done ? 'text-[#A0106A] font-medium' : 'text-gray-800'}`}>{labelOf(ev, action)}</span>
                       </div>
+
+                      <span className="text-[11px] text-gray-400 w-12 text-center shrink-0">יום {dayName(d)}</span>
 
                       <div className="flex items-center gap-1.5">
                         <input type="date" value={d}
@@ -275,13 +311,23 @@ function Gantts() {
                         )}
                       </div>
 
-                      <button title="הערות" onClick={() => setNoteModal({ eventId: ev.id, action, draft: c.notes || '' })}
-                        className={c.notes ? 'text-[#E0197D]' : 'text-gray-300 hover:text-[#E0197D]'}>
-                        <i className="ti ti-note" style={{ fontSize: 17 }} />
-                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button title="הערות" onClick={() => setNoteModal({ eventId: ev.id, action, draft: c.notes || '' })}
+                          className={c.notes ? 'text-[#E0197D]' : 'text-gray-300 hover:text-[#E0197D]'}>
+                          <i className="ti ti-note" style={{ fontSize: 17 }} />
+                        </button>
+                        <button title="עריכת שם הפעולה" onClick={() => setEditModal({ eventId: ev.id, action, label: labelOf(ev, action) })}
+                          className="text-gray-300 hover:text-[#E0197D]">
+                          <i className="ti ti-pencil" style={{ fontSize: 16 }} />
+                        </button>
+                        <button title="מחיקת פעולה" onClick={() => deleteAction(ev, action)}
+                          className="text-gray-300 hover:text-red-500">
+                          <i className="ti ti-trash" style={{ fontSize: 16 }} />
+                        </button>
+                      </div>
 
                       <button onClick={() => persist(ev.id, action.key, { done: !c.done })}
-                        className={`text-[12px] px-3 py-1 rounded-lg border transition-colors whitespace-nowrap ${c.done ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+                        className={`text-[12px] px-3 py-1 rounded-lg border transition-colors whitespace-nowrap shrink-0 ${c.done ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
                         {c.done ? '✓ בוצע' : 'בוצע'}
                       </button>
                     </div>
@@ -297,6 +343,10 @@ function Gantts() {
         <NoteModal modal={noteModal} onClose={() => setNoteModal(null)}
           onSave={(text) => { persist(noteModal.eventId, noteModal.action.key, { notes: text }); setNoteModal(null) }} />
       )}
+      {editModal && (
+        <EditModal modal={editModal} onClose={() => setEditModal(null)}
+          onSave={(text) => { persist(editModal.eventId, editModal.action.key, { custom_label: text || null }); setEditModal(null) }} />
+      )}
     </div>
   )
 }
@@ -307,13 +357,30 @@ function NoteModal({ modal, onClose, onSave }) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div dir="rtl" className="bg-white rounded-2xl p-5 w-full max-w-md" onClick={e => e.stopPropagation()}>
         <h3 className="text-[15px] font-bold text-gray-800 mb-1">הערות לפעולה</h3>
-        <p className="text-[12px] text-gray-400 mb-3">{modal.action.label}</p>
+        <p className="text-[12px] text-gray-400 mb-3">{modal.action ? (modal.label || '') : ''}</p>
         <textarea value={text} onChange={e => setText(e.target.value)} rows={6}
           placeholder="פרטים על הפעולה…"
           className="w-full text-[13px] border border-gray-200 rounded-lg p-3 text-gray-800 resize-none focus:outline-none focus:border-[#E0197D]" />
         <div className="flex gap-2 justify-end mt-3">
           <button onClick={onClose} className="text-[13px] px-4 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">ביטול</button>
           <button onClick={() => onSave(text)} className="text-[13px] px-4 py-1.5 rounded-lg bg-[#E0197D] text-white hover:bg-[#A0106A]">שמירה</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EditModal({ modal, onClose, onSave }) {
+  const [label, setLabel] = useState(modal.label || '')
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div dir="rtl" className="bg-white rounded-2xl p-5 w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <h3 className="text-[15px] font-bold text-gray-800 mb-3">עריכת פעולה</h3>
+        <input value={label} onChange={e => setLabel(e.target.value)} placeholder="שם הפעולה"
+          className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-[#E0197D]" />
+        <div className="flex gap-2 justify-end mt-3">
+          <button onClick={onClose} className="text-[13px] px-4 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">ביטול</button>
+          <button onClick={() => onSave(label.trim())} className="text-[13px] px-4 py-1.5 rounded-lg bg-[#E0197D] text-white hover:bg-[#A0106A]">שמירה</button>
         </div>
       </div>
     </div>
