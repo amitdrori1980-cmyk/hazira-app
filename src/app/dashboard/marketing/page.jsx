@@ -214,6 +214,8 @@ function Dashboard() {
 // ===================== מוניטור — לוז שבועי =====================
 function Monitor() {
   const [loading, setLoading] = useState(true)
+  const [plan, setPlan] = useState({})
+  const planRef = useRef({})
   const [view, setView] = useState('current')
   const [curWeeks, setCurWeeks] = useState([])
   const [archMonths, setArchMonths] = useState([])
@@ -230,7 +232,7 @@ function Monitor() {
     const [{ data: types }, { data: evs }, { data: rows }] = await Promise.all([
       supabase.from('event_types').select('value,label'),
       supabase.from('events').select('id,title,date,type').order('date'),
-      supabase.from('marketing_plan').select('event_id,action_key,custom_date,custom_label,done,deleted,free_text'),
+      supabase.from('marketing_plan').select('event_id,action_key,custom_date,custom_label,done,deleted,free_text,notes'),
     ])
     const showType = resolveShowType(types)
     const map = {}
@@ -239,6 +241,8 @@ function Monitor() {
       map[`${r.event_id}::${r.action_key}`] = r
       if (r.action_key === '__event__' && r.deleted) hidden.add(String(r.event_id))
     }
+    planRef.current = map
+    setPlan(map)
     const shows = (evs || []).filter(e => e.type === showType && !hidden.has(String(e.id)))
     function buildItems(evList) {
       const items = []
@@ -248,6 +252,8 @@ function Monitor() {
           if (c.deleted) continue
           items.push({
             id: `${ev.id}::${a.key}`,
+            eventId: ev.id,
+            actionKey: a.key,
             date: c.custom_date || planDate(ev.date, a.offset),
             eventDate: ev.date,
             eventTitle: ev.title,
@@ -277,6 +283,25 @@ function Monitor() {
     setLoading(false)
   }
 
+  async function persist(eventId, actionKey, patch) {
+    const k = `${eventId}::${actionKey}`
+    const cur = planRef.current[k] || EMPTY_CELL
+    const next = { ...cur, ...patch }
+    const merged = { ...planRef.current, [k]: next }
+    planRef.current = merged
+    setPlan(merged)
+    const { error } = await supabase.from('marketing_plan').upsert(
+      {
+        event_id: String(eventId), action_key: actionKey,
+        custom_date: next.custom_date || null, notes: next.notes || null,
+        done: !!next.done, custom_label: next.custom_label || null,
+        deleted: !!next.deleted, free_text: next.free_text || null,
+      },
+      { onConflict: 'event_id,action_key' }
+    )
+    if (error) alert('שגיאה בשמירה: ' + error.message)
+  }
+
   function renderDays(days) {
     return (
       <div className="flex flex-col">
@@ -288,13 +313,15 @@ function Monitor() {
             </div>
             <div className="flex-1 min-w-0 flex flex-wrap gap-1.5">
               {day.items.map(it => {
-                const overdue = !it.done && it.date < todayStr
+                const done = plan[it.id] ? !!plan[it.id].done : it.done
+                const overdue = !done && it.date < todayStr
                 return (
-                  <span key={it.id} title={it.eventTitle + (it.free_text ? ' · ' + it.free_text : '')}
-                    className={`text-[12px] rounded-lg px-2 py-1 border ${it.done ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A] line-through' : overdue ? 'bg-red-50 border-red-100 text-red-500' : 'bg-gray-50 border-gray-200 text-gray-700'}`}>
+                  <button key={it.id} onClick={() => persist(it.eventId, it.actionKey, { done: !done })}
+                    title={it.eventTitle + (it.free_text ? ' · ' + it.free_text : '')}
+                    className={`text-[12px] rounded-lg px-2 py-1 border transition-colors text-right ${done ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A] line-through' : overdue ? 'bg-red-50 border-red-100 text-red-500 hover:bg-red-100' : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-[#E0197D]'}`}>
                     {it.label}
                     <span className="text-gray-400 mr-1">· {it.eventTitle}</span>
-                  </span>
+                  </button>
                 )
               })}
             </div>
