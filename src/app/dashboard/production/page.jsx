@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
+import HaziraLogo from '@/components/HaziraLogo'
 import { supabase } from '@/lib/supabase'
 import * as XLSX from 'xlsx-js-style'
 
@@ -468,7 +469,12 @@ function ProductionInquiries() {
 
   return (
     <div className="max-w-7xl">
-      <style dangerouslySetInnerHTML={{__html: `@media print { html, body { height: auto !important; overflow: visible !important; } body * { visibility: hidden !important; } .prod-print-area, .prod-print-area * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .fixed.inset-0 { position: static !important; display: block !important; overflow: visible !important; height: auto !important; } .overflow-hidden, .overflow-y-auto { overflow: visible !important; height: auto !important; } aside, .no-print { display: none !important; } .prod-print-area { position: static !important; padding: 12px; } .prod-print-area [id^=prod-ev-] { break-inside: avoid !important; page-break-inside: avoid !important; } @page { margin: 8mm; } }`}} />
+      <style dangerouslySetInnerHTML={{__html: `.prod-print-header { display: none; } @media print { html, body { height: auto !important; overflow: visible !important; } body * { visibility: hidden !important; } .prod-print-area, .prod-print-area *, .prod-print-header, .prod-print-header * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .fixed.inset-0 { position: static !important; display: block !important; overflow: visible !important; height: auto !important; } main > div:first-child { display: none !important; } .overflow-hidden, .overflow-y-auto { overflow: visible !important; height: auto !important; } aside, .no-print { display: none !important; } .prod-print-header { display: flex !important; position: fixed; top: 0; left: 0; right: 0; align-items: center; gap: 10px; padding: 4px 12px 6px; border-bottom: 2px solid #E0197D; background: #fff; direction: ltr; } .prod-print-area { position: static !important; padding: 12px; } .prod-print-area [id^=prod-ev-] { break-inside: avoid !important; page-break-inside: avoid !important; } @page { margin: 22mm 8mm 10mm 8mm; } }`}} />
+      <div className="prod-print-header">
+        <HaziraLogo size={30} />
+        <span style={{flex:1, textAlign:'center', fontWeight:700, fontSize:17, color:'#A0106A'}}>תכנון הפקה</span>
+        <span style={{width:30, display:'inline-block'}} />
+      </div>
       <div className="flex justify-end gap-2 mb-4 no-print">
         {selectMode ? (
           <>
@@ -584,7 +590,7 @@ function ProductionInquiries() {
         </div>
       )}
       {events.length > 0 && (
-        <div className="flex items-center gap-2 mb-3 flex-row-reverse">
+        <div className="flex items-center gap-2 mb-3 flex-row-reverse no-print">
           <button onClick={() => setView('active')}
             className={`text-[12px] px-3 py-1.5 rounded-lg font-medium ${view === 'active' ? 'bg-[#E0197D] text-white' : 'bg-gray-100 text-gray-500 hover:text-[#E0197D]'}`}>
             פעילות ({activeEvents.length})
