@@ -1169,7 +1169,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-function GeneralSchedulesMode() {
+export function GeneralSchedulesMode() {
   const [schedules, setSchedules] = useState([])
   const [loading, setLoading] = useState(true)
   const [openId, setOpenId] = useState(null)

@@ -1,6 +1,6 @@
 'use client'
 import VenuesPage from '../venues/page'
-import RundownsPage from '../rundowns/page'
+import { GeneralSchedulesMode } from '../production/page'
 import * as XLSX from 'xlsx'
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -1039,7 +1039,7 @@ export default function SpecsPage() {
 
 
       {mode === 'venues' && <VenuesPage embedded={true} />}
-      {mode === 'rundowns' && <RundownsPage embedded={true} />}
+      {mode === 'rundowns' && <GeneralSchedulesMode />}
 
       {/* FILES MODE */}
       {mode === 'files' && (
