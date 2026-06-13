@@ -901,8 +901,8 @@ export default function SpecsPage() {
       <div className="flex gap-2 mb-4">
         {[
           {id:'templates', label:'מפרטים'},
-          {id:'venues', label:'אולמות'},
           {id:'rundowns', label:'לוזים'},
+          {id:'venues', label:'אולמות'},
           {id:'files', label:'📁 מידע כללי הזירה'},
           {id:'showfolders', label:'תיקי הצגות'},
         ].map(tab=>(
