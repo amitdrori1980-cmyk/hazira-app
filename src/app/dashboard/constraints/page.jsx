@@ -394,7 +394,7 @@ export default function ConstraintsPage() {
           </div>
           <div className="flex gap-2">
             {isManager && (
-            <button onClick={() => setShowAdd(!showAdd)}
+            <button onClick={() => { if (!showAdd) setForm(f => ({ ...f, date: selectedDay || f.date })); setShowAdd(!showAdd) }}
               className="text-[12px] border border-[#E0197D] text-[#E0197D] px-3 py-1.5 rounded-lg hover:bg-[#FCE4F3]">
               <i className="ti ti-plus"/> הוסף ידנית
             </button>
