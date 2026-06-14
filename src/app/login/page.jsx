@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -9,6 +9,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [checking, setChecking] = useState(true)
+
+  // אם כבר מחובר — להיכנס ישר בלי לבקש התחברות שוב
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) { router.replace('/dashboard'); return }
+      setChecking(false)
+    })
+  }, [router])
 
   async function handleLogin(e) {
     e.preventDefault()
@@ -21,6 +30,14 @@ export default function LoginPage() {
     } else {
       router.push('/dashboard')
     }
+  }
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-[#F8F5F0] flex items-center justify-center" dir="rtl">
+        <div className="text-gray-400 text-sm">טוען…</div>
+      </div>
+    )
   }
 
   return (
