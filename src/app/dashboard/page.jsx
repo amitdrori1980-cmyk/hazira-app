@@ -263,80 +263,28 @@ export default function DashboardPage() {
       {/* Stats */}
       {!query && (
         <>
-          <div className="flex gap-2 mb-4">
-            {[
-              { label: 'משימות פתוחות', value: tasks.length,    href: '/dashboard/tasks' },
-              { label: 'אירועים קרובים', value: events.length,  href: '/dashboard/calendar' },
-              { label: 'הודעות',         value: messages.length, href: '/dashboard/messages' },
-            ].map(s => (
-              <div key={s.label} onClick={() => router.push(s.href)}
-                className="flex-1 min-w-0 bg-white border border-gray-100 rounded-xl p-2 cursor-pointer hover:border-[#E0197D] hover:shadow-sm transition-all overflow-hidden"
-                style={{ borderTop: '2px solid #E0197D' }}>
-                <div className="text-[10px] text-gray-400 mb-1 truncate">{s.label}</div>
-                <div className="text-xl font-medium text-[#E0197D]">{s.value}</div>
-              </div>
-            ))}
-          </div>
-
-          {urgent.length > 0 && (
-            <Card title="דורש טיפול עכשיו" icon="ti-alert-triangle" href="/dashboard/tasks">
-              {urgent.map(t => (
-                <div key={t.id} className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
-                  <span className="flex-1 text-[13px] text-right">{t.title}</span>
-                  <Badge text={t.priority} color={PRI_COLOR[t.priority] || 'bg-gray-100 text-gray-600'} />
+          <Card title="נמצאים באילוצים" icon="ti-ban" href="/dashboard/constraints">
+            {constraints.length === 0 ? (
+              <div className="text-center text-gray-400 text-[13px] py-6">אין אילוצים</div>
+            ) : (() => {
+              const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
+              const byDay = {}
+              constraints.forEach(c => {
+                if (!c.date) return
+                const d = new Date(c.date)
+                const key = c.date
+                const label = HE_DAYS_FULL[d.getDay()] + ' ' + c.date.slice(5).replace('-','/')
+                if (!byDay[key]) byDay[key] = { label, names: [] }
+                byDay[key].names.push(c.crew_name)
+              })
+              return Object.entries(byDay).sort(([a],[b]) => a.localeCompare(b)).map(([key, { label, names }]) => (
+                <div key={key} className="py-2 border-b border-gray-50 last:border-0 text-right">
+                  <div className="text-[11px] text-gray-400 mb-0.5">{label}</div>
+                  <div className="text-[13px] text-gray-800 font-medium">{names.join(', ')}</div>
                 </div>
-              ))}
-            </Card>
-          )}
-
-          {events.length > 0 && (
-            <Card title="האירועים הקרובים" icon="ti-calendar-event" href="/dashboard/calendar">
-              {events.map(e => {
-                const [y,m,d] = e.date.split('-').map(Number)
-                return (
-                  <div key={e.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
-                    <span className="text-[12px] text-gray-400 w-24 text-right">{d} {HE_MONTHS[m-1]}, {e.time?.slice(0,5)}</span>
-                    <span className="flex-1 text-[13px] text-right">{e.title}</span>
-                    <Badge text={TYPE_LABEL[e.type] || e.type} color={TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'} />
-                  </div>
-                )
-              })}
-            </Card>
-          )}
-
-          {messages.length > 0 && (
-            <Card title="הודעות אחרונות" icon="ti-message" href="/dashboard/messages">
-              {messages.map(m => (
-                <div key={m.id} className="p-2.5 bg-gray-50 rounded-lg mb-2 last:mb-0 border-r-2 border-[#E0197D]">
-                  <div className="text-[11px] text-gray-400 mb-1">{m.sender?.full_name || 'מנהל הפקה'}</div>
-                  <div className="text-[13px] text-gray-800 text-right">{m.body}</div>
-                </div>
-              ))}
-            </Card>
-          )}
-
-          {constraints.length > 0 && (
-            <Card title="אילוצים השבוע" icon="ti-ban" href="/dashboard/constraints">
-              {(() => {
-                const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
-                const byDay = {}
-                constraints.forEach(c => {
-                  if (!c.date) return
-                  const d = new Date(c.date)
-                  const key = c.date
-                  const label = HE_DAYS_FULL[d.getDay()] + ' ' + c.date.slice(5).replace('-','/')
-                  if (!byDay[key]) byDay[key] = { label, names: [] }
-                  byDay[key].names.push(c.crew_name)
-                })
-                return Object.entries(byDay).sort(([a],[b]) => a.localeCompare(b)).map(([key, { label, names }]) => (
-                  <div key={key} className="py-2 border-b border-gray-50 last:border-0 text-right">
-                    <div className="text-[11px] text-gray-400 mb-0.5">{label}</div>
-                    <div className="text-[13px] text-gray-800 font-medium">{names.join(', ')}</div>
-                  </div>
-                ))
-              })()}
-            </Card>
-          )}
+              ))
+            })()}
+          </Card>
         </>
       )}
     </div>
