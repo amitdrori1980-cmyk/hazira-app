@@ -453,7 +453,7 @@ export default function CalendarPage() {
                   {profile?.is_manager && (
                     <button onClick={() => addToInquiries(e)} disabled={inqBusy === e.id}
                       className={`p-1 flex-shrink-0 ${inInq(e) ? 'text-[#E0197D]' : 'text-gray-300 hover:text-[#E0197D]'}`}
-                      title={inInq(e) ? 'נמצא בבדיקת פניות — פתח' : 'הוסף לבדיקת פניות'}>
+                      title={inInq(e) ? 'נמצא בהפקה טכנית — פתח' : 'הוסף להפקה טכנית'}>
                       <i className={`ti ${inInq(e) ? 'ti-clipboard-check' : 'ti-clipboard-plus'}`} style={{fontSize:13}}/>
                     </button>
                   )}
