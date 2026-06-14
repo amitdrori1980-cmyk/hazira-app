@@ -158,6 +158,15 @@ export default function CalendarPage() {
   }
 
   useEffect(() => {
+    const day = new URLSearchParams(window.location.search).get('day')
+    if (day && /^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      const [yy, mm] = day.split('-').map(Number)
+      setCalYear(yy); setCalMonth(mm - 1)
+      setSelectedDay(day)
+    }
+  }, [])
+
+  useEffect(() => {
     if (!selectedDay) return
     function onStart(e) { detailTouch.current = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null }
     function onEnd(e) {

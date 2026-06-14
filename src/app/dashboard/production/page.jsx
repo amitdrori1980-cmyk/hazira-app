@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, useRef, Fragment } from 'react'
+import { useRouter } from 'next/navigation'
 import HaziraLogo from '@/components/HaziraLogo'
 import { supabase } from '@/lib/supabase'
 import * as XLSX from 'xlsx-js-style'
@@ -28,6 +29,7 @@ function emptySlots() {
 }
 
 function ProductionInquiries() {
+  const router = useRouter()
   const [events, setEvents]       = useState([])
   const [slots, setSlots]         = useState({})
   const [openEvent, setOpenEvent] = useState(null)
@@ -487,6 +489,9 @@ function ProductionInquiries() {
                 <button onClick={e=>{e.stopPropagation();pushToCalendar(ev)}}
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="עדכן ביומן">
                   <i className="ti ti-calendar-plus" style={{fontSize:13}}/></button>
+                {ev.date && <button onClick={e=>{e.stopPropagation();router.push(`/dashboard/calendar?day=${ev.date}`)}}
+                  className="text-gray-300 hover:text-[#E0197D] p-1" title="הקפצה ליומן (תצוגה יומית)">
+                  <i className="ti ti-external-link" style={{fontSize:13}}/></button>}
                 <button onClick={e=>{e.stopPropagation();setEditingEvent(ev.id);setEditEventVal({event_name:ev.event_name,date:ev.date||'',day:ev.day||'',venue:ev.venue||'',type:ev.type||''})}}
                   className="text-gray-300 hover:text-gray-600 p-1"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
                 <button onClick={e=>{e.stopPropagation();if(window.confirm('למחוק את האירוע?'))deleteEvent(ev.id)}}
