@@ -390,10 +390,10 @@ export default function ConstraintsPage() {
                   {hiddenCrew.size > 0 && <span className="bg-[#6366f1] text-white text-[10px] px-1.5 rounded-full">{hiddenCrew.size}</span>}
                 </button>
                 {showCrewFilter && (() => {
-                  const regSet = new Set()
-                  crew.forEach(m => { if (m.display) regSet.add(m.display.trim()); if (m.full_name) regSet.add(m.full_name.trim()) })
+                  const HAZIRA_CREW = ['עמית','לאה','עינת','נועה','דונדו','ניב','מרקו','איתן','דניאל ק']
+                  const regSet = new Set(HAZIRA_CREW)
                   const allNames = [...new Set(constraints.map(c=>c.crew_name).filter(Boolean))]
-                  const regNames = allNames.filter(n => regSet.has((n||'').trim())).sort((a,b)=>a.localeCompare(b,'he'))
+                  const regNames = HAZIRA_CREW
                   const otherNames = allNames.filter(n => !regSet.has((n||'').trim()))
                   const otherShown = otherNames.some(n => !hiddenCrew.has(n))
                   return (
