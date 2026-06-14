@@ -56,6 +56,7 @@ function ProductionInquiries() {
   const [dragOver, setDragOver] = useState({ id: null, after: false })
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState(new Set())
+  const [bulkBusy, setBulkBusy] = useState(false)
   const [printMode, setPrintMode] = useState(null)
   const [flashId, setFlashId] = useState(null)
 
@@ -241,6 +242,20 @@ function ProductionInquiries() {
       if (r.error) errors++
       else { ok++; if (r.created) created++; totalConfirmed += (r.confirmed || 0) }
     }
+    alert(`עודכנו ${ok} אירועים — ליומן ולאילוצים` + (created ? ` (${created} חדשים)` : '') + `, ובסך הכול ${totalConfirmed} אישורי צוות` + (errors ? `. ${errors} נכשלו.` : '.'))
+  }
+
+  async function pushAllToCalendar() {
+    if (!activeEvents.length) return
+    if (!window.confirm(`לעדכן את כל ${activeEvents.length} האירועים בהפקה הטכנית — ליומן ולאילוצים?`)) return
+    setBulkBusy(true)
+    let ok = 0, created = 0, totalConfirmed = 0, errors = 0
+    for (const ev of activeEvents) {
+      const r = await syncEventToCalendarAndConstraints(ev)
+      if (r.error) errors++
+      else { ok++; if (r.created) created++; totalConfirmed += (r.confirmed || 0) }
+    }
+    setBulkBusy(false)
     alert(`עודכנו ${ok} אירועים — ליומן ולאילוצים` + (created ? ` (${created} חדשים)` : '') + `, ובסך הכול ${totalConfirmed} אישורי צוות` + (errors ? `. ${errors} נכשלו.` : '.'))
   }
 
@@ -510,6 +525,10 @@ function ProductionInquiries() {
             </button>
           </>
         )}
+        <button onClick={pushAllToCalendar} disabled={bulkBusy || activeEvents.length===0}
+          className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1 disabled:opacity-50">
+          <i className="ti ti-calendar-check"/> {bulkBusy ? 'מעדכן…' : 'עדכן הכל ליומן ואילוצים'}
+        </button>
         <button onClick={openImport}
           className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1">
           <i className="ti ti-calendar-down"/> ייבא מהיומן
