@@ -60,7 +60,7 @@ export default function CalendarPage() {
       setVenues((vs||[]).map(v => v.name))
       const { data: ts } = await supabase.from('event_types').select('*').order('sort_order')
       setEventTypes(ts || [])
-      const { data: pe } = await supabase.from('production_events').select('event_name, date')
+      const { data: pe } = await supabase.from('production_events').select('event_name, date').is('deleted_at', null)
       setInqRows(pe || [])
     }
     load()

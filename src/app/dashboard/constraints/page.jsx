@@ -70,7 +70,7 @@ export default function ConstraintsPage() {
       supabase.from('profiles').select('id,full_name,dept,is_manager').order('full_name'),
       supabase.from('crew_members').select('id,full_name').order('full_name'),
       supabase.from('user_area_access').select('user_id').eq('area','operations'),
-      supabase.from('production_events').select('event_name, date'),
+      supabase.from('production_events').select('event_name, date').is('deleted_at', null),
     ])
     const me = (profs || []).find(p => p.id === user?.id)
     setIsManager(!!me?.is_manager)
