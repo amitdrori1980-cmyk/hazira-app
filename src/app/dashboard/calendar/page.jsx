@@ -24,6 +24,7 @@ export default function CalendarPage() {
   const [calYear, setCalYear] = useState(new Date().getFullYear())
   const [calMonth, setCalMonth] = useState(new Date().getMonth())
   const [selectedDay, setSelectedDay] = useState(null)
+  const [flashEv, setFlashEv] = useState(null)
   const [viewMode, setViewMode] = useState('month')
   const [weekAnchor, setWeekAnchor] = useState(null)
   const [venues, setVenues] = useState([])
@@ -158,11 +159,17 @@ export default function CalendarPage() {
   }
 
   useEffect(() => {
-    const day = new URLSearchParams(window.location.search).get('day')
+    const params = new URLSearchParams(window.location.search)
+    const day = params.get('day')
     if (day && /^\d{4}-\d{2}-\d{2}$/.test(day)) {
       const [yy, mm] = day.split('-').map(Number)
       setCalYear(yy); setCalMonth(mm - 1)
       setSelectedDay(day)
+      const ev = params.get('ev')
+      if (ev) {
+        setFlashEv(decodeURIComponent(ev).trim())
+        setTimeout(() => setFlashEv(null), 4000)
+      }
     }
   }, [])
 
@@ -446,7 +453,7 @@ export default function CalendarPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {selectedEvents.map(e => (
-                <div key={e.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border-r-2 border-[#E0197D] flex-row-reverse">
+                <div key={e.id} className={`flex items-start gap-3 p-3 rounded-lg border-r-2 border-[#E0197D] flex-row-reverse transition-all duration-300 ${flashEv && (e.title||'').trim()===flashEv ? 'bg-[#FCE4F3] ring-2 ring-[#E0197D] shadow-md' : 'bg-gray-50'}`}>
                   {profile?.is_manager && (
                     <button onClick={async()=>{if(window.confirm('למחוק את "'+e.title+'"?'))await supabase.from('events').delete().eq('id',e.id).then(()=>setEvents(prev=>prev.filter(ev=>ev.id!==e.id)))}}
                       className="text-gray-300 hover:text-red-500 p-1 flex-shrink-0">

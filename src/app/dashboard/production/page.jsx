@@ -489,7 +489,7 @@ function ProductionInquiries() {
                 <button onClick={e=>{e.stopPropagation();pushToCalendar(ev)}}
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="עדכן ביומן">
                   <i className="ti ti-calendar-plus" style={{fontSize:13}}/></button>
-                {ev.date && <button onClick={e=>{e.stopPropagation();router.push(`/dashboard/calendar?day=${ev.date}`)}}
+                {ev.date && <button onClick={e=>{e.stopPropagation();router.push(`/dashboard/calendar?day=${ev.date}&ev=${encodeURIComponent(ev.event_name)}`)}}
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="הקפצה ליומן (תצוגה יומית)">
                   <i className="ti ti-external-link" style={{fontSize:13}}/></button>}
                 <button onClick={e=>{e.stopPropagation();setEditingEvent(ev.id);setEditEventVal({event_name:ev.event_name,date:ev.date||'',day:ev.day||'',venue:ev.venue||'',type:ev.type||''})}}
