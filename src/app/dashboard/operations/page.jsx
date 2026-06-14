@@ -801,7 +801,7 @@ export default function OperationsPage() {
                         ) : (row.time && <span className="whitespace-nowrap">{row.time}</span>)}
                       </div>
                       {isManager && (
-                        <div className="flex flex-col gap-1.5 mt-1.5 items-end">
+                        <div className="flex flex-col gap-1.5 mt-1.5 items-start">
                           <button onClick={() => sendRowToCrew(row)}
                             className={`text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1 w-max ${row.sent_to_crew ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3]'}`}>
                             <i className={`ti ${row.sent_to_crew ? 'ti-check' : 'ti-send'}`} style={{fontSize:12}}/> {row.sent_to_crew ? 'נשלח לצוות' : 'שלח לצוות'}
