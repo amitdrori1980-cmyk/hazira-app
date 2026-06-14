@@ -198,7 +198,7 @@ function ProductionInquiries() {
         title: ev.event_name,
         date: ev.date || null,
         time: null,
-        type: ev.type || 'show',
+        type: ev.type || null,
         venue: ev.venue || null,
         crew_notes: crewList || null,
       })
