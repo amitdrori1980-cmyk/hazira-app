@@ -80,15 +80,11 @@ export default function DashboardLayout({ children }) {
   }
 
   useEffect(() => {
+    const { data: authSub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') router.push('/login')
+    })
     supabase.auth.getSession().then(async ({ data: sessionData }) => {
-      if (!sessionData.session) {
-        supabase.auth.onAuthStateChange((event, session) => {
-          if (!session) router.push('/login')
-        })
-        return
-      }
-      const data = { user: sessionData.session.user }
-      supabase.auth.getUser().then(async ({ data }) => {
+      const data = { user: sessionData.session?.user }
       if (!data.user) { router.push('/login'); return }
       setUser(data.user)
 
@@ -156,7 +152,7 @@ export default function DashboardLayout({ children }) {
       localStorage.setItem('notif-count', count || 0)
       setUnread(count || 0)
     })
-    })
+    return () => { try { authSub?.subscription?.unsubscribe() } catch(e) {} }
   }, [])
 
   useEffect(() => {
