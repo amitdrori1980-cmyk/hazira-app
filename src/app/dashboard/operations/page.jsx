@@ -534,7 +534,7 @@ export default function OperationsPage() {
     setInquiries(prev => prev.map(i => i.id === id ? { ...i, status } : i))
   }
 
-  const BOARD_CATS = [{ key: 'bar', label: 'בר / קופה', min: 5, w: 'w-full md:w-[420px]' }, { key: 'evening', label: 'ניהול ערב', min: 4, w: 'w-full md:w-[348px]' }, { key: 'other', label: 'אחר', min: 2, w: 'w-full md:w-[196px]' }]
+  const BOARD_CATS = [{ key: 'bar', label: 'בר / קופה', min: 5, w: 'w-full md:w-[296px]' }, { key: 'evening', label: 'ניהול ערב', min: 4, w: 'w-full md:w-[296px]' }, { key: 'other', label: 'אחר', min: 2, w: 'w-full md:w-[160px]' }]
 
   function catForRole(role) {
     const r = (role || '')
@@ -790,7 +790,7 @@ export default function OperationsPage() {
             return rows.map(row => (
               <div key={row.id} className="bg-white border border-black/20 rounded-xl overflow-x-auto mb-3">
                 <div className="flex flex-col md:flex-row md:items-stretch w-full md:w-max md:min-w-full text-[12px]">
-                  <div className="md:sticky md:right-0 z-10 bg-white px-4 py-2.5 border-b-2 md:border-b-0 md:border-l-2 border-gray-200 w-full md:w-auto md:min-w-[300px] flex items-center justify-between gap-2">
+                  <div className="md:sticky md:right-0 z-10 bg-white px-4 py-2.5 border-b-2 md:border-b-0 md:border-l-2 border-gray-200 w-full md:w-auto md:min-w-[250px] flex items-center justify-between gap-2">
                     <div className="text-right min-w-0">
                       <div className="text-[14px] font-semibold text-gray-800 truncate">{row.event_name}</div>
                       <div className="text-[12px] text-gray-500 flex gap-2 justify-end items-center flex-wrap mt-0.5">
@@ -835,7 +835,7 @@ export default function OperationsPage() {
                             if (!member) {
                               return (
                                 <button key={slot.id} disabled={!isManager} onClick={() => setColorMenu(slot)}
-                                  className="w-[56px] md:w-[72px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
+                                  className="w-[56px] md:w-[60px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
                               )
                             }
                             const bg = slot.status === 'approved' ? 'bg-yellow-200 text-yellow-900'
@@ -843,24 +843,24 @@ export default function OperationsPage() {
                               : 'bg-gray-100 text-gray-600'
                             return (
                               <button key={slot.id} disabled={!canOpen} onClick={() => setColorMenu(slot)}
-                                className={`w-[56px] md:w-[72px] text-center truncate px-1 py-1 rounded text-[14px] ${bg} ${slot.selected ? 'ring-2 ring-[#E0197D]' : ''} ${canOpen ? 'hover:opacity-80' : ''}`}>
+                                className={`w-[56px] md:w-[60px] text-center truncate px-1 py-1 rounded text-[14px] ${bg} ${slot.selected ? 'ring-2 ring-[#E0197D]' : ''} ${canOpen ? 'hover:opacity-80' : ''}`}>
                                 {member.full_name.split(' ')[0]}
                               </button>
                             )
                           })}
                           {Array.from({ length: pad }).map((_, i) => (
                             <button key={'ph' + i} onClick={() => addSlot(row.id, cat.key)}
-                              className="w-[56px] md:w-[72px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-300 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
+                              className="w-[56px] md:w-[60px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-300 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
                           ))}
                           {isManager && pad === 0 && (
                             <button onClick={() => addSlot(row.id, cat.key)}
-                              className="w-[56px] md:w-[72px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
+                              className="w-[56px] md:w-[60px] text-center px-1 py-1 rounded text-[14px] border border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D]">+</button>
                           )}
                         </div>
                       </div>
                     )
                   })}
-                  <div className="px-4 py-2.5 w-full md:w-auto md:flex-1 md:min-w-[220px]">
+                  <div className="px-4 py-2.5 w-full md:w-auto md:flex-1 md:min-w-[180px]">
                     <div className="text-[11px] font-semibold text-gray-400 text-right mb-1.5">הערות</div>
                     {isManager ? (
                       <textarea key={row.id + '-bnotes'} defaultValue={row.notes || ''} onBlur={e => updateBoardRow(row.id, 'notes', e.target.value)}
