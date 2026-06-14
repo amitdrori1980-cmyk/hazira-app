@@ -410,7 +410,7 @@ export default function ConstraintsPage() {
                   const otherNames = allNames.filter(n => !regSet.has((n||'').trim()))
                   const otherShown = otherNames.some(n => !hiddenCrew.has(n))
                   return (
-                  <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-3 w-[210px] max-w-[calc(100vw-1.5rem)] max-h-[70vh] overflow-y-auto">
+                  <div className="absolute top-full left-0 sm:left-auto sm:right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-3 w-[210px] max-w-[calc(100vw-1.5rem)] max-h-[70vh] overflow-y-auto">
                     <div className="flex justify-between items-center mb-2">
                       <button onClick={()=>setHiddenCrew(new Set())} className="text-[11px] text-[#6366f1]">הצג הכל</button>
                       <button onClick={()=>setHiddenCrew(new Set(allNames))} className="text-[11px] text-gray-400">הסתר הכל</button>
