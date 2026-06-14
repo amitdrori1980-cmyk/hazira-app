@@ -751,7 +751,7 @@ export default function OperationsPage() {
                     placeholder="חיפוש מופע..." dir="rtl"
                     className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2"/>
                   <div className="max-h-48 overflow-y-auto flex flex-col gap-1 mb-4">
-                    {showEvents.filter(ev => !boardImportSearch || (ev.title || '').includes(boardImportSearch)).map(ev => (
+                    {showEvents.filter(ev => ev.date && ev.date >= new Date().toLocaleDateString('en-CA') && (!boardImportSearch || (ev.title || '').includes(boardImportSearch))).map(ev => (
                       <div key={ev.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg flex-row-reverse">
                         <div className="flex-1 text-right min-w-0">
                           <div className="text-[13px] text-gray-800 truncate">{ev.title}</div>
