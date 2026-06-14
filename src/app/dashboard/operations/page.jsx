@@ -731,7 +731,7 @@ export default function OperationsPage() {
                 <div className="flex items-center gap-2 flex-row-reverse">
                   <button onClick={() => setBoardAddFor(true)}
                     className="bg-[#E0197D] text-white text-[13px] px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1">
-                    <i className="ti ti-plus" style={{fontSize:14}}/> הוסף שורה
+                    <i className="ti ti-plus" style={{fontSize:14}}/> ייבא מהיומן
                   </button>
                   {boardRows.length > 0 && (
                     <button onClick={fillAllByRoles}
@@ -743,7 +743,7 @@ export default function OperationsPage() {
               ) : (
                 <div className="bg-white border border-gray-100 rounded-xl p-4 max-w-lg">
                   <div className="flex items-center justify-between mb-3 flex-row-reverse">
-                    <div className="text-[13px] font-medium text-gray-700">הוסף שורה</div>
+                    <div className="text-[13px] font-medium text-gray-700">ייבא מהיומן</div>
                     <button onClick={() => setBoardAddFor(false)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{fontSize:16}}/></button>
                   </div>
                   <div className="text-[11px] font-semibold text-gray-500 mb-1 text-right">מתוך אירועי מופע</div>
@@ -786,7 +786,7 @@ export default function OperationsPage() {
 
           {(() => {
             const rows = isManager ? boardRows : boardRows.filter(r => r.sent_to_crew && boardSlots.some(s => s.row_id === r.id && s.member_id === myMember?.id))
-            if (rows.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין שורות — לחץ "הוסף שורה"' : 'אין שיבוצים עבורך'}</div>
+            if (rows.length === 0) return <div className="text-center text-[13px] text-gray-400 py-8">{isManager ? 'אין שורות — לחץ "ייבא מהיומן"' : 'אין שיבוצים עבורך'}</div>
             return rows.map(row => (
               <div key={row.id} className="bg-white border border-black/20 rounded-xl overflow-x-auto mb-3">
                 <div className="flex flex-col md:flex-row md:items-stretch w-full md:w-max md:min-w-full text-[12px]">
