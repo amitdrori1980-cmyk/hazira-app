@@ -122,6 +122,19 @@ export default function ConstraintsPage() {
   const touchStart = useRef(null)
   const detailRef = useRef(null)
   const detailTouch = useRef(null)
+  const crewFilterRef = useRef(null)
+  useEffect(() => {
+    if (!showCrewFilter) return
+    function onDocClick(e) {
+      if (crewFilterRef.current && !crewFilterRef.current.contains(e.target)) setShowCrewFilter(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    document.addEventListener('touchstart', onDocClick)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('touchstart', onDocClick)
+    }
+  }, [showCrewFilter])
   useEffect(() => {
     const el = gridRef.current
     if (!el) return
@@ -382,7 +395,7 @@ export default function ConstraintsPage() {
               הצג אילוצים
             </label>
             {showConstraints && (
-              <div className="relative">
+              <div className="relative" ref={crewFilterRef}>
                 <button onClick={()=>setShowCrewFilter(p=>!p)}
                   className="text-[12px] text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:border-[#6366f1] flex items-center gap-1">
                   <i className="ti ti-users" style={{fontSize:13}}/>
@@ -397,7 +410,7 @@ export default function ConstraintsPage() {
                   const otherNames = allNames.filter(n => !regSet.has((n||'').trim()))
                   const otherShown = otherNames.some(n => !hiddenCrew.has(n))
                   return (
-                  <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-3 w-[200px] max-w-[calc(100vw-2rem)]">
+                  <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-3 w-[210px] max-w-[calc(100vw-1.5rem)] max-h-[70vh] overflow-y-auto">
                     <div className="flex justify-between items-center mb-2">
                       <button onClick={()=>setHiddenCrew(new Set())} className="text-[11px] text-[#6366f1]">הצג הכל</button>
                       <button onClick={()=>setHiddenCrew(new Set(allNames))} className="text-[11px] text-gray-400">הסתר הכל</button>
