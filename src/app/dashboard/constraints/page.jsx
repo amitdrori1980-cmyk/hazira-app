@@ -670,7 +670,7 @@ export default function ConstraintsPage() {
                   <span className="text-[11px] text-gray-700">{e.time?.slice(0,5)}</span>
                   {isManager && (
                     <button onClick={()=>jumpToInquiry(e)}
-                      title={inInq(e) ? 'נמצא בבדיקת פניות — הקפץ' : 'הקפצה לבדיקת פניות'}
+                      title={inInq(e) ? 'נמצא בהפקה טכנית — הקפץ' : 'הקפצה להפקה טכנית'}
                       className={`p-1 flex-shrink-0 ${inInq(e) ? 'text-[#E0197D]' : 'text-gray-300 hover:text-[#E0197D]'}`}>
                       <i className={`ti ${inInq(e) ? 'ti-clipboard-check' : 'ti-clipboard-plus'}`} style={{fontSize:14}}/>
                     </button>
