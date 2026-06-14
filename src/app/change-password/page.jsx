@@ -13,9 +13,10 @@ export default function ChangePasswordPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) { router.push('/login'); return }
-      setEmail(data.user.email || '')
+    supabase.auth.getSession().then(({ data }) => {
+      const user = data.session?.user
+      if (!user) { router.push('/login'); return }
+      setEmail(user.email || '')
       setReady(true)
     })
   }, [router])
