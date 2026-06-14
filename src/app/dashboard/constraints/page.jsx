@@ -389,13 +389,20 @@ export default function ConstraintsPage() {
                   סינון עובדים
                   {hiddenCrew.size > 0 && <span className="bg-[#6366f1] text-white text-[10px] px-1.5 rounded-full">{hiddenCrew.size}</span>}
                 </button>
-                {showCrewFilter && (
+                {showCrewFilter && (() => {
+                  const regSet = new Set()
+                  crew.forEach(m => { if (m.display) regSet.add(m.display.trim()); if (m.full_name) regSet.add(m.full_name.trim()) })
+                  const allNames = [...new Set(constraints.map(c=>c.crew_name).filter(Boolean))]
+                  const regNames = allNames.filter(n => regSet.has((n||'').trim())).sort((a,b)=>a.localeCompare(b,'he'))
+                  const otherNames = allNames.filter(n => !regSet.has((n||'').trim()))
+                  const otherShown = otherNames.some(n => !hiddenCrew.has(n))
+                  return (
                   <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-3 w-[200px] max-w-[calc(100vw-2rem)]">
                     <div className="flex justify-between items-center mb-2">
                       <button onClick={()=>setHiddenCrew(new Set())} className="text-[11px] text-[#6366f1]">הצג הכל</button>
-                      <button onClick={()=>setHiddenCrew(new Set([...new Set(constraints.map(c=>c.crew_name))]))} className="text-[11px] text-gray-400">הסתר הכל</button>
+                      <button onClick={()=>setHiddenCrew(new Set(allNames))} className="text-[11px] text-gray-400">הסתר הכל</button>
                     </div>
-                    {[...new Set(constraints.map(c=>c.crew_name))].sort().map(name=>(
+                    {regNames.map(name=>(
                       <label key={name} className="flex items-center gap-2 py-1 cursor-pointer">
                         <input type="checkbox" checked={!hiddenCrew.has(name)}
                           onChange={()=>setHiddenCrew(prev=>{const n=new Set(prev);n.has(name)?n.delete(name):n.add(name);return n})}
@@ -403,8 +410,17 @@ export default function ConstraintsPage() {
                         <span className="text-[13px] text-gray-700">{name}</span>
                       </label>
                     ))}
+                    {otherNames.length > 0 && (
+                      <label className="flex items-center gap-2 py-1 cursor-pointer border-t border-gray-100 mt-1 pt-2">
+                        <input type="checkbox" checked={otherShown}
+                          onChange={()=>setHiddenCrew(prev=>{const n=new Set(prev);if(otherShown){otherNames.forEach(x=>n.add(x))}else{otherNames.forEach(x=>n.delete(x))}return n})}
+                          style={{accentColor:'#6366f1'}} className="w-3.5 h-3.5"/>
+                        <span className="text-[13px] text-gray-700">אחר</span>
+                      </label>
+                    )}
                   </div>
-                )}
+                  )
+                })()}
               </div>
             )}
           </div>
