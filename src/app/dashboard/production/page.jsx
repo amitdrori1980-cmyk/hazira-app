@@ -271,6 +271,22 @@ function ProductionInquiries() {
     const ts = new Date().toISOString()
     const { error } = await supabase.from('production_events').update({ deleted_at: ts }).eq('id', id)
     if (error) { alert('שגיאה במחיקה: ' + error.message); return }
+    // מחיקת שורת הצוות המקבילה ביומן + שורות "נמצא" אוטומטיות שהאירוע יצר באילוצים
+    const ev = events.find(e => e.id === id)
+    if (ev) {
+      const target = (ev.event_name || '').trim()
+      let q = supabase.from('events').select('id, title, crew_notes')
+      if (ev.date) q = q.eq('date', ev.date)
+      const { data: rows } = await q
+      const match = (rows || []).find(r => (r.title || '').trim() === target)
+      if (match && (match.crew_notes || '').startsWith('צוות:')) {
+        await supabase.from('events').update({ crew_notes: null }).eq('id', match.id)
+      }
+      if (ev.date) {
+        await supabase.from('crew_constraints').delete()
+          .eq('date', ev.date).eq('notes', ev.event_name).eq('available', true).is('crew_member_id', null)
+      }
+    }
     setEvents(prev => prev.map(e => e.id === id ? { ...e, deleted_at: ts } : e))
     if (openEvent === id) setOpenEvent(null)
   }
