@@ -184,11 +184,12 @@ function ProductionInquiries() {
     const confirmed = evSlots.filter(s => s.status === 'yellow' && s.name.trim()).map(s => s.name.trim())
     const crewList = confirmed.length ? 'צוות: ' + confirmed.join(', ') : ''
 
-    // בדיקה אם האירוע כבר קיים ביומן (לפי שם + תאריך)
-    let q = supabase.from('events').select('id').eq('title', ev.event_name)
+    // בדיקה אם האירוע כבר קיים ביומן (לפי שם מנורמל + תאריך)
+    const target = (ev.event_name || '').trim()
+    let q = supabase.from('events').select('id, title')
     if (ev.date) q = q.eq('date', ev.date)
     const { data: existingRows } = await q
-    const existing = existingRows && existingRows[0]
+    const existing = (existingRows || []).find(r => (r.title || '').trim() === target)
 
     if (existing) {
       const { error } = await supabase.from('events').update({ crew_notes: crewList || null }).eq('id', existing.id)
