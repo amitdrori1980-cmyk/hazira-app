@@ -143,6 +143,7 @@ function Campaign() {
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState({})
   const [form, setForm] = useState({ title: '', start: '', end: '' })
+  const [sel, setSel] = useState({})
   const [busy, setBusy] = useState(false)
 
   useEffect(() => { load() }, [])
@@ -190,6 +191,16 @@ function Campaign() {
   function datesOf(c) {
     const out = []; let d = c.start_date; let g = 0
     while (d <= c.end_date && g < 400) { out.push(d); d = toStr(addDays(d, 1)); g++ }
+    return out
+  }
+  function monthsOf(c) {
+    const out = []
+    const [sy, sm] = c.start_date.split('-').map(Number)
+    const [ey, em] = c.end_date.split('-').map(Number)
+    let y = sy, m = sm, g = 0
+    while ((y < ey || (y === ey && m <= em)) && g < 60) {
+      out.push({ y, m }); m++; if (m > 12) { m = 1; y++ } ; g++
+    }
     return out
   }
 
@@ -240,37 +251,75 @@ function Campaign() {
               </button>
               <button onClick={() => deleteCampaign(c.id)} className="text-gray-300 hover:text-red-500 p-1"><i className="ti ti-trash" style={{ fontSize: 15 }} /></button>
             </div>
-            {isOpen && (
-              <div className="border-t border-gray-100 px-3 py-2 flex flex-col">
-                {datesOf(c).map(ds => {
-                  const dayActions = cActions.filter(a => a.date === ds)
-                  return (
-                    <div key={ds} className="py-2 border-b border-gray-100 last:border-0">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="text-[12px] font-medium text-gray-600">יום {dayName(ds)} · {fmtShort(ds)}</div>
-                        <button onClick={() => addAction(c.id, ds)} className="text-[11px] text-[#E0197D] hover:text-[#A0106A] flex items-center gap-0.5"><i className="ti ti-plus" style={{ fontSize: 12 }} /> הוסף שורת פעולה</button>
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        {dayActions.length === 0 && <div className="text-[11px] text-gray-300">אין פעולות</div>}
-                        {dayActions.map(a => (
-                          <div key={a.id} className="flex items-center gap-2">
-                            <button onClick={() => updateAction(a.id, { done: !a.done })}
-                              className={`text-[11px] px-2 py-1 rounded-lg border flex items-center gap-1 shrink-0 ${a.done ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
-                              <i className={`ti ${a.done ? 'ti-check' : 'ti-circle'}`} style={{ fontSize: 12 }} /> בוצע
-                            </button>
-                            <input value={a.label || ''} onChange={e => setActions(prev => prev.map(x => x.id === a.id ? { ...x, label: e.target.value } : x))} onBlur={e => updateAction(a.id, { label: e.target.value })}
-                              placeholder="פעולה" className="flex-1 min-w-0 text-[13px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
-                            <input value={a.free_text || ''} onChange={e => setActions(prev => prev.map(x => x.id === a.id ? { ...x, free_text: e.target.value } : x))} onBlur={e => updateAction(a.id, { free_text: e.target.value })}
-                              placeholder="הערות" className="flex-1 min-w-0 text-[13px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
-                            <button onClick={() => deleteAction(a.id)} className="text-gray-300 hover:text-red-500 shrink-0"><i className="ti ti-trash" style={{ fontSize: 13 }} /></button>
+            {isOpen && (() => {
+              const selDate = sel[c.id] || c.start_date
+              const selActions = cActions.filter(a => a.date === selDate)
+              const WD = ['א','ב','ג','ד','ה','ו','ש']
+              return (
+                <div className="border-t border-gray-100 px-3 py-3">
+                  <div className="flex flex-wrap gap-5 justify-center" dir="rtl">
+                    {monthsOf(c).map(({ y, m }) => {
+                      const mm = String(m).padStart(2, '0')
+                      const daysInMonth = new Date(y, m, 0).getDate()
+                      const firstDow = new Date(y, m - 1, 1).getDay()
+                      const cells = []
+                      for (let i = 0; i < firstDow; i++) cells.push(null)
+                      for (let d = 1; d <= daysInMonth; d++) cells.push(`${y}-${mm}-${String(d).padStart(2, '0')}`)
+                      return (
+                        <div key={`${y}-${mm}`} className="w-[252px]">
+                          <div className="text-center text-[13px] font-bold text-gray-700 mb-2">{HE_MONTHS[m - 1]} {y}</div>
+                          <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-400 mb-1">
+                            {WD.map(d => <div key={d}>{d}</div>)}
                           </div>
-                        ))}
-                      </div>
+                          <div className="grid grid-cols-7 gap-1">
+                            {cells.map((ds, i) => {
+                              if (!ds) return <div key={i} />
+                              const dnum = Number(ds.split('-')[2])
+                              const inRange = ds >= c.start_date && ds <= c.end_date
+                              if (!inRange) return <div key={i} className="h-9 flex items-center justify-center text-[11px] text-gray-200">{dnum}</div>
+                              const dayActs = cActions.filter(a => a.date === ds)
+                              const hasActs = dayActs.length > 0
+                              const allDone = hasActs && dayActs.every(a => a.done)
+                              const isSel = ds === selDate
+                              return (
+                                <button key={i} onClick={() => setSel(o => ({ ...o, [c.id]: ds }))}
+                                  className={`h-9 rounded-lg flex flex-col items-center justify-center border transition-colors ${isSel ? 'bg-[#E0197D] text-white border-[#E0197D]' : hasActs ? (allDone ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A]' : 'bg-pink-50 border-pink-100 text-[#A0106A]') : 'bg-white border-gray-100 text-gray-600 hover:border-[#E0197D]'}`}>
+                                  <span className="text-[12px] leading-none">{dnum}</span>
+                                  {hasActs && <span className={`text-[9px] leading-none mt-0.5 ${isSel ? 'text-white' : 'text-[#E0197D]'}`}>{dayActs.filter(a => a.done).length}/{dayActs.length}</span>}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <div className="mt-4 border-t border-gray-100 pt-3" dir="rtl">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-[13px] font-bold text-gray-700">יום {dayName(selDate)} · {fmtDate(selDate)}</div>
+                      <button onClick={() => addAction(c.id, selDate)} className="text-[12px] text-[#E0197D] hover:text-[#A0106A] flex items-center gap-0.5"><i className="ti ti-plus" style={{ fontSize: 13 }} /> הוסף שורת פעולה</button>
                     </div>
-                  )
-                })}
-              </div>
-            )}
+                    <div className="flex flex-col gap-1.5">
+                      {selActions.length === 0 && <div className="text-[12px] text-gray-300">אין פעולות ביום זה — הוסף שורת פעולה</div>}
+                      {selActions.map(a => (
+                        <div key={a.id} className="flex items-center gap-2">
+                          <button onClick={() => updateAction(a.id, { done: !a.done })}
+                            className={`text-[11px] px-2 py-1 rounded-lg border flex items-center gap-1 shrink-0 ${a.done ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+                            <i className={`ti ${a.done ? 'ti-check' : 'ti-circle'}`} style={{ fontSize: 12 }} /> בוצע
+                          </button>
+                          <input value={a.label || ''} onChange={e => setActions(prev => prev.map(x => x.id === a.id ? { ...x, label: e.target.value } : x))} onBlur={e => updateAction(a.id, { label: e.target.value })}
+                            placeholder="פעולה" className="flex-1 min-w-0 text-[13px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+                          <input value={a.free_text || ''} onChange={e => setActions(prev => prev.map(x => x.id === a.id ? { ...x, free_text: e.target.value } : x))} onBlur={e => updateAction(a.id, { free_text: e.target.value })}
+                            placeholder="הערות" className="flex-1 min-w-0 text-[13px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+                          <button onClick={() => deleteAction(a.id)} className="text-gray-300 hover:text-red-500 shrink-0"><i className="ti ti-trash" style={{ fontSize: 13 }} /></button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         )
       })}
