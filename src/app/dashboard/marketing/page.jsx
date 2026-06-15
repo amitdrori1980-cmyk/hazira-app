@@ -358,10 +358,45 @@ function Campaign() {
                           <button disabled={wk <= firstWk} onClick={() => go(-1)}
                             className="text-[12px] px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[#E0197D] disabled:opacity-30">קודם ›</button>
                         </div>
-                        <div className="flex flex-col gap-2">
-                          {inWeek.length === 0 && <div className="text-center text-gray-300 text-[12px] py-4">אין ימים מהקמפיין בשבוע זה</div>}
-                          {inWeek.map(ds => dayEditor(ds))}
-                        </div>
+                        {inWeek.length === 0 ? (
+                          <div className="text-center text-gray-300 text-[12px] py-4">אין ימים מהקמפיין בשבוע זה</div>
+                        ) : (
+                          <div className="overflow-x-auto pb-1">
+                            <div className="flex gap-2 min-w-[840px]">
+                              {weekDays.map(ds => {
+                                const inRange = ds >= c.start_date && ds <= c.end_date
+                                const acts = cActions.filter(a => a.date === ds)
+                                return (
+                                  <div key={ds} className={`flex-1 min-w-[120px] rounded-xl border overflow-hidden ${inRange ? 'border-gray-200' : 'border-gray-100'}`}>
+                                    <div className={`text-center py-1.5 text-[12px] font-bold ${inRange ? 'bg-[#FCE4F3] text-[#A0106A]' : 'bg-gray-50 text-gray-300'}`}>
+                                      <div>{dayName(ds)}</div>
+                                      <div className="text-[11px] font-normal">{fmtShort(ds)}</div>
+                                    </div>
+                                    {inRange && (
+                                      <div className="p-1.5 flex flex-col gap-1.5">
+                                        {acts.map(a => (
+                                          <div key={a.id} className={`rounded-lg border p-1.5 flex flex-col gap-1 ${a.done ? 'bg-[#FCE4F3] border-[#F3C9E2]' : 'bg-gray-50 border-gray-200'}`}>
+                                            <div className="flex items-center justify-between">
+                                              <button onClick={() => updateAction(a.id, { done: !a.done })} className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-0.5 ${a.done ? 'bg-white border-[#F3C9E2] text-[#A0106A]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}><i className={`ti ${a.done ? 'ti-check' : 'ti-circle'}`} style={{ fontSize: 11 }} /> בוצע</button>
+                                              <button onClick={() => deleteAction(a.id)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{ fontSize: 12 }} /></button>
+                                            </div>
+                                            <input value={a.label || ''} onChange={e => setActions(prev => prev.map(x => x.id === a.id ? { ...x, label: e.target.value } : x))} onBlur={e => updateAction(a.id, { label: e.target.value })}
+                                              placeholder="פעולה" className="w-full text-[12px] px-1.5 py-1 border border-gray-200 rounded bg-white outline-none focus:border-[#E0197D] text-right" />
+                                            <input value={a.free_text || ''} onChange={e => setActions(prev => prev.map(x => x.id === a.id ? { ...x, free_text: e.target.value } : x))} onBlur={e => updateAction(a.id, { free_text: e.target.value })}
+                                              placeholder="הערות" className="w-full text-[11px] px-1.5 py-1 border border-gray-200 rounded bg-white outline-none focus:border-[#E0197D] text-right text-gray-500" />
+                                          </div>
+                                        ))}
+                                        <button onClick={() => addAction(c.id, ds)} className="text-[11px] text-[#E0197D] hover:text-[#A0106A] flex items-center justify-center gap-0.5 py-1.5 border border-dashed border-[#F3C9E2] rounded-lg">
+                                          <i className="ti ti-plus" style={{ fontSize: 12 }} /> פעולה
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )
                   })()}
