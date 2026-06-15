@@ -266,26 +266,26 @@ function Campaign() {
                       for (let i = 0; i < firstDow; i++) cells.push(null)
                       for (let d = 1; d <= daysInMonth; d++) cells.push(`${y}-${mm}-${String(d).padStart(2, '0')}`)
                       return (
-                        <div key={`${y}-${mm}`} className="w-[252px]">
-                          <div className="text-center text-[13px] font-bold text-gray-700 mb-2">{HE_MONTHS[m - 1]} {y}</div>
-                          <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-400 mb-1">
+                        <div key={`${y}-${mm}`} className="w-[340px]">
+                          <div className="text-center text-[15px] font-bold text-gray-700 mb-3">{HE_MONTHS[m - 1]} {y}</div>
+                          <div className="grid grid-cols-7 gap-1.5 text-center text-[12px] text-gray-400 mb-1.5">
                             {WD.map(d => <div key={d}>{d}</div>)}
                           </div>
-                          <div className="grid grid-cols-7 gap-1">
+                          <div className="grid grid-cols-7 gap-1.5">
                             {cells.map((ds, i) => {
                               if (!ds) return <div key={i} />
                               const dnum = Number(ds.split('-')[2])
                               const inRange = ds >= c.start_date && ds <= c.end_date
-                              if (!inRange) return <div key={i} className="h-9 flex items-center justify-center text-[11px] text-gray-200">{dnum}</div>
+                              if (!inRange) return <div key={i} className="h-14 flex items-center justify-center text-[14px] text-gray-200">{dnum}</div>
                               const dayActs = cActions.filter(a => a.date === ds)
                               const hasActs = dayActs.length > 0
                               const allDone = hasActs && dayActs.every(a => a.done)
                               const isSel = ds === selDate
                               return (
                                 <button key={i} onClick={() => setSel(o => ({ ...o, [c.id]: ds }))}
-                                  className={`h-9 rounded-lg flex flex-col items-center justify-center border transition-colors ${isSel ? 'bg-[#E0197D] text-white border-[#E0197D]' : hasActs ? (allDone ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A]' : 'bg-pink-50 border-pink-100 text-[#A0106A]') : 'bg-white border-gray-100 text-gray-600 hover:border-[#E0197D]'}`}>
-                                  <span className="text-[12px] leading-none">{dnum}</span>
-                                  {hasActs && <span className={`text-[9px] leading-none mt-0.5 ${isSel ? 'text-white' : 'text-[#E0197D]'}`}>{dayActs.filter(a => a.done).length}/{dayActs.length}</span>}
+                                  className={`h-14 rounded-lg flex flex-col items-center justify-center border transition-colors ${isSel ? 'bg-[#E0197D] text-white border-[#E0197D]' : hasActs ? (allDone ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A]' : 'bg-pink-50 border-pink-100 text-[#A0106A]') : 'bg-white border-gray-100 text-gray-600 hover:border-[#E0197D]'}`}>
+                                  <span className="text-[15px] leading-none">{dnum}</span>
+                                  {hasActs && <span className={`text-[11px] leading-none mt-1 ${isSel ? 'text-white' : 'text-[#E0197D]'}`}>{dayActs.filter(a => a.done).length}/{dayActs.length}</span>}
                                 </button>
                               )
                             })}
