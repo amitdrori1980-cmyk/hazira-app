@@ -144,6 +144,7 @@ function Campaign() {
   const [open, setOpen] = useState({})
   const [form, setForm] = useState({ title: '', start: '', end: '' })
   const [sel, setSel] = useState({})
+  const [viewMode, setViewMode] = useState({})
   const [busy, setBusy] = useState(false)
 
   useEffect(() => { load() }, [])
@@ -253,70 +254,117 @@ function Campaign() {
             </div>
             {isOpen && (() => {
               const selDate = sel[c.id] || c.start_date
-              const selActions = cActions.filter(a => a.date === selDate)
+              const mode = viewMode[c.id] || 'month'
               const WD = ['א','ב','ג','ד','ה','ו','ש']
-              return (
-                <div className="border-t border-gray-100 px-3 py-3">
-                  <div className="flex flex-wrap gap-5 justify-center" dir="rtl">
-                    {monthsOf(c).map(({ y, m }) => {
-                      const mm = String(m).padStart(2, '0')
-                      const daysInMonth = new Date(y, m, 0).getDate()
-                      const firstDow = new Date(y, m - 1, 1).getDay()
-                      const cells = []
-                      for (let i = 0; i < firstDow; i++) cells.push(null)
-                      for (let d = 1; d <= daysInMonth; d++) cells.push(`${y}-${mm}-${String(d).padStart(2, '0')}`)
-                      return (
-                        <div key={`${y}-${mm}`} className="w-[340px]">
-                          <div className="text-center text-[15px] font-bold text-gray-700 mb-3">{HE_MONTHS[m - 1]} {y}</div>
-                          <div className="grid grid-cols-7 gap-1.5 text-center text-[12px] text-gray-400 mb-1.5">
-                            {WD.map(d => <div key={d}>{d}</div>)}
-                          </div>
-                          <div className="grid grid-cols-7 gap-1.5">
-                            {cells.map((ds, i) => {
-                              if (!ds) return <div key={i} />
-                              const dnum = Number(ds.split('-')[2])
-                              const inRange = ds >= c.start_date && ds <= c.end_date
-                              if (!inRange) return <div key={i} className="h-14 flex items-center justify-center text-[14px] text-gray-200">{dnum}</div>
-                              const dayActs = cActions.filter(a => a.date === ds)
-                              const hasActs = dayActs.length > 0
-                              const allDone = hasActs && dayActs.every(a => a.done)
-                              const isSel = ds === selDate
-                              return (
-                                <button key={i} onClick={() => setSel(o => ({ ...o, [c.id]: ds }))}
-                                  className={`h-14 rounded-lg flex flex-col items-center justify-center border transition-colors ${isSel ? 'bg-[#E0197D] text-white border-[#E0197D]' : hasActs ? (allDone ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A]' : 'bg-pink-50 border-pink-100 text-[#A0106A]') : 'bg-white border-gray-100 text-gray-600 hover:border-[#E0197D]'}`}>
-                                  <span className="text-[15px] leading-none">{dnum}</span>
-                                  {hasActs && <span className={`text-[11px] leading-none mt-1 ${isSel ? 'text-white' : 'text-[#E0197D]'}`}>{dayActs.filter(a => a.done).length}/{dayActs.length}</span>}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  <div className="mt-4 border-t border-gray-100 pt-3" dir="rtl">
+              const renderRow = (a) => (
+                <div key={a.id} className="flex items-center gap-2">
+                  <button onClick={() => updateAction(a.id, { done: !a.done })}
+                    className={`text-[11px] px-2 py-1 rounded-lg border flex items-center gap-1 shrink-0 ${a.done ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+                    <i className={`ti ${a.done ? 'ti-check' : 'ti-circle'}`} style={{ fontSize: 12 }} /> בוצע
+                  </button>
+                  <input value={a.label || ''} onChange={e => setActions(prev => prev.map(x => x.id === a.id ? { ...x, label: e.target.value } : x))} onBlur={e => updateAction(a.id, { label: e.target.value })}
+                    placeholder="פעולה" className="flex-1 min-w-0 text-[13px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+                  <input value={a.free_text || ''} onChange={e => setActions(prev => prev.map(x => x.id === a.id ? { ...x, free_text: e.target.value } : x))} onBlur={e => updateAction(a.id, { free_text: e.target.value })}
+                    placeholder="הערות" className="flex-1 min-w-0 text-[13px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+                  <button onClick={() => deleteAction(a.id)} className="text-gray-300 hover:text-red-500 shrink-0"><i className="ti ti-trash" style={{ fontSize: 13 }} /></button>
+                </div>
+              )
+              const dayEditor = (ds) => {
+                const acts = cActions.filter(x => x.date === ds)
+                return (
+                  <div key={ds} className="border border-gray-100 rounded-xl px-3 py-2.5" dir="rtl">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="text-[13px] font-bold text-gray-700">יום {dayName(selDate)} · {fmtDate(selDate)}</div>
-                      <button onClick={() => addAction(c.id, selDate)} className="text-[12px] text-[#E0197D] hover:text-[#A0106A] flex items-center gap-0.5"><i className="ti ti-plus" style={{ fontSize: 13 }} /> הוסף שורת פעולה</button>
+                      <div className="text-[13px] font-bold text-gray-700">יום {dayName(ds)} · {fmtDate(ds)}</div>
+                      <button onClick={() => addAction(c.id, ds)} className="text-[12px] text-[#E0197D] hover:text-[#A0106A] flex items-center gap-0.5"><i className="ti ti-plus" style={{ fontSize: 13 }} /> הוסף שורת פעולה</button>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      {selActions.length === 0 && <div className="text-[12px] text-gray-300">אין פעולות ביום זה — הוסף שורת פעולה</div>}
-                      {selActions.map(a => (
-                        <div key={a.id} className="flex items-center gap-2">
-                          <button onClick={() => updateAction(a.id, { done: !a.done })}
-                            className={`text-[11px] px-2 py-1 rounded-lg border flex items-center gap-1 shrink-0 ${a.done ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
-                            <i className={`ti ${a.done ? 'ti-check' : 'ti-circle'}`} style={{ fontSize: 12 }} /> בוצע
-                          </button>
-                          <input value={a.label || ''} onChange={e => setActions(prev => prev.map(x => x.id === a.id ? { ...x, label: e.target.value } : x))} onBlur={e => updateAction(a.id, { label: e.target.value })}
-                            placeholder="פעולה" className="flex-1 min-w-0 text-[13px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
-                          <input value={a.free_text || ''} onChange={e => setActions(prev => prev.map(x => x.id === a.id ? { ...x, free_text: e.target.value } : x))} onBlur={e => updateAction(a.id, { free_text: e.target.value })}
-                            placeholder="הערות" className="flex-1 min-w-0 text-[13px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
-                          <button onClick={() => deleteAction(a.id)} className="text-gray-300 hover:text-red-500 shrink-0"><i className="ti ti-trash" style={{ fontSize: 13 }} /></button>
-                        </div>
-                      ))}
+                      {acts.length === 0 && <div className="text-[12px] text-gray-300">אין פעולות ביום זה — הוסף שורת פעולה</div>}
+                      {acts.map(renderRow)}
                     </div>
                   </div>
+                )
+              }
+              return (
+                <div className="border-t border-gray-100 px-3 py-3">
+                  <div className="flex justify-center gap-1.5 mb-3" dir="rtl">
+                    {[{ id: 'month', label: 'חודשי' }, { id: 'week', label: 'שבועי' }].map(v => (
+                      <button key={v.id} onClick={() => setViewMode(o => ({ ...o, [c.id]: v.id }))}
+                        className={`text-[12px] px-3 py-1 rounded-lg border transition-colors ${mode === v.id ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>{v.label}</button>
+                    ))}
+                  </div>
+
+                  {mode === 'month' ? (
+                    <>
+                      <div className="flex flex-wrap gap-5 justify-center" dir="rtl">
+                        {monthsOf(c).map(({ y, m }) => {
+                          const mm = String(m).padStart(2, '0')
+                          const daysInMonth = new Date(y, m, 0).getDate()
+                          const firstDow = new Date(y, m - 1, 1).getDay()
+                          const cells = []
+                          for (let i = 0; i < firstDow; i++) cells.push(null)
+                          for (let d = 1; d <= daysInMonth; d++) cells.push(`${y}-${mm}-${String(d).padStart(2, '0')}`)
+                          return (
+                            <div key={`${y}-${mm}`} className="w-[340px]">
+                              <div className="text-center text-[15px] font-bold text-gray-700 mb-3">{HE_MONTHS[m - 1]} {y}</div>
+                              <div className="grid grid-cols-7 gap-1.5 text-center text-[12px] text-gray-400 mb-1.5">
+                                {WD.map(d => <div key={d}>{d}</div>)}
+                              </div>
+                              <div className="grid grid-cols-7 gap-1.5">
+                                {cells.map((ds, i) => {
+                                  if (!ds) return <div key={i} />
+                                  const dnum = Number(ds.split('-')[2])
+                                  const inRange = ds >= c.start_date && ds <= c.end_date
+                                  if (!inRange) return <div key={i} className="h-14 flex items-center justify-center text-[14px] text-gray-200">{dnum}</div>
+                                  const dayActs = cActions.filter(a => a.date === ds)
+                                  const hasActs = dayActs.length > 0
+                                  const allDone = hasActs && dayActs.every(a => a.done)
+                                  const isSel = ds === selDate
+                                  return (
+                                    <button key={i} onClick={() => setSel(o => ({ ...o, [c.id]: ds }))}
+                                      className={`h-14 rounded-lg flex flex-col items-center justify-center border transition-colors ${isSel ? 'bg-[#E0197D] text-white border-[#E0197D]' : hasActs ? (allDone ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A]' : 'bg-pink-50 border-pink-100 text-[#A0106A]') : 'bg-white border-gray-100 text-gray-600 hover:border-[#E0197D]'}`}>
+                                      <span className="text-[15px] leading-none">{dnum}</span>
+                                      {hasActs && <span className={`text-[11px] leading-none mt-1 ${isSel ? 'text-white' : 'text-[#E0197D]'}`}>{dayActs.filter(a => a.done).length}/{dayActs.length}</span>}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      <div className="mt-4 border-t border-gray-100 pt-3">
+                        {dayEditor(selDate)}
+                      </div>
+                    </>
+                  ) : (() => {
+                    const wk = weekKey(selDate)
+                    const weekDays = []
+                    for (let i = 0; i < 7; i++) weekDays.push(toStr(addDays(wk, i)))
+                    const inWeek = weekDays.filter(ds => ds >= c.start_date && ds <= c.end_date)
+                    const firstWk = weekKey(c.start_date)
+                    const lastWk = weekKey(c.end_date)
+                    const go = (delta) => {
+                      let nd = toStr(addDays(wk, delta * 7))
+                      if (nd < c.start_date) nd = c.start_date
+                      if (nd > c.end_date) nd = c.end_date
+                      setSel(o => ({ ...o, [c.id]: nd }))
+                    }
+                    return (
+                      <div dir="rtl">
+                        <div className="flex items-center justify-center gap-3 mb-3">
+                          <button disabled={wk >= lastWk} onClick={() => go(1)}
+                            className="text-[12px] px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[#E0197D] disabled:opacity-30">‹ הבא</button>
+                          <div className="text-[13px] font-bold text-[#A0106A]">שבוע {weekRangeLabel(wk)}</div>
+                          <button disabled={wk <= firstWk} onClick={() => go(-1)}
+                            className="text-[12px] px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[#E0197D] disabled:opacity-30">קודם ›</button>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          {inWeek.length === 0 && <div className="text-center text-gray-300 text-[12px] py-4">אין ימים מהקמפיין בשבוע זה</div>}
+                          {inWeek.map(ds => dayEditor(ds))}
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
               )
             })()}
