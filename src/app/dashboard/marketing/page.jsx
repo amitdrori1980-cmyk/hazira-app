@@ -235,7 +235,7 @@ function Campaign() {
                 <i className={`ti ti-chevron-${isOpen ? 'down' : 'left'} text-gray-400`} style={{ fontSize: 16 }} />
                 <div>
                   <div className="text-[14px] font-bold text-gray-800">{c.title}</div>
-                  <div className="text-[12px] text-gray-400">{fmtDate(c.start_date)} \u2013 {fmtDate(c.end_date)} \u00b7 {doneCount}/{cActions.length} בוצעו</div>
+                  <div className="text-[12px] text-gray-400">{fmtDate(c.start_date)} – {fmtDate(c.end_date)} · {doneCount}/{cActions.length} בוצעו</div>
                 </div>
               </button>
               <button onClick={() => deleteCampaign(c.id)} className="text-gray-300 hover:text-red-500 p-1"><i className="ti ti-trash" style={{ fontSize: 15 }} /></button>
@@ -247,7 +247,7 @@ function Campaign() {
                   return (
                     <div key={ds} className="py-2 border-b border-gray-100 last:border-0">
                       <div className="flex items-center justify-between mb-1.5">
-                        <div className="text-[12px] font-medium text-gray-600">יום {dayName(ds)} \u00b7 {fmtShort(ds)}</div>
+                        <div className="text-[12px] font-medium text-gray-600">יום {dayName(ds)} · {fmtShort(ds)}</div>
                         <button onClick={() => addAction(c.id, ds)} className="text-[11px] text-[#E0197D] hover:text-[#A0106A] flex items-center gap-0.5"><i className="ti ti-plus" style={{ fontSize: 12 }} /> הוסף שורת פעולה</button>
                       </div>
                       <div className="flex flex-col gap-1.5">
