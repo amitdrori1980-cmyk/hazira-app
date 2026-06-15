@@ -138,12 +138,12 @@ export default function MessagesPage() {
     e.preventDefault()
     if (!dateCheckForm.to_crew_id || !dateCheckForm.event_id) return
     setSendingDateCheck(true)
-    const member = crew.find(c => c.id === dateCheckForm.to_crew_id)
+    const member = crew.find(c => c.user_id === dateCheckForm.to_crew_id)
     const event = events.find(ev => ev.id === dateCheckForm.event_id)
     await supabase.from('messages').insert({
       sender_id: profile.uid,
-      to_crew_id: dateCheckForm.to_crew_id,
-      to_user: member?.user_id || null,
+      to_crew_id: member?.id || null,
+      to_user: dateCheckForm.to_crew_id || null,
       body: `בדיקת תאריך: ${event?.title} — ${fmtShort(event?.date)}`,
       topic: 'date_check',
       event_data: { event_id: event?.id, event_title: event?.title, event_date: event?.date, event_time: event?.time, notes: dateCheckForm.notes },
@@ -235,7 +235,16 @@ export default function MessagesPage() {
               <select value={dateCheckForm.to_crew_id} onChange={e=>setDateCheckForm(p=>({...p,to_crew_id:e.target.value}))}
                 required className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]">
                 <option value="">בחר עובד...</option>
-                {crew.map(m=><option key={m.id} value={m.id}>{m.full_name}</option>)}
+                {(() => {
+                  const DC_TEAM = ['עמית','עינת','לאה','נועה','דונדו','מרקו','איתן','ניב']
+                  const fn = x => (x||'').trim().split(' ')[0]
+                  const all = []
+                  crew.forEach(c => { if (c.user_id) all.push({ user_id: c.user_id, full_name: c.full_name }) })
+                  people.forEach(p => { if (p.id) all.push({ user_id: p.id, full_name: p.full_name }) })
+                  const byName = {}
+                  all.forEach(r => { const k = fn(r.full_name); if (DC_TEAM.includes(k) && !byName[k]) byName[k] = r })
+                  return DC_TEAM.map(n => byName[n]).filter(Boolean).map(r => <option key={r.user_id} value={r.user_id}>{r.full_name}</option>)
+                })()}
               </select>
               <input value={eventSearch} onChange={e=>setEventSearch(e.target.value)} placeholder="חיפוש אירוע..." className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]"/>
               <div className="max-h-44 overflow-y-auto border border-gray-200 rounded-xl bg-gray-50">
