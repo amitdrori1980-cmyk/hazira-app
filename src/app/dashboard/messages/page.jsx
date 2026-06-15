@@ -168,8 +168,19 @@ export default function MessagesPage() {
       available: true,
     })
     if (error) { alert('שגיאה בשמירת האילוץ: ' + error.message); return }
-    await supabase.from('messages').delete().eq('id', msg.id)
-    setMessages(prev => prev.filter(m => m.id !== msg.id))
+    const newData = { ...(msg.event_data || {}), response: 'approved', responder: crewName, responded_at: new Date().toISOString() }
+    await supabase.from('messages').update({ event_data: newData, read: true }).eq('id', msg.id)
+    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, event_data: newData } : m))
+  }
+
+  async function declineDateCheck(msg) {
+    const { data: { user } } = await supabase.auth.getUser()
+    const member = crew.find(c => c.user_id === user.id)
+    const crewName = member?.full_name || profile?.full_name || ''
+    const newData = { ...(msg.event_data || {}), response: 'declined', responder: crewName, responded_at: new Date().toISOString() }
+    const { error } = await supabase.from('messages').update({ event_data: newData, read: true }).eq('id', msg.id)
+    if (error) { alert('שגיאה: ' + error.message); return }
+    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, event_data: newData } : m))
   }
 
   function canDelete(msg) {
@@ -311,7 +322,18 @@ export default function MessagesPage() {
           <div className="text-center text-sm text-gray-400 py-6">אין הודעות</div>
         ) : messages.map(m => (
           <div key={m.id} className="mb-3 last:mb-0">
-            {m.topic === 'date_check' ? (
+            {m.topic === 'date_check' ? (() => {
+              const resp = m.event_data?.response
+              const isRecipient = m.to_user && m.to_user === profile?.uid
+              if (resp) return (
+                <div className="p-2.5 bg-[#EEF2FF] rounded-lg border-r-2 border-[#6366f1] flex items-center gap-2 flex-wrap" dir="rtl">
+                  <i className="ti ti-calendar-check text-[#6366f1]" style={{fontSize:14}}/>
+                  <span className="text-[12px] text-gray-700">בדיקת תאריך · {m.event_data?.event_title} · {fmtShort(m.event_data?.event_date)}</span>
+                  <span className={`text-[11px] font-semibold mr-auto px-2 py-0.5 rounded-full ${resp==='approved'?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}`}>{resp==='approved'?'אישר/ה ✓':'דחה/תה ✕'}{m.event_data?.responder?` · ${m.event_data.responder}`:''}</span>
+                  {profile?.is_manager && <button onClick={()=>setConfirmDelete(m.id)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:12}}/></button>}
+                </div>
+              )
+              return (
               <div className="p-4 bg-[#EEF2FF] rounded-xl border-r-2 border-[#6366f1]" dir="rtl">
                 <div className="flex items-center gap-2 mb-2">
                   <i className="ti ti-calendar-check text-[#6366f1]" style={{fontSize:15}}/>
@@ -326,20 +348,22 @@ export default function MessagesPage() {
                   <div className="text-[12px] text-gray-600">{fmtShort(m.event_data?.event_date)} {m.event_data?.event_time?.slice(0,5)}</div>
                   {m.event_data?.notes && <div className="text-[12px] text-gray-600 mt-1">{m.event_data.notes}</div>}
                 </div>
-                {(
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" onChange={e=>{if(e.target.checked && window.confirm('לאשר נוכחות ולרשום כאילוץ?'))confirmDateCheck(m)}}
-                      style={{accentColor:'#6366f1'}} className="w-4 h-4"/>
-                    <span className="text-[13px] text-[#4338ca] font-medium">אני מאשר/ת נוכחות</span>
-                  </label>
+                {isRecipient ? (
+                  <div className="flex items-center gap-2">
+                    <button onClick={()=>{if(window.confirm('לאשר נוכחות ולרשום כאילוץ?'))confirmDateCheck(m)}} className="text-[13px] bg-[#6366f1] text-white px-3 py-1.5 rounded-lg hover:bg-[#4f46e5] flex items-center gap-1"><i className="ti ti-check" style={{fontSize:14}}/> מאשר/ת נוכחות</button>
+                    <button onClick={()=>{if(window.confirm('לדחות את בקשת התאריך?'))declineDateCheck(m)}} className="text-[13px] border border-red-300 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 flex items-center gap-1"><i className="ti ti-x" style={{fontSize:14}}/> דחייה</button>
+                  </div>
+                ) : (
+                  <div className="text-[12px] text-gray-500 flex items-center gap-1"><i className="ti ti-clock" style={{fontSize:13}}/> ממתין לאישור</div>
                 )}
                 {profile?.is_manager && (
-                  <button onClick={()=>setConfirmDelete(m.id)} className="text-gray-300 hover:text-red-500">
+                  <button onClick={()=>setConfirmDelete(m.id)} className="text-gray-300 hover:text-red-500 mt-2 inline-block">
                     <i className="ti ti-trash" style={{fontSize:13}}/>
                   </button>
                 )}
               </div>
-            ) : (
+              )
+            })() : (
             <div className="p-3 bg-gray-50 rounded-lg border-r-2 border-[#E0197D]">
               <div className="flex items-center justify-between mb-1 flex-row-reverse">
                 <div className="flex items-center gap-2">
