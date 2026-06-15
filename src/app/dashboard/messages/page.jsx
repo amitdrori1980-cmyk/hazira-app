@@ -237,12 +237,13 @@ export default function MessagesPage() {
                 <option value="">בחר עובד...</option>
                 {(() => {
                   const DC_TEAM = ['עמית','עינת','לאה','נועה','דונדו','מרקו','איתן','ניב']
+                  const DC_TOKEN = { 'דונדו': 'גמליאלי' }
                   const all = []
                   crew.forEach(c => { if (c.user_id) all.push({ user_id: c.user_id, full_name: c.full_name }) })
                   people.forEach(p => { if (p.id) all.push({ user_id: p.id, full_name: p.full_name }) })
                   const byName = {}
-                  all.forEach(r => { const words = (r.full_name||'').trim().split(' ').filter(Boolean); const k = DC_TEAM.find(t => words.includes(t)); if (k && !byName[k]) byName[k] = r })
-                  return DC_TEAM.map(n => byName[n]).filter(Boolean).map(r => <option key={r.user_id} value={r.user_id}>{r.full_name}</option>)
+                  all.forEach(r => { const words = (r.full_name||'').trim().split(' ').filter(Boolean); const k = DC_TEAM.find(t => words.includes(DC_TOKEN[t] || t)); if (k && !byName[k]) byName[k] = { ...r, teamKey: k } })
+                  return DC_TEAM.map(n => byName[n]).filter(Boolean).map(r => <option key={r.user_id} value={r.user_id}>{r.full_name}{(r.teamKey && DC_TOKEN[r.teamKey]) ? ` (${r.teamKey})` : ''}</option>)
                 })()}
               </select>
               <input value={eventSearch} onChange={e=>setEventSearch(e.target.value)} placeholder="חיפוש אירוע..." className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]"/>
