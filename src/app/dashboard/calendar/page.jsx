@@ -25,6 +25,7 @@ export default function CalendarPage() {
   const [calMonth, setCalMonth] = useState(new Date().getMonth())
   const [selectedDay, setSelectedDay] = useState(null)
   const [flashEv, setFlashEv] = useState(null)
+  const [dragId, setDragId] = useState(null)
   const [viewMode, setViewMode] = useState('month')
   const [weekAnchor, setWeekAnchor] = useState(null)
   const [venues, setVenues] = useState([])
@@ -244,6 +245,10 @@ export default function CalendarPage() {
     ? filteredEvents
         .filter(e => e.date === selectedDay || (e.end_date && e.end_date >= e.date && selectedDay >= e.date && selectedDay <= e.end_date))
         .sort((a, b) => {
+          const ao = a.sort_order, bo = b.sort_order
+          if (ao != null && bo != null && ao !== bo) return ao - bo
+          if (ao != null && bo == null) return -1
+          if (ao == null && bo != null) return 1
           // הצגות (ירוק) תמיד למעלה
           if (a.type === 'show' && b.type !== 'show') return -1
           if (a.type !== 'show' && b.type === 'show') return 1
@@ -251,6 +256,46 @@ export default function CalendarPage() {
           return (a.time || '').localeCompare(b.time || '')
         })
     : []
+
+  async function reorderEventsInDay(ds, targetId) {
+    if (!dragId || dragId === targetId) { setDragId(null); return }
+    const list = filteredEvents
+      .filter(e => e.date === ds || (e.end_date && e.end_date >= e.date && ds >= e.date && ds <= e.end_date))
+      .sort((a, b) => {
+        const ao = a.sort_order, bo = b.sort_order
+        if (ao != null && bo != null && ao !== bo) return ao - bo
+        if (ao != null && bo == null) return -1
+        if (ao == null && bo != null) return 1
+        if (a.type === 'show' && b.type !== 'show') return -1
+        if (a.type !== 'show' && b.type === 'show') return 1
+        return (a.time || '').localeCompare(b.time || '')
+      })
+    const from = list.findIndex(e => e.id === dragId)
+    const to = list.findIndex(e => e.id === targetId)
+    if (from < 0 || to < 0) { setDragId(null); return }
+    const reordered = [...list]
+    const [moved] = reordered.splice(from, 1)
+    reordered.splice(to, 0, moved)
+    const updates = reordered.map((e, i) => ({ id: e.id, sort_order: i }))
+    setEvents(prev => prev.map(e => { const u = updates.find(x => x.id === e.id); return u ? { ...e, sort_order: u.sort_order } : e }))
+    setDragId(null)
+    for (const u of updates) await supabase.from('events').update({ sort_order: u.sort_order }).eq('id', u.id)
+  }
+
+  async function reorderDayEvents(targetId) {
+    if (!dragId || dragId === targetId) { setDragId(null); return }
+    const list = selectedEvents
+    const from = list.findIndex(e => e.id === dragId)
+    const to = list.findIndex(e => e.id === targetId)
+    if (from < 0 || to < 0) { setDragId(null); return }
+    const reordered = [...list]
+    const [moved] = reordered.splice(from, 1)
+    reordered.splice(to, 0, moved)
+    const updates = reordered.map((e, i) => ({ id: e.id, sort_order: i }))
+    setEvents(prev => prev.map(e => { const u = updates.find(x => x.id === e.id); return u ? { ...e, sort_order: u.sort_order } : e }))
+    setDragId(null)
+    for (const u of updates) await supabase.from('events').update({ sort_order: u.sort_order }).eq('id', u.id)
+  }
 
   async function exportExcel() {
     const XLSX = await import('xlsx-js-style')
@@ -351,6 +396,10 @@ export default function CalendarPage() {
                     const dayEvents = filteredEvents
                       .filter(e => e.date === c.ds || (e.end_date && e.end_date >= e.date && c.ds >= e.date && c.ds <= e.end_date))
                       .sort((a, b) => {
+                        const ao = a.sort_order, bo = b.sort_order
+                        if (ao != null && bo != null && ao !== bo) return ao - bo
+                        if (ao != null && bo == null) return -1
+                        if (ao == null && bo != null) return 1
                         if (a.type === 'show' && b.type !== 'show') return -1
                         if (a.type !== 'show' && b.type === 'show') return 1
                         return (a.time || '').localeCompare(b.time || '')
@@ -364,7 +413,7 @@ export default function CalendarPage() {
                         } ${c.inMonth ? '' : 'opacity-30'}`}>
                         <div className={`text-center text-[14px] md:text-[20px] font-medium mb-1.5 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
                         {dayEvents.map(e => (
-                          <div key={e.id} className="text-[10px] md:text-[14px] px-1.5 py-1 rounded mb-1 truncate"
+                          <div key={e.id} draggable={profile?.is_manager} onDragStart={ev=>{ev.stopPropagation();setDragId(e.id)}} onDragOver={ev=>{if(profile?.is_manager)ev.preventDefault()}} onDrop={ev=>{if(profile?.is_manager){ev.stopPropagation();reorderEventsInDay(c.ds,e.id)}}} className={`text-[10px] md:text-[14px] px-1.5 py-1 rounded mb-1 truncate ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''}`}
                             style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
                             {e.time ? e.time.slice(0,5) + ' ' : ''}{e.title}
                           </div>
@@ -381,6 +430,10 @@ export default function CalendarPage() {
                     const dayEvents = filteredEvents
                       .filter(e => e.date === c.ds || (e.end_date && e.end_date >= e.date && c.ds >= e.date && c.ds <= e.end_date))
                       .sort((a, b) => {
+                        const ao = a.sort_order, bo = b.sort_order
+                        if (ao != null && bo != null && ao !== bo) return ao - bo
+                        if (ao != null && bo == null) return -1
+                        if (ao == null && bo != null) return 1
                         if (a.type === 'show' && b.type !== 'show') return -1
                         if (a.type !== 'show' && b.type === 'show') return 1
                         return (a.time || '').localeCompare(b.time || '')
@@ -399,7 +452,7 @@ export default function CalendarPage() {
                           ))}
                         </div>
                         {dayEvents.slice(0, 4).map(e => (
-                          <div key={e.id} className="hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate"
+                          <div key={e.id} draggable={profile?.is_manager} onDragStart={ev=>{ev.stopPropagation();setDragId(e.id)}} onDragOver={ev=>{if(profile?.is_manager)ev.preventDefault()}} onDrop={ev=>{if(profile?.is_manager){ev.stopPropagation();reorderEventsInDay(c.ds,e.id)}}} className={`hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''}`}
                             style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
                             {e.time ? e.time.slice(0,5) + ' ' : ''}{e.title}
                           </div>
@@ -453,9 +506,9 @@ export default function CalendarPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {selectedEvents.map(e => (
-                <div key={e.id} className={`flex items-start gap-3 p-3 rounded-lg border-r-2 border-[#E0197D] flex-row-reverse transition-all duration-300 ${flashEv && (e.title||'').trim()===flashEv ? 'bg-[#FCE4F3] ring-2 ring-[#E0197D] shadow-md' : 'bg-gray-50'}`}>
+                <div key={e.id} draggable={profile?.is_manager} onDragStart={()=>setDragId(e.id)} onDragOver={ev=>{if(profile?.is_manager)ev.preventDefault()}} onDrop={()=>{if(profile?.is_manager)reorderDayEvents(e.id)}} className={`flex items-start gap-3 p-3 rounded-lg border-r-2 border-[#E0197D] flex-row-reverse transition-all duration-300 ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''} ${flashEv && (e.title||'').trim()===flashEv ? 'bg-[#FCE4F3] ring-2 ring-[#E0197D] shadow-md' : 'bg-gray-50'}`}>
                   {profile?.is_manager && (
-                    <button onClick={async()=>{if(window.confirm('למחוק את "'+e.title+'"?'))await supabase.from('events').delete().eq('id',e.id).then(()=>setEvents(prev=>prev.filter(ev=>ev.id!==e.id)))}}
+                    <button onClick={async()=>{if(!window.confirm('למחוק את "'+e.title+'"?'))return;await supabase.from('events').delete().eq('id',e.id);if(e.date&&e.title)await supabase.from('crew_constraints').delete().eq('date',e.date).eq('notes',e.title).eq('available',true).is('crew_member_id',null);setEvents(prev=>prev.filter(ev=>ev.id!==e.id))}}
                       className="text-gray-300 hover:text-red-500 p-1 flex-shrink-0">
                       <i className="ti ti-trash" style={{fontSize:13}}/>
                     </button>
