@@ -26,6 +26,7 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState(null)
   const [flashEv, setFlashEv] = useState(null)
   const [dragId, setDragId] = useState(null)
+  const [dragOverId, setDragOverId] = useState(null)
   const [viewMode, setViewMode] = useState('month')
   const [weekAnchor, setWeekAnchor] = useState(null)
   const [venues, setVenues] = useState([])
@@ -413,7 +414,7 @@ export default function CalendarPage() {
                         } ${c.inMonth ? '' : 'opacity-30'}`}>
                         <div className={`text-center text-[14px] md:text-[20px] font-medium mb-1.5 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
                         {dayEvents.map(e => (
-                          <div key={e.id} draggable={profile?.is_manager} onDragStart={ev=>{ev.stopPropagation();ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragOver={ev=>{if(profile?.is_manager){ev.preventDefault();ev.dataTransfer.dropEffect='move'}}} onDrop={ev=>{if(profile?.is_manager){ev.stopPropagation();reorderEventsInDay(c.ds,e.id)}}} className={`text-[10px] md:text-[14px] px-1.5 py-1 rounded mb-1 truncate ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''}`}
+                          <div key={e.id} draggable={profile?.is_manager} onDragStart={ev=>{ev.stopPropagation();ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragEnd={()=>{setDragId(null);setDragOverId(null)}} onDragOver={ev=>{if(profile?.is_manager){ev.preventDefault();ev.dataTransfer.dropEffect='move';setDragOverId(e.id)}}} onDrop={ev=>{if(profile?.is_manager){ev.stopPropagation();reorderEventsInDay(c.ds,e.id)}}} className={`text-[10px] md:text-[14px] px-1.5 py-1 rounded mb-1 truncate ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''} ${dragOverId===e.id&&dragId&&dragId!==e.id?'shadow-[0_-3px_0_0_#E0197D]':''}`}
                             style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
                             {e.time ? e.time.slice(0,5) + ' ' : ''}{e.title}
                           </div>
@@ -452,7 +453,7 @@ export default function CalendarPage() {
                           ))}
                         </div>
                         {dayEvents.slice(0, 4).map(e => (
-                          <div key={e.id} draggable={profile?.is_manager} onDragStart={ev=>{ev.stopPropagation();ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragOver={ev=>{if(profile?.is_manager){ev.preventDefault();ev.dataTransfer.dropEffect='move'}}} onDrop={ev=>{if(profile?.is_manager){ev.stopPropagation();reorderEventsInDay(c.ds,e.id)}}} className={`hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''}`}
+                          <div key={e.id} draggable={profile?.is_manager} onDragStart={ev=>{ev.stopPropagation();ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragEnd={()=>{setDragId(null);setDragOverId(null)}} onDragOver={ev=>{if(profile?.is_manager){ev.preventDefault();ev.dataTransfer.dropEffect='move';setDragOverId(e.id)}}} onDrop={ev=>{if(profile?.is_manager){ev.stopPropagation();reorderEventsInDay(c.ds,e.id)}}} className={`hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''} ${dragOverId===e.id&&dragId&&dragId!==e.id?'shadow-[0_-3px_0_0_#E0197D]':''}`}
                             style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
                             {e.time ? e.time.slice(0,5) + ' ' : ''}{e.title}
                           </div>
@@ -506,7 +507,7 @@ export default function CalendarPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {selectedEvents.map(e => (
-                <div key={e.id} draggable={profile?.is_manager} onDragStart={ev=>{ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragOver={ev=>{if(profile?.is_manager){ev.preventDefault();ev.dataTransfer.dropEffect='move'}}} onDrop={()=>{if(profile?.is_manager)reorderDayEvents(e.id)}} className={`flex items-start gap-3 p-3 rounded-lg border-r-2 border-[#E0197D] flex-row-reverse transition-all duration-300 ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''} ${flashEv && (e.title||'').trim()===flashEv ? 'bg-[#FCE4F3] ring-2 ring-[#E0197D] shadow-md' : 'bg-gray-50'}`}>
+                <div key={e.id} draggable={profile?.is_manager} onDragStart={ev=>{ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragEnd={()=>{setDragId(null);setDragOverId(null)}} onDragOver={ev=>{if(profile?.is_manager){ev.preventDefault();ev.dataTransfer.dropEffect='move';setDragOverId(e.id)}}} onDrop={()=>{if(profile?.is_manager)reorderDayEvents(e.id)}} className={`flex items-start gap-3 p-3 rounded-lg border-r-2 border-[#E0197D] flex-row-reverse transition-all duration-300 ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''} ${dragOverId===e.id&&dragId&&dragId!==e.id?'shadow-[0_-3px_0_0_#E0197D]':''} ${flashEv && (e.title||'').trim()===flashEv ? 'bg-[#FCE4F3] ring-2 ring-[#E0197D] shadow-md' : 'bg-gray-50'}`}>
                   {profile?.is_manager && (
                     <button onClick={async()=>{if(!window.confirm('למחוק את "'+e.title+'"?'))return;await supabase.from('events').delete().eq('id',e.id);if(e.date&&e.title)await supabase.from('crew_constraints').delete().eq('date',e.date).eq('notes',e.title).eq('available',true).is('crew_member_id',null);setEvents(prev=>prev.filter(ev=>ev.id!==e.id))}}
                       className="text-gray-300 hover:text-red-500 p-1 flex-shrink-0">
