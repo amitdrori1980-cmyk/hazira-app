@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 const TABS = [
   { id: 'dashboard', label: 'דשבורד', icon: 'ti-layout-dashboard' },
   { id: 'gantts',    label: 'גאנטים',  icon: 'ti-timeline-event' },
+  { id: 'campaign',  label: 'קמפיין',  icon: 'ti-rocket' },
   { id: 'tasks',     label: 'משימות',  icon: 'ti-checklist' },
 ]
 
@@ -123,6 +124,7 @@ export default function MarketingPage() {
         </div>
       )}
       {tab === 'gantts' && <Gantts />}
+      {tab === 'campaign' && <Campaign />}
       {tab === 'tasks' && (
         <div className="bg-white border border-gray-100 rounded-xl p-12 text-center text-gray-400">
           <i className={`ti ${active.icon}`} style={{ fontSize: 36 }} />
@@ -135,6 +137,147 @@ export default function MarketingPage() {
 }
 
 // ===================== דשבורד — הודעות =====================
+function Campaign() {
+  const [campaigns, setCampaigns] = useState([])
+  const [actions, setActions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [open, setOpen] = useState({})
+  const [form, setForm] = useState({ title: '', start: '', end: '' })
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => { load() }, [])
+  async function load() {
+    setLoading(true)
+    const [{ data: cs }, { data: as }] = await Promise.all([
+      supabase.from('marketing_campaigns').select('*').order('start_date', { ascending: false }),
+      supabase.from('marketing_campaign_actions').select('*'),
+    ])
+    setCampaigns(cs || [])
+    setActions(as || [])
+    setLoading(false)
+  }
+  async function createCampaign() {
+    if (!form.title.trim() || !form.start || !form.end) { alert('יש למלא כותרת, תאריך התחלה ותאריך סיום'); return }
+    if (form.end < form.start) { alert('תאריך הסיום מוקדם מתאריך ההתחלה'); return }
+    setBusy(true)
+    const { data, error } = await supabase.from('marketing_campaigns').insert({ title: form.title.trim(), start_date: form.start, end_date: form.end }).select().single()
+    setBusy(false)
+    if (error) { alert('שגיאה: ' + error.message); return }
+    setCampaigns(prev => [data, ...prev])
+    setOpen(o => ({ ...o, [data.id]: true }))
+    setForm({ title: '', start: '', end: '' })
+  }
+  async function deleteCampaign(id) {
+    if (!window.confirm('למחוק את הקמפיין וכל הפעולות שבו?')) return
+    await supabase.from('marketing_campaign_actions').delete().eq('campaign_id', id)
+    await supabase.from('marketing_campaigns').delete().eq('id', id)
+    setCampaigns(prev => prev.filter(c => c.id !== id))
+    setActions(prev => prev.filter(a => a.campaign_id !== id))
+  }
+  async function addAction(campaignId, date) {
+    const { data, error } = await supabase.from('marketing_campaign_actions').insert({ campaign_id: campaignId, date, label: '', free_text: '', done: false }).select().single()
+    if (error) { alert('שגיאה: ' + error.message); return }
+    setActions(prev => [...prev, data])
+  }
+  async function updateAction(id, patch) {
+    setActions(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a))
+    await supabase.from('marketing_campaign_actions').update(patch).eq('id', id)
+  }
+  async function deleteAction(id) {
+    setActions(prev => prev.filter(a => a.id !== id))
+    await supabase.from('marketing_campaign_actions').delete().eq('id', id)
+  }
+  function datesOf(c) {
+    const out = []; let d = c.start_date; let g = 0
+    while (d <= c.end_date && g < 400) { out.push(d); d = toStr(addDays(d, 1)); g++ }
+    return out
+  }
+
+  return (
+    <div className="flex flex-col gap-4" dir="rtl">
+      <div className="bg-white border border-gray-100 rounded-xl p-5">
+        <h2 className="text-[15px] font-bold text-gray-800 mb-3">קמפיין חדש</h2>
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-[12px] text-gray-500 mb-1">כותרת</label>
+            <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="שם הקמפיין"
+              className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+          </div>
+          <div>
+            <label className="block text-[12px] text-gray-500 mb-1">מתאריך</label>
+            <input type="date" value={form.start} onChange={e => setForm(f => ({ ...f, start: e.target.value }))}
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
+          </div>
+          <div>
+            <label className="block text-[12px] text-gray-500 mb-1">עד תאריך</label>
+            <input type="date" value={form.end} onChange={e => setForm(f => ({ ...f, end: e.target.value }))}
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
+          </div>
+          <button onClick={createCampaign} disabled={busy}
+            className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50 flex items-center gap-1">
+            <i className="ti ti-plus" /> צור קמפיין
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="text-center text-gray-400 text-[13px] py-8">טוען…</div>
+      ) : campaigns.length === 0 ? (
+        <div className="bg-white border border-gray-100 rounded-xl p-10 text-center text-gray-400 text-[13px]">אין קמפיינים עדיין</div>
+      ) : campaigns.map(c => {
+        const isOpen = !!open[c.id]
+        const cActions = actions.filter(a => a.campaign_id === c.id)
+        const doneCount = cActions.filter(a => a.done).length
+        return (
+          <div key={c.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
+              <button onClick={() => setOpen(o => ({ ...o, [c.id]: !o[c.id] }))} className="flex items-center gap-2 flex-1 text-right">
+                <i className={`ti ti-chevron-${isOpen ? 'down' : 'left'} text-gray-400`} style={{ fontSize: 16 }} />
+                <div>
+                  <div className="text-[14px] font-bold text-gray-800">{c.title}</div>
+                  <div className="text-[12px] text-gray-400">{fmtDate(c.start_date)} \u2013 {fmtDate(c.end_date)} \u00b7 {doneCount}/{cActions.length} בוצעו</div>
+                </div>
+              </button>
+              <button onClick={() => deleteCampaign(c.id)} className="text-gray-300 hover:text-red-500 p-1"><i className="ti ti-trash" style={{ fontSize: 15 }} /></button>
+            </div>
+            {isOpen && (
+              <div className="border-t border-gray-100 px-3 py-2 flex flex-col">
+                {datesOf(c).map(ds => {
+                  const dayActions = cActions.filter(a => a.date === ds)
+                  return (
+                    <div key={ds} className="py-2 border-b border-gray-100 last:border-0">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="text-[12px] font-medium text-gray-600">יום {dayName(ds)} \u00b7 {fmtShort(ds)}</div>
+                        <button onClick={() => addAction(c.id, ds)} className="text-[11px] text-[#E0197D] hover:text-[#A0106A] flex items-center gap-0.5"><i className="ti ti-plus" style={{ fontSize: 12 }} /> הוסף שורת פעולה</button>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        {dayActions.length === 0 && <div className="text-[11px] text-gray-300">אין פעולות</div>}
+                        {dayActions.map(a => (
+                          <div key={a.id} className="flex items-center gap-2">
+                            <button onClick={() => updateAction(a.id, { done: !a.done })}
+                              className={`text-[11px] px-2 py-1 rounded-lg border flex items-center gap-1 shrink-0 ${a.done ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+                              <i className={`ti ${a.done ? 'ti-check' : 'ti-circle'}`} style={{ fontSize: 12 }} /> בוצע
+                            </button>
+                            <input value={a.label || ''} onChange={e => setActions(prev => prev.map(x => x.id === a.id ? { ...x, label: e.target.value } : x))} onBlur={e => updateAction(a.id, { label: e.target.value })}
+                              placeholder="פעולה" className="flex-1 min-w-0 text-[13px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+                            <input value={a.free_text || ''} onChange={e => setActions(prev => prev.map(x => x.id === a.id ? { ...x, free_text: e.target.value } : x))} onBlur={e => updateAction(a.id, { free_text: e.target.value })}
+                              placeholder="הערות" className="flex-1 min-w-0 text-[13px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+                            <button onClick={() => deleteAction(a.id)} className="text-gray-300 hover:text-red-500 shrink-0"><i className="ti ti-trash" style={{ fontSize: 13 }} /></button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [notes, setNotes] = useState([])
@@ -229,10 +372,12 @@ function Monitor() {
   async function load() {
     setLoading(true)
     const today = toStr(new Date())
-    const [{ data: types }, { data: evs }, { data: rows }] = await Promise.all([
+    const [{ data: types }, { data: evs }, { data: rows }, { data: camps }, { data: cacts }] = await Promise.all([
       supabase.from('event_types').select('value,label'),
       supabase.from('events').select('id,title,date,type').order('date'),
       supabase.from('marketing_plan').select('event_id,action_key,custom_date,custom_label,done,deleted,free_text,notes'),
+      supabase.from('marketing_campaigns').select('id,title,start_date,end_date'),
+      supabase.from('marketing_campaign_actions').select('id,campaign_id,date,label,free_text,done'),
     ])
     const showType = resolveShowType(types)
     const map = {}
@@ -241,8 +386,6 @@ function Monitor() {
       map[`${r.event_id}::${r.action_key}`] = r
       if (r.action_key === '__event__' && r.deleted) hidden.add(String(r.event_id))
     }
-    planRef.current = map
-    setPlan(map)
     const shows = (evs || []).filter(e => e.type === showType && !hidden.has(String(e.id)))
     function buildItems(evList) {
       const items = []
@@ -251,29 +394,47 @@ function Monitor() {
           const c = map[`${ev.id}::${a.key}`] || {}
           if (c.deleted) continue
           items.push({
-            id: `${ev.id}::${a.key}`,
-            eventId: ev.id,
-            actionKey: a.key,
+            id: `${ev.id}::${a.key}`, source: 'gantt',
+            eventId: ev.id, actionKey: a.key,
             date: c.custom_date || planDate(ev.date, a.offset),
-            eventDate: ev.date,
             eventTitle: ev.title,
             label: c.custom_label || a.label,
-            done: !!c.done,
-            free_text: c.free_text || '',
+            done: !!c.done, free_text: c.free_text || '',
+            archiveYm: ymKey(ev.date),
           })
         }
       }
-      items.sort((x, y) => x.date.localeCompare(y.date) || x.eventTitle.localeCompare(y.eventTitle))
       return items
     }
-    // נוכחי — מופעים עתידיים, לפי שבוע ויום
-    setCurWeeks(groupWeekDay(buildItems(shows.filter(e => e.date >= today))))
-    // ארכיון — מופעים שעברו, תיקייה לפי חודש האירוע, ובתוכה לפי יום
-    const pastItems = buildItems(shows.filter(e => e.date < today))
+    const campById = {}
+    for (const c of (camps || [])) campById[c.id] = c
+    const campItems = []
+    for (const a of (cacts || [])) {
+      const c = campById[a.campaign_id]
+      if (!c) continue
+      const it = {
+        id: `camp::${a.id}`, source: 'campaign', actionId: a.id,
+        date: a.date, eventTitle: c.title,
+        label: (a.label && a.label.trim()) ? a.label : 'פעולת קמפיין',
+        done: !!a.done, free_text: a.free_text || '',
+        archiveYm: ymKey(a.date), campEnd: c.end_date,
+      }
+      map[it.id] = { done: !!a.done }
+      campItems.push(it)
+    }
+    planRef.current = map
+    setPlan(map)
+    const sortItems = arr => arr.slice().sort((x, y) => x.date.localeCompare(y.date) || (x.eventTitle || '').localeCompare(y.eventTitle || ''))
+    const curGantt = buildItems(shows.filter(e => e.date >= today))
+    const curCamp = campItems.filter(it => (it.campEnd || it.date) >= today)
+    setCurWeeks(groupWeekDay(sortItems([...curGantt, ...curCamp])))
+    const pastGantt = buildItems(shows.filter(e => e.date < today))
+    const pastCamp = campItems.filter(it => (it.campEnd || it.date) < today)
+    const allPast = sortItems([...pastGantt, ...pastCamp])
     const monthMap = {}
     const order = []
-    for (const it of pastItems) {
-      const ym = ymKey(it.eventDate)
+    for (const it of allPast) {
+      const ym = it.archiveYm
       if (!monthMap[ym]) { monthMap[ym] = {}; order.push(ym) }
       if (!monthMap[ym][it.date]) monthMap[ym][it.date] = []
       monthMap[ym][it.date].push(it)
@@ -302,6 +463,18 @@ function Monitor() {
     if (error) alert('שגיאה בשמירה: ' + error.message)
   }
 
+  async function toggleItem(it, curDone) {
+    const done = !curDone
+    if (it.source === 'campaign') {
+      const merged = { ...planRef.current, [it.id]: { ...(planRef.current[it.id] || {}), done } }
+      planRef.current = merged
+      setPlan(merged)
+      await supabase.from('marketing_campaign_actions').update({ done }).eq('id', it.actionId)
+    } else {
+      persist(it.eventId, it.actionKey, { done })
+    }
+  }
+
   function renderDays(days) {
     return (
       <div className="flex flex-col">
@@ -316,7 +489,7 @@ function Monitor() {
                 const done = plan[it.id] ? !!plan[it.id].done : it.done
                 const overdue = !done && it.date < todayStr
                 return (
-                  <button key={it.id} onClick={() => persist(it.eventId, it.actionKey, { done: !done })}
+                  <button key={it.id} onClick={() => toggleItem(it, done)}
                     title={it.eventTitle + (it.free_text ? ' · ' + it.free_text : '')}
                     className={`text-[12px] rounded-lg px-2 py-1 border transition-colors text-right ${done ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A] line-through' : overdue ? 'bg-red-50 border-red-100 text-red-500 hover:bg-red-100' : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-[#E0197D]'}`}>
                     {it.label}
