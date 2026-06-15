@@ -237,12 +237,11 @@ export default function MessagesPage() {
                 <option value="">בחר עובד...</option>
                 {(() => {
                   const DC_TEAM = ['עמית','עינת','לאה','נועה','דונדו','מרקו','איתן','ניב']
-                  const fn = x => (x||'').trim().split(' ')[0]
                   const all = []
                   crew.forEach(c => { if (c.user_id) all.push({ user_id: c.user_id, full_name: c.full_name }) })
                   people.forEach(p => { if (p.id) all.push({ user_id: p.id, full_name: p.full_name }) })
                   const byName = {}
-                  all.forEach(r => { const k = fn(r.full_name); if (DC_TEAM.includes(k) && !byName[k]) byName[k] = r })
+                  all.forEach(r => { const words = (r.full_name||'').trim().split(' ').filter(Boolean); const k = DC_TEAM.find(t => words.includes(t)); if (k && !byName[k]) byName[k] = r })
                   return DC_TEAM.map(n => byName[n]).filter(Boolean).map(r => <option key={r.user_id} value={r.user_id}>{r.full_name}</option>)
                 })()}
               </select>
