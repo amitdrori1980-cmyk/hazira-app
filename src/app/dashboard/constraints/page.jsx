@@ -611,7 +611,7 @@ export default function ConstraintsPage() {
                 </div>
                 {/* Desktop: text */}
                 {dayEvents.slice(0,3).map(e=>(
-                  <div key={e.id} draggable={isManager} onDragStart={ev=>{ev.stopPropagation();setDragId(e.id)}} onDragOver={ev=>{if(isManager)ev.preventDefault()}} onDrop={ev=>{if(isManager){ev.stopPropagation();reorderEventsInDay(ds,e.id)}}} className={`hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FCE4F3] text-[#A0106A] ${isManager?'cursor-move':''} ${dragId===e.id?'opacity-40':''}`}>
+                  <div key={e.id} draggable={isManager} onDragStart={ev=>{ev.stopPropagation();ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragOver={ev=>{if(isManager){ev.preventDefault();ev.dataTransfer.dropEffect='move'}}} onDrop={ev=>{if(isManager){ev.stopPropagation();reorderEventsInDay(ds,e.id)}}} className={`hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate bg-[#FCE4F3] text-[#A0106A] ${isManager?'cursor-move':''} ${dragId===e.id?'opacity-40':''}`}>
                     {e.time?.slice(0,5)} {e.title}
                   </div>
                 ))}
@@ -651,7 +651,7 @@ export default function ConstraintsPage() {
                 }`}>
                 <div className={`text-center text-[14px] md:text-[20px] font-medium mb-1.5 ${isToday||isSelected?'text-[#E0197D]':'text-gray-700'}`}>{c.d}</div>
                 {dayEvents.map(e=>(
-                  <div key={e.id} draggable={isManager} onDragStart={ev=>{ev.stopPropagation();setDragId(e.id)}} onDragOver={ev=>{if(isManager)ev.preventDefault()}} onDrop={ev=>{if(isManager){ev.stopPropagation();reorderEventsInDay(c.ds,e.id)}}} className={`text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 truncate bg-[#FCE4F3] text-[#A0106A] ${isManager?'cursor-move':''} ${dragId===e.id?'opacity-40':''}`}>
+                  <div key={e.id} draggable={isManager} onDragStart={ev=>{ev.stopPropagation();ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragOver={ev=>{if(isManager){ev.preventDefault();ev.dataTransfer.dropEffect='move'}}} onDrop={ev=>{if(isManager){ev.stopPropagation();reorderEventsInDay(c.ds,e.id)}}} className={`text-[10px] md:text-[13px] px-1.5 py-1 rounded mb-1 truncate bg-[#FCE4F3] text-[#A0106A] ${isManager?'cursor-move':''} ${dragId===e.id?'opacity-40':''}`}>
                     {e.time?.slice(0,5)} {e.title}
                   </div>
                 ))}
@@ -700,7 +700,7 @@ export default function ConstraintsPage() {
             <div className="mb-3">
               <div className="text-[11px] font-semibold text-gray-700 mb-2">אירועים</div>
               {selectedData.dayEvents.map(e=>(
-                <div key={e.id} draggable={isManager} onDragStart={()=>setDragId(e.id)} onDragOver={ev=>{if(isManager)ev.preventDefault()}} onDrop={()=>{if(isManager)reorderDayEvents(e.id)}} className={`flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0 flex-row-reverse ${isManager?'cursor-move':''} ${dragId===e.id?'opacity-40':''}`}>
+                <div key={e.id} draggable={isManager} onDragStart={ev=>{ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragOver={ev=>{if(isManager){ev.preventDefault();ev.dataTransfer.dropEffect='move'}}} onDrop={()=>{if(isManager)reorderDayEvents(e.id)}} className={`flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0 flex-row-reverse ${isManager?'cursor-move':''} ${dragId===e.id?'opacity-40':''}`}>
                   <span className="flex-1 text-[13px] text-right">{e.title}</span>
                   <span className="text-[11px] text-gray-700">{e.time?.slice(0,5)}</span>
                   {isManager && (
