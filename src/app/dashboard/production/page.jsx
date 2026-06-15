@@ -248,6 +248,22 @@ function ProductionInquiries() {
     alert(`עודכנו ${ok} אירועים — ליומן ולאילוצים` + (created ? ` (${created} חדשים)` : '') + `, ובסך הכול ${totalConfirmed} אישורי צוות` + (errors ? `. ${errors} נכשלו.` : '.'))
   }
 
+  async function syncWithCalendar() {
+    if (!liveEvents.length) return
+    setBulkBusy(true)
+    const { data: cal } = await supabase.from('events').select('title, date')
+    const calSet = new Set((cal || []).map(c => `${(c.title||'').trim()}|${c.date||''}`))
+    const orphans = liveEvents.filter(ev => !calSet.has(`${(ev.event_name||'').trim()}|${ev.date||''}`))
+    if (!orphans.length) { setBulkBusy(false); alert('הכל מסונכרן — אין אירועים להסרה.'); return }
+    if (!window.confirm(`להסיר ${orphans.length} אירועים מההפקה הטכנית שאינם קיימים ביומן?`)) { setBulkBusy(false); return }
+    const ts = new Date().toISOString()
+    const ids = orphans.map(o => o.id)
+    await supabase.from('production_events').update({ deleted_at: ts }).in('id', ids)
+    setEvents(prev => prev.map(e => ids.includes(e.id) ? { ...e, deleted_at: ts } : e))
+    setBulkBusy(false)
+    alert(`הוסרו ${orphans.length} אירועים מההפקה הטכנית.`)
+  }
+
   async function pushAllToCalendar() {
     if (!activeEvents.length) return
     if (!window.confirm(`לעדכן את כל ${activeEvents.length} האירועים בהפקה הטכנית — ליומן ולאילוצים?`)) return
@@ -547,6 +563,10 @@ function ProductionInquiries() {
             </button>
           </>
         )}
+        <button onClick={syncWithCalendar} disabled={bulkBusy}
+          className="bg-white border border-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-1 disabled:opacity-50">
+          <i className="ti ti-refresh"/> סנכרן עם היומן
+        </button>
         <button onClick={pushAllToCalendar} disabled={bulkBusy || activeEvents.length===0}
           className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1 disabled:opacity-50">
           <i className="ti ti-calendar-check"/> {bulkBusy ? 'מעדכן…' : 'עדכן הכל ליומן ואילוצים'}
