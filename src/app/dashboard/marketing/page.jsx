@@ -352,11 +352,11 @@ function Campaign() {
                     return (
                       <div dir="rtl">
                         <div className="flex items-center justify-center gap-3 mb-3">
-                          <button disabled={wk >= lastWk} onClick={() => go(1)}
-                            className="text-[12px] px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[#E0197D] disabled:opacity-30">‹ הבא</button>
-                          <div className="text-[13px] font-bold text-[#A0106A]">שבוע {weekRangeLabel(wk)}</div>
                           <button disabled={wk <= firstWk} onClick={() => go(-1)}
-                            className="text-[12px] px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[#E0197D] disabled:opacity-30">קודם ›</button>
+                            className="text-[12px] px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[#E0197D] disabled:opacity-30">› קודם</button>
+                          <div className="text-[13px] font-bold text-[#A0106A]">שבוע {weekRangeLabel(wk)}</div>
+                          <button disabled={wk >= lastWk} onClick={() => go(1)}
+                            className="text-[12px] px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[#E0197D] disabled:opacity-30">הבא ‹</button>
                         </div>
                         {inWeek.length === 0 ? (
                           <div className="text-center text-gray-300 text-[12px] py-4">אין ימים מהקמפיין בשבוע זה</div>
