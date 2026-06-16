@@ -633,7 +633,7 @@ function Monitor() {
           <div key={day.date} className="flex items-start gap-3 px-2 py-2 border-b border-gray-100 last:border-0">
             <div className="w-16 shrink-0 text-[12px] leading-tight pt-1">
               <div className="text-gray-600 font-medium">יום {dayName(day.date)}</div>
-              <div className="text-gray-400">{fmtShort(day.date)}</div>
+              <div className="text-white">{fmtShort(day.date)}</div>
             </div>
             <div className="flex-1 min-w-0 flex flex-wrap gap-1.5">
               {day.items.map(it => {
