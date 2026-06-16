@@ -1656,17 +1656,45 @@ function ProductionTasks() {
   const [loading, setLoading] = useState(true)
   const [editId, setEditId] = useState(null)
   const [draft, setDraft] = useState({ topic: '', body: '' })
+  const [me, setMe] = useState('')
+  const [commentsByTask, setCommentsByTask] = useState({})
+  const [commentDraft, setCommentDraft] = useState({})
   const [busy, setBusy] = useState(false)
 
   useEffect(() => { load() }, [])
   async function load() {
     setLoading(true)
-    const { data } = await supabase.from('production_tasks').select('*').order('created_at', { ascending: false })
-    setTasks(data || [])
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: p } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
+      setMe(p?.full_name || '')
+    }
+    const [{ data: ts }, { data: cs }] = await Promise.all([
+      supabase.from('production_tasks').select('*').order('created_at', { ascending: false }),
+      supabase.from('production_task_comments').select('*').order('created_at', { ascending: true }),
+    ])
+    setTasks(ts || [])
+    const map = {}
+    for (const cmt of (cs || [])) { (map[cmt.task_id] = map[cmt.task_id] || []).push(cmt) }
+    setCommentsByTask(map)
     setLoading(false)
   }
+  function fmtDT(iso) {
+    if (!iso) return ''
+    const d = new Date(iso)
+    const p = n => String(n).padStart(2, '0')
+    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`
+  }
+  async function addComment(taskId) {
+    const body = (commentDraft[taskId] || '').trim()
+    if (!body) return
+    const { data, error } = await supabase.from('production_task_comments').insert({ task_id: taskId, author: me, body }).select().single()
+    if (error) { alert('שגיאה: ' + error.message); return }
+    setCommentsByTask(prev => ({ ...prev, [taskId]: [...(prev[taskId] || []), data] }))
+    setCommentDraft(prev => ({ ...prev, [taskId]: '' }))
+  }
   async function addTask() {
-    const { data, error } = await supabase.from('production_tasks').insert({ topic: '', body: '' }).select().single()
+    const { data, error } = await supabase.from('production_tasks').insert({ topic: '', body: '', author: me }).select().single()
     if (error) { alert('שגיאה: ' + error.message); return }
     setTasks(prev => [data, ...prev])
     setEditId(data.id)
@@ -1715,14 +1743,31 @@ function ProductionTasks() {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-start gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[14px] font-bold text-gray-800">{t.topic || '(ללא נושא)'}</div>
-                    {t.body && <div className="text-[13px] text-gray-600 whitespace-pre-wrap mt-1">{t.body}</div>}
+                <div>
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[14px] font-bold text-gray-800">{t.topic || '(ללא נושא)'}</div>
+                      <div className="text-[11px] text-gray-400 mt-0.5">{t.author ? `מאת ${t.author} · ` : ''}{fmtDT(t.created_at)}</div>
+                      {t.body && <div className="text-[13px] text-gray-600 whitespace-pre-wrap mt-1.5">{t.body}</div>}
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button onClick={() => startEdit(t)} title="עריכה" className="text-gray-400 hover:text-[#E0197D] p-1"><i className="ti ti-edit" style={{ fontSize: 16 }} /></button>
+                      <button onClick={() => deleteTask(t)} title="מחיקה" className="text-gray-400 hover:text-red-500 p-1"><i className="ti ti-trash" style={{ fontSize: 16 }} /></button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button onClick={() => startEdit(t)} title="עריכה" className="text-gray-400 hover:text-[#E0197D] p-1"><i className="ti ti-edit" style={{ fontSize: 16 }} /></button>
-                    <button onClick={() => deleteTask(t)} title="מחיקה" className="text-gray-400 hover:text-red-500 p-1"><i className="ti ti-trash" style={{ fontSize: 16 }} /></button>
+                  <div className="mt-2 border-t border-gray-100 pt-2">
+                    {(commentsByTask[t.id] || []).map(cmt => (
+                      <div key={cmt.id} className="text-[12px] mb-1.5">
+                        <span className="text-gray-400">{cmt.author || 'אנונימי'} · {fmtDT(cmt.created_at)}</span>
+                        <div className="text-gray-700 whitespace-pre-wrap">{cmt.body}</div>
+                      </div>
+                    ))}
+                    <div className="flex items-center gap-2 mt-1">
+                      <input value={commentDraft[t.id] || ''} onChange={e => setCommentDraft(prev => ({ ...prev, [t.id]: e.target.value }))}
+                        onKeyDown={e => { if (e.key === 'Enter') addComment(t.id) }}
+                        placeholder="הוסף תגובה..." className="flex-1 min-w-0 text-[12px] px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+                      <button onClick={() => addComment(t.id)} className="text-[12px] text-[#E0197D] hover:text-[#A0106A] flex-shrink-0">שלח</button>
+                    </div>
                   </div>
                 </div>
               )}
