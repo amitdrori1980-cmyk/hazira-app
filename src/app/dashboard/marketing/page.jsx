@@ -471,7 +471,7 @@ function Dashboard() {
   }
 
   return (
-    <div className="bg-white border-2 border-black rounded-xl p-5 shadow-lg">
+    <div className="bg-[#7C878E] border-2 border-black rounded-xl p-5 shadow-lg">
       <div className="flex items-center gap-2 flex-row-reverse mb-4">
         <i className="ti ti-bell text-[#E0197D]" style={{ fontSize: 18 }} />
         <h2 className="text-[15px] font-bold text-gray-800">הודעות</h2>
@@ -656,7 +656,7 @@ function Monitor() {
   }
 
   return (
-    <div className="bg-white border-2 border-black rounded-xl p-5 shadow-lg">
+    <div className="bg-[#7C878E] border-2 border-black rounded-xl p-5 shadow-lg">
       <div className="flex items-center justify-between gap-3 mb-4" dir="rtl">
         <div className="flex items-center gap-2">
           <i className="ti ti-calendar text-[#E0197D]" style={{ fontSize: 18 }} />
