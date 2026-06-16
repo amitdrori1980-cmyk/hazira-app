@@ -295,7 +295,8 @@ function Campaign() {
 
                   {mode === 'month' ? (
                     <>
-                      <div className="flex flex-wrap gap-5 justify-center" dir="rtl">
+                      <div className="flex flex-col lg:flex-row gap-4" dir="rtl">
+                      <div className="flex flex-wrap gap-5 justify-center lg:justify-start lg:shrink-0">
                         {monthsOf(c).map(({ y, m }) => {
                           const mm = String(m).padStart(2, '0')
                           const daysInMonth = new Date(y, m, 0).getDate()
@@ -331,6 +332,24 @@ function Campaign() {
                             </div>
                           )
                         })}
+                      </div>
+                      <div className="lg:flex-1 lg:border-r lg:border-gray-100 lg:pr-4">
+                        <div className="text-[13px] font-bold text-gray-700 mb-2">סיכום פעולות · {doneCount}/{cActions.length} בוצעו</div>
+                        <div className="flex flex-col gap-1 max-h-[420px] overflow-y-auto pl-1">
+                          {cActions.length === 0 && <div className="text-[12px] text-gray-300">אין פעולות עדיין</div>}
+                          {[...cActions].sort((x, y) => x.date.localeCompare(y.date)).map(a => (
+                            <div key={a.id} onClick={() => setSel(o => ({ ...o, [c.id]: a.date }))}
+                              className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer border ${a.date === selDate ? 'border-[#E0197D] bg-pink-50' : 'border-transparent hover:bg-gray-50'}`}>
+                              <button onClick={(e) => { e.stopPropagation(); updateAction(a.id, { done: !a.done }) }}
+                                className={`shrink-0 w-4 h-4 rounded-full border flex items-center justify-center ${a.done ? 'bg-[#E0197D] border-[#E0197D] text-white' : 'border-gray-300 hover:border-[#E0197D]'}`}>
+                                {a.done && <i className="ti ti-check" style={{ fontSize: 10 }} />}
+                              </button>
+                              <span className="text-[11px] text-gray-400 shrink-0 w-[44px] text-center">{fmtShort(a.date)}</span>
+                              <span className={`text-[12px] flex-1 min-w-0 truncate ${a.done ? 'line-through text-gray-400' : 'text-gray-700'}`}>{a.label || '(פעולה)'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                       </div>
                       <div className="mt-4 border-t border-gray-100 pt-3">
                         {dayEditor(selDate)}
