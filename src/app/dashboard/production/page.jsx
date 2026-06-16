@@ -1667,7 +1667,7 @@ function ProductionTasks() {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       const { data: p } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
-      setMe(p?.full_name || '')
+      setMe(p?.full_name || user.email || '')
     }
     const [{ data: ts }, { data: cs }] = await Promise.all([
       supabase.from('production_tasks').select('*').order('created_at', { ascending: false }),
