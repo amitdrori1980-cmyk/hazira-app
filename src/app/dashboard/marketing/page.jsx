@@ -315,14 +315,14 @@ function Campaign() {
                                   if (!ds) return <div key={i} />
                                   const dnum = Number(ds.split('-')[2])
                                   const inRange = ds >= c.start_date && ds <= c.end_date
-                                  if (!inRange) return <div key={i} className="h-14 flex items-center justify-center text-[14px] text-gray-200">{dnum}</div>
+                                  if (!inRange) return <div key={i} className="h-14 flex items-center justify-center text-[14px] text-gray-300 border border-gray-100 rounded-lg">{dnum}</div>
                                   const dayActs = cActions.filter(a => a.date === ds)
                                   const hasActs = dayActs.length > 0
                                   const allDone = hasActs && dayActs.every(a => a.done)
                                   const isSel = ds === selDate
                                   return (
                                     <button key={i} onClick={() => setSel(o => ({ ...o, [c.id]: ds }))}
-                                      className={`h-14 rounded-lg flex flex-col items-center justify-center border transition-colors ${isSel ? 'bg-[#E0197D] text-white border-[#E0197D]' : hasActs ? (allDone ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A]' : 'bg-pink-50 border-pink-100 text-[#A0106A]') : 'bg-white border-gray-100 text-gray-600 hover:border-[#E0197D]'}`}>
+                                      className={`h-14 rounded-lg flex flex-col items-center justify-center border transition-colors ${isSel ? 'bg-[#E0197D] text-white border-[#E0197D]' : hasActs ? (allDone ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A]' : 'bg-pink-50 border-pink-100 text-[#A0106A]') : 'bg-white border-gray-300 text-gray-600 hover:border-[#E0197D]'}`}>
                                       <span className="text-[15px] leading-none">{dnum}</span>
                                       {hasActs && <span className={`text-[11px] leading-none mt-1 ${isSel ? 'text-white' : 'text-[#E0197D]'}`}>{dayActs.filter(a => a.done).length}/{dayActs.length}</span>}
                                     </button>
