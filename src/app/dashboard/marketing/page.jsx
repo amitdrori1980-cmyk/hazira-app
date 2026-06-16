@@ -471,7 +471,7 @@ function Dashboard() {
   }
 
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-5 max-w-3xl">
+    <div className="bg-white border border-gray-100 rounded-xl p-5">
       <div className="flex items-center gap-2 flex-row-reverse mb-4">
         <i className="ti ti-bell text-[#E0197D]" style={{ fontSize: 18 }} />
         <h2 className="text-[15px] font-bold text-gray-800">הודעות</h2>
