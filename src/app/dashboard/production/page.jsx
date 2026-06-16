@@ -1651,6 +1651,89 @@ export function GeneralSchedulesMode() {
 }
 
 
+function ProductionTasks() {
+  const [tasks, setTasks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [editId, setEditId] = useState(null)
+  const [draft, setDraft] = useState({ topic: '', body: '' })
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => { load() }, [])
+  async function load() {
+    setLoading(true)
+    const { data } = await supabase.from('production_tasks').select('*').order('created_at', { ascending: false })
+    setTasks(data || [])
+    setLoading(false)
+  }
+  async function addTask() {
+    const { data, error } = await supabase.from('production_tasks').insert({ topic: '', body: '' }).select().single()
+    if (error) { alert('שגיאה: ' + error.message); return }
+    setTasks(prev => [data, ...prev])
+    setEditId(data.id)
+    setDraft({ topic: '', body: '' })
+  }
+  function startEdit(t) { setEditId(t.id); setDraft({ topic: t.topic || '', body: t.body || '' }) }
+  async function saveEdit(t) {
+    setBusy(true)
+    const { error } = await supabase.from('production_tasks').update({ topic: draft.topic, body: draft.body }).eq('id', t.id)
+    setBusy(false)
+    if (error) { alert('שגיאה: ' + error.message); return }
+    setTasks(prev => prev.map(x => x.id === t.id ? { ...x, topic: draft.topic, body: draft.body } : x))
+    setEditId(null)
+  }
+  async function deleteTask(t) {
+    if (!window.confirm('למחוק את המשימה?')) return
+    await supabase.from('production_tasks').delete().eq('id', t.id)
+    setTasks(prev => prev.filter(x => x.id !== t.id))
+    if (editId === t.id) setEditId(null)
+  }
+
+  return (
+    <div dir="rtl">
+      <div className="flex justify-end mb-3">
+        <button onClick={addTask} className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1">
+          <i className="ti ti-plus" /> הוסף משימה
+        </button>
+      </div>
+      {loading ? (
+        <div className="text-center text-gray-400 text-[13px] py-8">טוען...</div>
+      ) : tasks.length === 0 ? (
+        <div className="text-center text-gray-400 text-[13px] py-10 border border-gray-100 rounded-xl">אין משימות עדיין</div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {tasks.map(t => (
+            <div key={t.id} className="border border-gray-200 rounded-xl p-3 bg-white">
+              {editId === t.id ? (
+                <div className="flex flex-col gap-2">
+                  <input value={draft.topic} onChange={e => setDraft(d => ({ ...d, topic: e.target.value }))} placeholder="כותרת נושא"
+                    className="text-[14px] font-medium px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+                  <textarea value={draft.body} onChange={e => setDraft(d => ({ ...d, body: e.target.value }))} placeholder="טקסט חופשי..." rows={4}
+                    className="text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y" />
+                  <div className="flex gap-2">
+                    <button onClick={() => saveEdit(t)} disabled={busy} className="bg-[#E0197D] text-white text-[12px] px-3 py-1.5 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">{busy ? 'שומר...' : 'שמור'}</button>
+                    <button onClick={() => { setEditId(null); if (!t.topic && !t.body) deleteTask(t) }} className="text-[12px] text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200">ביטול</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[14px] font-bold text-gray-800">{t.topic || '(ללא נושא)'}</div>
+                    {t.body && <div className="text-[13px] text-gray-600 whitespace-pre-wrap mt-1">{t.body}</div>}
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button onClick={() => startEdit(t)} title="עריכה" className="text-gray-400 hover:text-[#E0197D] p-1"><i className="ti ti-edit" style={{ fontSize: 16 }} /></button>
+                    <button onClick={() => deleteTask(t)} title="מחיקה" className="text-gray-400 hover:text-red-500 p-1"><i className="ti ti-trash" style={{ fontSize: 16 }} /></button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ProductionPage() {
   const [profile, setProfile] = useState(null)
   const [tab, setTab] = useState(null)
@@ -1666,9 +1749,22 @@ export default function ProductionPage() {
 
   if (!tab) return null
 
+  const PTABS = [
+    { id: 'inquiries', label: 'הפקה טכנית', icon: 'ti-clipboard-list' },
+    { id: 'tasks', label: 'משימות', icon: 'ti-checklist' },
+  ]
+
   return (
     <div>
-      <ProductionInquiries />
+      <div className="flex gap-2 mb-4 justify-end" dir="rtl">
+        {PTABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={`text-sm px-4 py-2 rounded-lg border flex items-center gap-1.5 transition-colors ${tab === t.id ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'bg-white border-gray-200 text-gray-600 hover:border-[#E0197D]'}`}>
+            <i className={`ti ${t.icon}`} /> {t.label}
+          </button>
+        ))}
+      </div>
+      {tab === 'tasks' ? <ProductionTasks /> : <ProductionInquiries />}
     </div>
   )
 }
