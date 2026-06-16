@@ -643,7 +643,7 @@ function Monitor() {
                   <button key={it.id} onClick={() => toggleItem(it, done)}
                     title={it.eventTitle + (it.free_text ? ' · ' + it.free_text : '')}
                     className={`text-[12px] rounded-lg px-2 py-1 border transition-colors text-right ${done ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A] line-through' : overdue ? 'bg-red-50 border-red-100 text-red-500 hover:bg-red-100' : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-[#E0197D]'}`}>
-                    {it.label}
+                    {it.source === 'campaign' && <i className="ti ti-rocket" style={{ fontSize: 11 }} />} {it.label}
                     <span className="text-gray-400 mr-1">· {it.eventTitle}</span>
                   </button>
                 )
