@@ -1666,13 +1666,9 @@ export default function ProductionPage() {
 
   if (!tab) return null
 
-  const isManager = profile?.is_manager
-
   return (
     <div>
-      {isManager
-        ? <ProductionInquiries />
-        : <div className="text-center text-gray-400 text-sm py-16">הלוזים עברו לאזור "מפרטים ולוזים", בלשונית "לוזים".</div>}
+      <ProductionInquiries />
     </div>
   )
 }
