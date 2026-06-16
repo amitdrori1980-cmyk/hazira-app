@@ -1756,7 +1756,7 @@ export default function ProductionPage() {
 
   return (
     <div>
-      <div className="flex gap-2 mb-4 justify-end" dir="rtl">
+      <div className="flex gap-2 mb-4 justify-start" dir="rtl">
         {PTABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`text-sm px-4 py-2 rounded-lg border flex items-center gap-1.5 transition-colors ${tab === t.id ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'bg-white border-gray-200 text-gray-600 hover:border-[#E0197D]'}`}>
