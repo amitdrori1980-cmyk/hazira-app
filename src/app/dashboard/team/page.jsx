@@ -34,6 +34,12 @@ export default function TeamPage() {
   const [addToOps, setAddToOps] = useState(false)
   const [adding, setAdding] = useState(false)
   const [msg, setMsg] = useState(null)
+  const [accessMap, setAccessMap] = useState({})
+  const [editId, setEditId] = useState(null)
+  const [draftMgr, setDraftMgr] = useState(false)
+  const [draftAreas, setDraftAreas] = useState(new Set())
+  const [savingId, setSavingId] = useState(null)
+  const [editMsg, setEditMsg] = useState(null)
 
   useEffect(() => {
     (async () => {
@@ -42,10 +48,17 @@ export default function TeamPage() {
         supabase.from('profiles').select('*').order('full_name'),
         supabase.from('nav_items').select('label, href, manager_only').eq('enabled', true).order('sort_order'),
         user ? supabase.from('profiles').select('is_manager').eq('id', user.id).single() : Promise.resolve({ data: null }),
-        supabase.from('user_area_access').select('user_id').eq('area', 'operations'),
+        supabase.from('user_area_access').select('user_id, area'),
         supabase.from('operations_crew').select('user_id').eq('active', true),
       ])
-      setOpsSet(new Set((opsRows || []).map(r => r.user_id).filter(Boolean)))
+      setOpsSet(new Set((opsRows || []).filter(r => r.area === 'operations').map(r => r.user_id).filter(Boolean)))
+      const am = {}
+      for (const r of (opsRows || [])) {
+        if (!r.user_id) continue
+        if (!am[r.user_id]) am[r.user_id] = new Set()
+        am[r.user_id].add(r.area)
+      }
+      setAccessMap(am)
       const opsCrewSet = new Set((opsCrew || []).map(r => r.user_id).filter(Boolean))
       setTeam(sortTeam((profs || []).filter(p => !opsCrewSet.has(p.id))))
       setIsManager(!!me?.is_manager)
@@ -74,6 +87,32 @@ export default function TeamPage() {
   function toggleOps(checked) {
     setAddToOps(checked)
     setForm(f => ({ ...f, dept: '' })) // הרשימה מתחלפת, אז מאפסים בחירה
+  }
+
+  function startEdit(m) {
+    setEditId(m.id)
+    setDraftMgr(!!m.is_manager)
+    setDraftAreas(new Set(accessMap[m.id] ? Array.from(accessMap[m.id]) : []))
+    setEditMsg(null)
+  }
+  function toggleDraftArea(area) {
+    setDraftAreas(prev => { const n = new Set(prev); n.has(area) ? n.delete(area) : n.add(area); return n })
+  }
+  async function saveAccess(m) {
+    setSavingId(m.id); setEditMsg(null)
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/update-crew-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+      body: JSON.stringify({ user_id: m.id, update_access: true, is_manager: draftMgr, areas: Array.from(draftAreas) })
+    })
+    const data = await res.json().catch(() => ({}))
+    setSavingId(null)
+    if (!res.ok) { setEditMsg(data.error || 'שגיאה בעדכון ההרשאות'); return }
+    setTeam(prev => sortTeam(prev.map(x => x.id === m.id ? { ...x, is_manager: draftMgr } : x)))
+    setAccessMap(prev => ({ ...prev, [m.id]: new Set(draftMgr ? [] : Array.from(draftAreas)) }))
+    setOpsSet(prev => { const n = new Set(prev); if (!draftMgr && draftAreas.has('operations')) n.add(m.id); else n.delete(m.id); return n })
+    setEditId(null)
   }
 
   async function addMember(e) {
@@ -171,19 +210,52 @@ export default function TeamPage() {
         {loading ? (
           <div className="text-center text-sm text-gray-400 py-6">טוען...</div>
         ) : team.map(m => (
-          <div key={m.id} className="flex items-center gap-2 py-2.5 border-b border-gray-50 last:border-0" dir="rtl">
-            <div className="flex-1 text-right">
-              <div className="text-[13px] font-medium text-gray-800">{m.full_name}</div>
-              <div className="text-[11px] text-gray-400">{m.role}</div>
+          <div key={m.id} className="border-b border-gray-50 last:border-0">
+            <div className="flex items-center gap-2 py-2.5" dir="rtl">
+              <div className="flex-1 text-right">
+                <div className="text-[13px] font-medium text-gray-800">{m.full_name}</div>
+                <div className="text-[11px] text-gray-400">{m.role}</div>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {m.is_manager && <span className="text-[11px] bg-[#E3F0FF] text-[#1A4A8A] px-2 py-0.5 rounded-full">מנהל</span>}
+                {!m.is_manager && opsSet.has(m.id) && <span className="text-[11px] bg-[#E1F5EE] text-[#0a7a5f] px-2 py-0.5 rounded-full">צוות תפעול</span>}
+                {m.dept && m.dept !== 'תפעול' && <span className="text-[11px] bg-[#FCE4F3] text-[#A0106A] px-2 py-0.5 rounded-full">{m.dept}</span>}
+              </div>
+              {isManager && (
+                <button onClick={() => editId === m.id ? setEditId(null) : startEdit(m)} title="ערוך הרשאות" className="text-[#E0197D] hover:text-[#A0106A] flex-shrink-0 p-1">
+                  <i className={`ti ${editId === m.id ? 'ti-x' : 'ti-edit'}`} style={{ fontSize: 16 }} />
+                </button>
+              )}
+              <div className="w-8 h-8 rounded-full bg-[#FCE4F3] text-[#E0197D] text-[11px] font-medium flex items-center justify-center flex-shrink-0">
+                {initials(m.full_name)}
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {m.is_manager && <span className="text-[11px] bg-[#E3F0FF] text-[#1A4A8A] px-2 py-0.5 rounded-full">מנהל</span>}
-              {!m.is_manager && opsSet.has(m.id) && <span className="text-[11px] bg-[#E1F5EE] text-[#0a7a5f] px-2 py-0.5 rounded-full">צוות תפעול</span>}
-              {m.dept && m.dept !== 'תפעול' && <span className="text-[11px] bg-[#FCE4F3] text-[#A0106A] px-2 py-0.5 rounded-full">{m.dept}</span>}
-            </div>
-            <div className="w-8 h-8 rounded-full bg-[#FCE4F3] text-[#E0197D] text-[11px] font-medium flex items-center justify-center flex-shrink-0">
-              {initials(m.full_name)}
-            </div>
+            {isManager && editId === m.id && (
+              <div className="pb-3 pr-1" dir="rtl">
+                <label className="flex items-center gap-2 text-[13px] text-gray-700 cursor-pointer flex-row-reverse justify-end mb-2">
+                  <input type="checkbox" checked={draftMgr} onChange={e => setDraftMgr(e.target.checked)} style={{ accentColor: '#E0197D' }} />
+                  מנהל הפקה (גישה מלאה לכל האזורים)
+                </label>
+                {!draftMgr && (
+                  <div className="border border-gray-100 rounded-lg p-3">
+                    <div className="text-[12px] font-medium text-gray-500 mb-2 text-right">אזורים מורשים</div>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                      {areasList.map(a => (
+                        <label key={a.area} className="flex items-center gap-2 text-[13px] text-gray-700 cursor-pointer w-full">
+                          <input type="checkbox" checked={draftAreas.has(a.area)} onChange={() => toggleDraftArea(a.area)} style={{ accentColor: '#E0197D' }} className="flex-shrink-0" />
+                          <span>{a.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => saveAccess(m)} disabled={savingId === m.id} className="bg-[#E0197D] text-white text-[12px] px-3 py-1.5 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">{savingId === m.id ? 'שומר...' : 'שמור הרשאות'}</button>
+                  <button onClick={() => setEditId(null)} className="text-[12px] text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200">ביטול</button>
+                </div>
+                {editMsg && <div className="mt-2 text-[12px] text-[#A0106A]">{editMsg}</div>}
+              </div>
+            )}
           </div>
         ))}
       </div>
