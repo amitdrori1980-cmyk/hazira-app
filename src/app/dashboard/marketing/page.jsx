@@ -101,7 +101,7 @@ export default function MarketingPage() {
   const active = TABS.find(t => t.id === tab)
 
   return (
-    <div className="max-w-7xl">
+    <div className="w-full">
       <div className="mb-4">
         <h1 className="text-xl font-bold text-[#E0197D]">פרסום ושיווק</h1>
         <p className="text-[13px] text-gray-400 mt-0.5">מחלקת פרסום ושיווק</p>
