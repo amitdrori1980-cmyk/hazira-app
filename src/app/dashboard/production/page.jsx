@@ -59,6 +59,10 @@ function ProductionInquiries() {
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [bulkBusy, setBulkBusy] = useState(false)
+  const [syncOpen, setSyncOpen] = useState(false)
+  const [syncOrphans, setSyncOrphans] = useState([])
+  const [syncSel, setSyncSel] = useState(new Set())
+  const [syncBusy, setSyncBusy] = useState(false)
   const [printMode, setPrintMode] = useState(null)
   const [flashId, setFlashId] = useState(null)
 
@@ -264,33 +268,47 @@ function ProductionInquiries() {
     alert(`הוסרו ${orphans.length} אירועים מההפקה הטכנית.`)
   }
 
-  async function syncAll() {
-    if (!activeEvents.length && !liveEvents.length) return
-    setBulkBusy(true)
-    // 1) עדכון כל האירועים הפעילים ליומן ולאילוצים
+  async function pushActive(skipIds) {
     let ok = 0, created = 0
     for (const ev of activeEvents) {
+      if (skipIds && skipIds.includes(ev.id)) continue
       const r = await syncEventToCalendarAndConstraints(ev)
       if (!r.error) { ok++; if (r.created) created++ }
     }
-    // 2) איתור יתומים — אירועי הפקה טכנית שכבר לא קיימים ביומן
+    return { ok, created }
+  }
+  async function syncAll() {
+    if (!activeEvents.length && !liveEvents.length) return
+    setBulkBusy(true)
+    // איתור אירועים שאינם קיימים ביומן (כולל כאלה שנמחקו ממנו) — לפני כל דחיפה
     const { data: cal } = await supabase.from('events').select('title, date')
     const calSet = new Set((cal || []).map(c => `${(c.title||'').trim()}|${c.date||''}`))
     const orphans = liveEvents.filter(ev => !calSet.has(`${(ev.event_name||'').trim()}|${ev.date||''}`))
-    setBulkBusy(false)
-    let removed = 0
-    if (orphans.length) {
-      const list = orphans.map(o => `\u2022 ${o.event_name || '(ללא שם)'}${o.date ? ' \u2014 ' + o.date : ''}`).join('\n')
-      const msg = `העדכון ליומן הושלם (${ok} אירועים).\n\nהאירועים הבאים כבר לא קיימים ביומן ויוסרו מההפקה הטכנית:\n\n${list}\n\nלהסיר ${orphans.length} אירועים?`
-      if (window.confirm(msg)) {
-        const ts = new Date().toISOString()
-        const ids = orphans.map(o => o.id)
-        await supabase.from('production_events').update({ deleted_at: ts }).in('id', ids)
-        setEvents(prev => prev.map(e => ids.includes(e.id) ? { ...e, deleted_at: ts } : e))
-        removed = orphans.length
-      }
+    if (!orphans.length) {
+      const { ok, created } = await pushActive(null)
+      setBulkBusy(false)
+      alert(`סונכרן עם היומן: עודכנו ${ok} אירועים` + (created ? ` (${created} חדשים)` : '') + '. אין אירועים שנמחקו מהיומן.')
+      return
     }
-    alert(`סונכרן עם היומן: עודכנו ${ok} אירועים` + (created ? ` (${created} חדשים)` : '') + (removed ? `, הוסרו ${removed} שאינם ביומן` : '') + '.')
+    setBulkBusy(false)
+    setSyncOrphans(orphans)
+    setSyncSel(new Set())
+    setSyncOpen(true)
+  }
+  async function confirmSync() {
+    setSyncBusy(true)
+    const delIds = syncOrphans.filter(o => syncSel.has(o.id)).map(o => o.id)
+    if (delIds.length) {
+      const ts = new Date().toISOString()
+      await supabase.from('production_events').update({ deleted_at: ts }).in('id', delIds)
+      setEvents(prev => prev.map(e => delIds.includes(e.id) ? { ...e, deleted_at: ts } : e))
+    }
+    const { ok, created } = await pushActive(delIds)
+    setSyncBusy(false)
+    setSyncOpen(false)
+    setSyncOrphans([])
+    setSyncSel(new Set())
+    alert(`סונכרן עם היומן: עודכנו ${ok} אירועים` + (created ? ` (${created} חדשים)` : '') + (delIds.length ? `, הוסרו ${delIds.length} שנמחקו מהיומן` : '') + '.')
   }
 
   async function pushAllToCalendar() {
@@ -839,6 +857,36 @@ function ProductionInquiries() {
             ))}
           </div>
         </>
+      )}
+      {syncOpen && (
+        <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4 no-print" onClick={() => !syncBusy && setSyncOpen(false)}>
+          <div className="bg-white rounded-xl w-full max-w-lg max-h-[80vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-3 border-b border-gray-100">
+              <div className="text-[15px] font-bold text-gray-800">אירועים שאינם קיימים ביומן</div>
+              <div className="text-[12px] text-gray-500 mt-0.5">סמן את האירועים שברצונך להסיר גם מההפקה הטכנית. מה שלא תסמן יישאר ויעודכן ליומן.</div>
+            </div>
+            <div className="px-5 py-2 border-b border-gray-100 flex items-center justify-between">
+              <span className="text-[12px] text-gray-400">{syncSel.size}/{syncOrphans.length} מסומנים</span>
+              <div className="flex gap-3">
+                <button onClick={() => setSyncSel(new Set(syncOrphans.map(o => o.id)))} className="text-[12px] text-[#E0197D] hover:text-[#A0106A]">סמן הכל</button>
+                <button onClick={() => setSyncSel(new Set())} className="text-[12px] text-gray-500 hover:text-gray-700">נקה</button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-2">
+              {syncOrphans.map(o => (
+                <label key={o.id} className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0 cursor-pointer">
+                  <input type="checkbox" checked={syncSel.has(o.id)} onChange={() => setSyncSel(prev => { const n = new Set(prev); n.has(o.id) ? n.delete(o.id) : n.add(o.id); return n })} style={{ accentColor: '#E0197D' }} />
+                  <span className="text-[13px] text-gray-800 flex-1">{o.event_name || '(ללא שם)'}</span>
+                  {o.date && <span className="text-[12px] text-gray-400">{o.date}</span>}
+                </label>
+              ))}
+            </div>
+            <div className="px-5 py-3 border-t border-gray-100 flex gap-2 justify-start">
+              <button onClick={confirmSync} disabled={syncBusy} className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">{syncBusy ? 'מסנכרן…' : (syncSel.size ? `מחק ${syncSel.size} ועדכן ליומן` : 'עדכן ליומן בלי מחיקה')}</button>
+              <button onClick={() => setSyncOpen(false)} disabled={syncBusy} className="text-sm text-gray-500 px-4 py-2 rounded-lg border border-gray-200">ביטול</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
