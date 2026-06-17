@@ -505,7 +505,7 @@ function ProductionInquiries() {
             <div id={'prod-ev-' + ev.id}
               onDragOver={e => { if (!groupEvents) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; const r = e.currentTarget.getBoundingClientRect(); const af = (e.clientY - r.top) > r.height / 2; if (dragOver.id !== ev.id || dragOver.after !== af) setDragOver({ id: ev.id, after: af }) }}
               onDrop={e => { e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); const af = (e.clientY - r.top) > r.height / 2; handleDrop(ev, groupEvents, e.dataTransfer.getData('text/plain'), af); setDraggingId(null); setDragOver({ id: null, after: false }) }}
-              className={`bg-white border rounded-xl overflow-hidden transition-all duration-300 ${selectMode && selectedIds.has(ev.id) ? 'border-[#E0197D] ring-2 ring-[#E0197D]/40' : flashId === ev.id ? 'border-[#E0197D] ring-2 ring-[#E0197D] shadow-lg shadow-[#E0197D]/20' : 'border-gray-100'}`}>
+              className={`bg-[#B6CFD0] border rounded-xl overflow-hidden transition-all duration-300 ${selectMode && selectedIds.has(ev.id) ? 'border-[#E0197D] ring-2 ring-[#E0197D]/40' : flashId === ev.id ? 'border-[#E0197D] ring-2 ring-[#E0197D] shadow-lg shadow-[#E0197D]/20' : 'border-gray-100'}`}>
             <div className="flex items-center gap-3 px-4 py-3 flex-row-reverse">
               <div className="flex-1 min-w-0 text-right">
                 {editingEvent === ev.id ? (
