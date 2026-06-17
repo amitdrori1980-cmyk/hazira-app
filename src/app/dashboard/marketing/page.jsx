@@ -661,6 +661,7 @@ function Monitor() {
         <div className="flex items-center gap-2">
           <i className="ti ti-calendar text-[#E0197D]" style={{ fontSize: 18 }} />
           <h2 className="text-[15px] font-bold text-gray-800">מוניטור — לוז שבועי</h2>
+          <span className="text-[12px] font-bold text-[#A0106A] bg-[#D3C0CD] border border-white rounded-lg px-2 py-0.5 whitespace-nowrap">{weekRangeLabel(weekKey(todayStr))}</span>
         </div>
         <div className="flex gap-1.5">
           {[{ id: 'current', label: 'נוכחי' }, { id: 'archive', label: 'ארכיון' }].map(v => (
@@ -679,9 +680,9 @@ function Monitor() {
         const pastWeeks = curWeeks.filter(w => w.week < curWk)
         const thisWeek = curWeeks.find(w => w.week === curWk)
         const futureWeeks = curWeeks.filter(w => w.week > curWk)
-        const renderWeek = (w) => (
+        const renderWeek = (w, showHeader = true) => (
           <div key={w.week}>
-            <div className="text-[13px] font-bold text-[#A0106A] bg-[#D3C0CD] border border-white rounded-lg px-3 py-1.5 mb-2">שבוע {weekRangeLabel(w.week)}</div>
+            {showHeader && <div className="text-[13px] font-bold text-[#A0106A] bg-[#D3C0CD] border border-white rounded-lg px-3 py-1.5 mb-2">שבוע {weekRangeLabel(w.week)}</div>}
             {renderDays(w.days)}
           </div>
         )
@@ -694,10 +695,10 @@ function Monitor() {
                   <i className={`ti ti-chevron-${showPast ? 'down' : 'left'}`} style={{ fontSize: 14 }} />
                   שבועות קודמים ({pastWeeks.length})
                 </button>
-                {showPast && <div className="flex flex-col gap-4">{pastWeeks.map(renderWeek)}</div>}
+                {showPast && <div className="flex flex-col gap-4">{pastWeeks.map(w => renderWeek(w))}</div>}
               </div>
             )}
-            {thisWeek ? renderWeek(thisWeek) : (
+            {thisWeek ? renderWeek(thisWeek, false) : (
               <div className="text-center text-gray-400 text-[13px] py-6">אין פעולות בשבוע הנוכחי</div>
             )}
             {futureWeeks.length > 0 && (
@@ -706,7 +707,7 @@ function Monitor() {
                   <i className={`ti ti-chevron-${showFuture ? 'down' : 'left'}`} style={{ fontSize: 14 }} />
                   שבועות הבאים ({futureWeeks.length})
                 </button>
-                {showFuture && <div className="flex flex-col gap-4">{futureWeeks.map(renderWeek)}</div>}
+                {showFuture && <div className="flex flex-col gap-4">{futureWeeks.map(w => renderWeek(w))}</div>}
               </div>
             )}
           </div>
