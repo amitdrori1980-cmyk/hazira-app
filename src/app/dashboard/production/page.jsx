@@ -536,8 +536,6 @@ function ProductionInquiries() {
                       {ev.day && <span>יום {ev.day}</span>}
                       {ev.venue && <span>{ev.venue}</span>}
                       {ev.type && <span className={`px-1.5 py-0.5 rounded-full ${getTypeStyle(ev.type)}`}>{getTypeLabel(ev.type)}</span>}
-                      <span className="text-black">·</span>
-                      <span>{filledCount}/{SLOTS} אנשים</span>
                     </div>
                     </div>
                     {/* רשימת אנשים גלויה תמיד — שם ניטרלי + נקודת צבע לסטטוס, לחיצה פותחת תפריט */}
@@ -563,7 +561,7 @@ function ProductionInquiries() {
                     <textarea value={notesDraft[ev.id] ?? (ev.notes || '')} onClick={e=>e.stopPropagation()}
                       onChange={e=>setNotesDraft(d=>({...d,[ev.id]:e.target.value}))} onBlur={()=>saveNotes(ev)}
                       placeholder="הערות" dir="ltr" rows={2}
-                      className="w-40 md:w-96 shrink-0 self-end h-28 text-[11px] px-2 py-1 border border-black rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-y text-left"/>
+                      className="w-40 md:w-80 shrink-0 self-end text-[11px] px-2 py-1 border border-black rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-y text-left"/>
                     </div>
                   </>
                 )}
