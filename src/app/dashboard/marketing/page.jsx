@@ -485,7 +485,7 @@ function Dashboard() {
         <div className="flex flex-col gap-3">
           {notes.map(ev => (
             <div key={ev.id} className="border border-white rounded-xl p-4 bg-[#D3C0CD] text-right">
-              <p className="text-[13.5px] text-gray-800 leading-relaxed">
+              <p className="text-[13.5px] text-white leading-relaxed">
                 בוקר טוב, האירוע "{ev.title}" הסתיים, אפשר להחליף מוניטורים וקאבר באתר.{' '}
                 {nextEv
                   ? `האירוע הבא: "${nextEv.title}" בתאריך ${fmtDate(nextEv.date)}.`
