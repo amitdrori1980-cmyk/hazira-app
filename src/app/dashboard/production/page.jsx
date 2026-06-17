@@ -505,7 +505,7 @@ function ProductionInquiries() {
             <div id={'prod-ev-' + ev.id}
               onDragOver={e => { if (!groupEvents) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; const r = e.currentTarget.getBoundingClientRect(); const af = (e.clientY - r.top) > r.height / 2; if (dragOver.id !== ev.id || dragOver.after !== af) setDragOver({ id: ev.id, after: af }) }}
               onDrop={e => { e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); const af = (e.clientY - r.top) > r.height / 2; handleDrop(ev, groupEvents, e.dataTransfer.getData('text/plain'), af); setDraggingId(null); setDragOver({ id: null, after: false }) }}
-              className={`bg-[#B6CFD0] border rounded-xl overflow-hidden transition-all duration-300 ${selectMode && selectedIds.has(ev.id) ? 'border-[#E0197D] ring-2 ring-[#E0197D]/40' : flashId === ev.id ? 'border-[#E0197D] ring-2 ring-[#E0197D] shadow-lg shadow-[#E0197D]/20' : 'border-gray-100'}`}>
+              className={`bg-[#B6CFD0] border rounded-xl overflow-hidden transition-all duration-300 ${selectMode && selectedIds.has(ev.id) ? 'border-[#E0197D] ring-2 ring-[#E0197D]/40' : flashId === ev.id ? 'border-[#E0197D] ring-2 ring-[#E0197D] shadow-lg shadow-[#E0197D]/20' : 'border-black'}`}>
             <div className="flex items-center gap-3 px-4 py-3 flex-row-reverse">
               <div className="flex-1 min-w-0 text-right">
                 {editingEvent === ev.id ? (
@@ -524,18 +524,18 @@ function ProductionInquiries() {
                       <option value="">קטגוריה</option>
                       {eventTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
-                    <button onClick={saveEventEdit} className="text-[#E0197D] text-sm font-medium">שמור</button>
-                    <button onClick={()=>setEditingEvent(null)} className="text-gray-400 text-sm">ביטול</button>
+                    <button onClick={saveEventEdit} className="text-black text-sm font-medium">שמור</button>
+                    <button onClick={()=>setEditingEvent(null)} className="text-black text-sm">ביטול</button>
                   </div>
                 ) : (
                   <>
-                    <div className="text-[13px] font-semibold text-gray-800">{ev.event_name}</div>
-                    <div className="text-[11px] text-gray-400 mt-0.5 flex gap-2 justify-end flex-wrap">
+                    <div className="text-[13px] font-semibold text-black">{ev.event_name}</div>
+                    <div className="text-[11px] text-black mt-0.5 flex gap-2 justify-end flex-wrap">
                       {ev.date && <span>{fmtDate(ev.date)}</span>}
                       {ev.day && <span>יום {ev.day}</span>}
                       {ev.venue && <span>{ev.venue}</span>}
                       {ev.type && <span className={`px-1.5 py-0.5 rounded-full ${getTypeStyle(ev.type)}`}>{getTypeLabel(ev.type)}</span>}
-                      <span className="text-gray-300">·</span>
+                      <span className="text-black">·</span>
                       <span>{filledCount}/{SLOTS} אנשים</span>
                     </div>
                     {/* רשימת אנשים גלויה תמיד — שם ניטרלי + נקודת צבע לסטטוס, לחיצה פותחת תפריט */}
@@ -545,7 +545,7 @@ function ProductionInquiries() {
                         if (!slot.name.trim() && idx !== firstEmptyHdr) return null
                         const st = getStatus(slot.status)
                         return (
-                          <div key={idx} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-full px-2 py-1 flex-shrink-0">
+                          <div key={idx} className="flex items-center gap-1.5 bg-gray-50 border border-black rounded-full px-2 py-1 flex-shrink-0">
                             <button onClick={(e) => {
                                 const r = e.currentTarget.getBoundingClientRect()
                                 setColorMenu(cm => (cm && cm.evId===ev.id && cm.idx===idx) ? null : { evId: ev.id, idx, x: r.left, y: r.bottom })
@@ -553,7 +553,7 @@ function ProductionInquiries() {
                               className="w-4 h-4 rounded-full flex-shrink-0 ring-1 ring-black/10" style={{background: st.dot}}/>
                             <input value={slot.name} onChange={e => updateSlotName(ev.id, idx, e.target.value)}
                               onBlur={() => saveSlotName(ev.id, idx)} placeholder="+ שם"
-                              className="bg-transparent outline-none text-[12px] text-right w-14 focus:w-28 transition-all text-gray-700 placeholder:text-gray-400"/>
+                              className="bg-transparent outline-none text-[12px] text-right w-14 focus:w-28 transition-all text-black placeholder:text-gray-500"/>
                           </div>
                         )
                       })}
@@ -561,7 +561,7 @@ function ProductionInquiries() {
                     <textarea value={notesDraft[ev.id] ?? (ev.notes || '')} onClick={e=>e.stopPropagation()}
                       onChange={e=>setNotesDraft(d=>({...d,[ev.id]:e.target.value}))} onBlur={()=>saveNotes(ev)}
                       placeholder="הערות" dir="ltr" rows={1}
-                      className="w-40 md:w-80 shrink-0 self-stretch text-[11px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-y text-left"/>
+                      className="w-40 md:w-80 shrink-0 self-stretch text-[11px] px-2 py-1 border border-black rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-y text-left"/>
                     </div>
                   </>
                 )}
@@ -570,18 +570,18 @@ function ProductionInquiries() {
                 {selectMode && <input type="checkbox" checked={selectedIds.has(ev.id)} onChange={() => toggleSelect(ev.id)} onClick={e => e.stopPropagation()}
                   className="no-print w-4 h-4 cursor-pointer ml-1" style={{accentColor:'#E0197D'}}/>}
                 {groupEvents && <span draggable onDragStart={e => { dragId.current = ev.id; setDraggingId(ev.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', ev.id); const el = document.getElementById('prod-ev-' + ev.id); if (el) e.dataTransfer.setDragImage(el, 24, 24) }} onDragEnd={() => { dragId.current = null; setDraggingId(null); setDragOver({ id: null, after: false }) }}
-                  className="no-print text-gray-300 hover:text-gray-500 p-1 cursor-grab active:cursor-grabbing" title="גרור לשינוי סדר">
+                  className="no-print text-black hover:text-gray-700 p-1 cursor-grab active:cursor-grabbing" title="גרור לשינוי סדר">
                   <i className="ti ti-grip-vertical" style={{fontSize:14}}/></span>}
                 <button onClick={e=>{e.stopPropagation();pushToCalendar(ev)}}
-                  className="text-gray-300 hover:text-[#E0197D] p-1" title="עדכן ביומן">
+                  className="text-black hover:text-[#E0197D] p-1" title="עדכן ביומן">
                   <i className="ti ti-calendar-plus" style={{fontSize:13}}/></button>
                 {ev.date && <button onClick={e=>{e.stopPropagation();router.push(`/dashboard/calendar?day=${ev.date}&ev=${encodeURIComponent(ev.event_name)}`)}}
-                  className="text-gray-300 hover:text-[#E0197D] p-1" title="הקפצה ליומן (תצוגה יומית)">
+                  className="text-black hover:text-[#E0197D] p-1" title="הקפצה ליומן (תצוגה יומית)">
                   <i className="ti ti-external-link" style={{fontSize:13}}/></button>}
                 <button onClick={e=>{e.stopPropagation();setEditingEvent(ev.id);setEditEventVal({event_name:ev.event_name,date:ev.date||'',day:ev.day||'',venue:ev.venue||'',type:ev.type||''})}}
-                  className="text-gray-300 hover:text-gray-600 p-1"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
+                  className="text-black hover:text-gray-600 p-1"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
                 <button onClick={e=>{e.stopPropagation();if(window.confirm('למחוק את האירוע?'))deleteEvent(ev.id)}}
-                  className="text-gray-300 hover:text-red-500 p-1"><i className="ti ti-trash" style={{fontSize:13}}/></button>
+                  className="text-black hover:text-red-500 p-1"><i className="ti ti-trash" style={{fontSize:13}}/></button>
               </div>
             </div>
           </div>
