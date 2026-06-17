@@ -344,12 +344,11 @@ export default function CalendarPage() {
       const { data: prows } = await pq
       const pmatch = (prows || []).find(r => (r.event_name || '').trim() === oldTitle)
       if (pmatch) {
-        await supabase.from('production_events').update({
-          event_name: editForm.title,
-          date: newDate,
-          type: editForm.type || null,
-          venue: (editForm.venue && editForm.venue !== 'אירועים מקבילים') ? editForm.venue : null,
-        }).eq('id', pmatch.id)
+        const pupd = { event_name: editForm.title, date: newDate }
+        if (editForm.type) pupd.type = editForm.type
+        const pvenue = (editForm.venue && editForm.venue !== 'אירועים מקבילים') ? editForm.venue : ''
+        if (pvenue) pupd.venue = pvenue
+        await supabase.from('production_events').update(pupd).eq('id', pmatch.id)
       }
       if (oldDate && (oldTitle !== newTitle || oldDate !== newDate)) {
         await supabase.from('crew_constraints')

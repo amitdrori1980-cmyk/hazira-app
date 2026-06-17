@@ -293,12 +293,10 @@ function ProductionInquiries() {
       const { data: rows } = await q
       const match = (rows || []).find(r => (r.title || '').trim() === oldName)
       if (match) {
-        await supabase.from('events').update({
-          title: editEventVal.event_name,
-          date: newDate,
-          type: editEventVal.type || null,
-          venue: editEventVal.venue || null,
-        }).eq('id', match.id)
+        const upd = { title: editEventVal.event_name, date: newDate }
+        if (editEventVal.type) upd.type = editEventVal.type
+        if (editEventVal.venue) upd.venue = editEventVal.venue
+        await supabase.from('events').update(upd).eq('id', match.id)
       }
       if (oldDate && (oldName !== newName || oldDate !== newDate)) {
         await supabase.from('crew_constraints')
