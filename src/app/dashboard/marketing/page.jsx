@@ -110,7 +110,7 @@ export default function MarketingPage() {
       <div className="flex gap-2 mb-4 flex-row-reverse justify-end">
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`text-[13px] px-4 py-2 rounded-lg border transition-colors flex items-center gap-1.5 flex-row-reverse ${tab === t.id ? 'bg-[#D3C0CD] text-white border-[#D3C0CD]' : 'border-gray-200 text-gray-600 hover:border-[#E0197D]'}`}>
+            className={`text-[13px] px-4 py-2 rounded-lg border transition-colors flex items-center gap-1.5 flex-row-reverse ${tab === t.id ? 'bg-[#D3C0CD] text-white border-white' : 'border-gray-200 text-gray-600 hover:border-[#E0197D]'}`}>
             <i className={`ti ${t.icon}`} style={{ fontSize: 15 }} />
             {t.label}
           </button>
@@ -226,7 +226,7 @@ function Campaign() {
               className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
           </div>
           <button onClick={createCampaign} disabled={busy}
-            className="bg-[#D3C0CD] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#B89DAD] disabled:opacity-50 flex items-center gap-1">
+            className="bg-[#D3C0CD] text-white text-sm px-4 py-2 rounded-lg border border-white hover:bg-[#B89DAD] disabled:opacity-50 flex items-center gap-1">
             <i className="ti ti-plus" /> צור קמפיין
           </button>
         </div>
@@ -289,7 +289,7 @@ function Campaign() {
                   <div className="flex justify-center gap-1.5 mb-3" dir="rtl">
                     {[{ id: 'month', label: 'חודשי' }, { id: 'week', label: 'שבועי' }].map(v => (
                       <button key={v.id} onClick={() => setViewMode(o => ({ ...o, [c.id]: v.id }))}
-                        className={`text-[12px] px-3 py-1 rounded-lg border transition-colors ${mode === v.id ? 'bg-[#D3C0CD] text-white border-[#D3C0CD]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>{v.label}</button>
+                        className={`text-[12px] px-3 py-1 rounded-lg border transition-colors ${mode === v.id ? 'bg-[#D3C0CD] text-white border-white' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>{v.label}</button>
                     ))}
                   </div>
 
@@ -322,7 +322,7 @@ function Campaign() {
                                   const isSel = ds === selDate
                                   return (
                                     <button key={i} onClick={() => setSel(o => ({ ...o, [c.id]: ds }))}
-                                      className={`h-14 rounded-lg flex flex-col items-center justify-center border transition-colors ${isSel ? 'bg-[#D3C0CD] text-white border-[#D3C0CD]' : hasActs ? (allDone ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A]' : 'bg-pink-50 border-pink-100 text-[#A0106A]') : 'bg-white border-gray-300 text-gray-600 hover:border-[#E0197D]'}`}>
+                                      className={`h-14 rounded-lg flex flex-col items-center justify-center border transition-colors ${isSel ? 'bg-[#D3C0CD] text-white border-white' : hasActs ? (allDone ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A]' : 'bg-pink-50 border-pink-100 text-[#A0106A]') : 'bg-white border-gray-300 text-gray-600 hover:border-[#E0197D]'}`}>
                                       <span className="text-[15px] leading-none">{dnum}</span>
                                       {hasActs && <span className={`text-[11px] leading-none mt-1 ${isSel ? 'text-white' : 'text-[#E0197D]'}`}>{dayActs.filter(a => a.done).length}/{dayActs.length}</span>}
                                     </button>
@@ -341,7 +341,7 @@ function Campaign() {
                             <div key={a.id} onClick={() => setSel(o => ({ ...o, [c.id]: a.date }))}
                               className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer border ${a.date === selDate ? 'border-[#E0197D] bg-pink-50' : 'border-transparent hover:bg-gray-50'}`}>
                               <button onClick={(e) => { e.stopPropagation(); updateAction(a.id, { done: !a.done }) }}
-                                className={`shrink-0 w-4 h-4 rounded-full border flex items-center justify-center ${a.done ? 'bg-[#D3C0CD] border-[#D3C0CD] text-white' : 'border-gray-300 hover:border-[#E0197D]'}`}>
+                                className={`shrink-0 w-4 h-4 rounded-full border flex items-center justify-center ${a.done ? 'bg-[#D3C0CD] border-white text-white' : 'border-gray-300 hover:border-[#E0197D]'}`}>
                                 {a.done && <i className="ti ti-check" style={{ fontSize: 10 }} />}
                               </button>
                               <span className="text-[11px] text-gray-400 shrink-0 w-[44px] text-center">{fmtShort(a.date)}</span>
@@ -471,7 +471,7 @@ function Dashboard() {
   }
 
   return (
-    <div className="bg-[#BCC9C5] border border-black rounded-xl p-5 shadow-lg">
+    <div className="bg-[#C9D4D1] border border-black rounded-xl p-5 shadow-lg">
       <div className="flex items-center gap-2 flex-row-reverse mb-4">
         <i className="ti ti-bell text-[#E0197D]" style={{ fontSize: 18 }} />
         <h2 className="text-[15px] font-bold text-gray-800">הודעות</h2>
@@ -484,7 +484,7 @@ function Dashboard() {
       ) : (
         <div className="flex flex-col gap-3">
           {notes.map(ev => (
-            <div key={ev.id} className="border border-gray-100 rounded-xl p-4 bg-[#D3C0CD] text-right">
+            <div key={ev.id} className="border border-white rounded-xl p-4 bg-[#D3C0CD] text-right">
               <p className="text-[13.5px] text-gray-800 leading-relaxed">
                 בוקר טוב, האירוע "{ev.title}" הסתיים, אפשר להחליף מוניטורים וקאבר באתר.{' '}
                 {nextEv
@@ -493,7 +493,7 @@ function Dashboard() {
               </p>
               <div className="mt-3 flex justify-end">
                 <button onClick={() => markDone(ev)} disabled={busy === ev.id}
-                  className="text-[13px] px-4 py-1.5 rounded-lg bg-[#D3C0CD] text-white hover:bg-[#B89DAD] transition-colors disabled:opacity-50">
+                  className="text-[13px] px-4 py-1.5 rounded-lg bg-[#D3C0CD] text-white border border-white hover:bg-[#B89DAD] transition-colors disabled:opacity-50">
                   {busy === ev.id ? '…' : 'החלפתי'}
                 </button>
               </div>
@@ -642,7 +642,7 @@ function Monitor() {
                 return (
                   <button key={it.id} onClick={() => toggleItem(it, done)}
                     title={it.eventTitle + (it.free_text ? ' · ' + it.free_text : '')}
-                    className={`text-[12px] rounded-lg px-2 py-1 border transition-colors text-right ${done ? 'bg-[#D3C0CD] border-[#D3C0CD] text-[#A0106A] line-through' : overdue ? 'bg-red-50 border-red-100 text-red-500 hover:bg-red-100' : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-[#E0197D]'}`}>
+                    className={`text-[12px] rounded-lg px-2 py-1 border transition-colors text-right ${done ? 'bg-[#D3C0CD] border-white text-[#A0106A] line-through' : overdue ? 'bg-red-50 border-red-100 text-red-500 hover:bg-red-100' : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-[#E0197D]'}`}>
                     {it.source === 'campaign' && <i className="ti ti-rocket" style={{ fontSize: 11 }} />} {it.label}
                     <span className="text-gray-400 mr-1">· {it.eventTitle}</span>
                   </button>
@@ -656,7 +656,7 @@ function Monitor() {
   }
 
   return (
-    <div className="bg-[#BCC9C5] border border-black rounded-xl p-5 shadow-lg">
+    <div className="bg-[#C9D4D1] border border-black rounded-xl p-5 shadow-lg">
       <div className="flex items-center justify-between gap-3 mb-4" dir="rtl">
         <div className="flex items-center gap-2">
           <i className="ti ti-calendar text-[#E0197D]" style={{ fontSize: 18 }} />
@@ -665,7 +665,7 @@ function Monitor() {
         <div className="flex gap-1.5">
           {[{ id: 'current', label: 'נוכחי' }, { id: 'archive', label: 'ארכיון' }].map(v => (
             <button key={v.id} onClick={() => setView(v.id)}
-              className={`text-[12px] px-3 py-1 rounded-lg border transition-colors ${view === v.id ? 'bg-[#D3C0CD] text-white border-[#D3C0CD]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+              className={`text-[12px] px-3 py-1 rounded-lg border transition-colors ${view === v.id ? 'bg-[#D3C0CD] text-white border-white' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
               {v.label}
             </button>
           ))}
@@ -681,7 +681,7 @@ function Monitor() {
         const futureWeeks = curWeeks.filter(w => w.week > curWk)
         const renderWeek = (w) => (
           <div key={w.week}>
-            <div className="text-[13px] font-bold text-[#A0106A] bg-[#D3C0CD] rounded-lg px-3 py-1.5 mb-2">שבוע {weekRangeLabel(w.week)}</div>
+            <div className="text-[13px] font-bold text-[#A0106A] bg-[#D3C0CD] border border-white rounded-lg px-3 py-1.5 mb-2">שבוע {weekRangeLabel(w.week)}</div>
             {renderDays(w.days)}
           </div>
         )
@@ -910,7 +910,7 @@ function Gantts() {
                   </div>
 
                   <button onClick={() => persist(ev.id, action.key, { done: !c.done })}
-                    className={`text-[12px] px-3 py-1 rounded-lg border transition-colors whitespace-nowrap shrink-0 ${c.done ? 'bg-[#D3C0CD] text-white border-[#D3C0CD]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+                    className={`text-[12px] px-3 py-1 rounded-lg border transition-colors whitespace-nowrap shrink-0 ${c.done ? 'bg-[#D3C0CD] text-white border-white' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
                     {c.done ? '✓ בוצע' : 'בוצע'}
                   </button>
                 </div>
@@ -939,7 +939,7 @@ function Gantts() {
         <div className="flex gap-1.5">
           {[{ id: 'active', label: 'פעילים' }, { id: 'archive', label: 'ארכיון' }].map(v => (
             <button key={v.id} onClick={() => setView(v.id)}
-              className={`text-[12px] px-3 py-1 rounded-lg border transition-colors ${view === v.id ? 'bg-[#D3C0CD] text-white border-[#D3C0CD]' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+              className={`text-[12px] px-3 py-1 rounded-lg border transition-colors ${view === v.id ? 'bg-[#D3C0CD] text-white border-white' : 'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
               {v.label}
             </button>
           ))}
@@ -1032,7 +1032,7 @@ function ImportModal({ allShows, hiddenSet, onClose, onImport }) {
                     <span className="text-[11px] text-gray-400 shrink-0">כבר בגאנטים</span>
                   ) : (
                     <button onClick={() => onImport(e)}
-                      className="text-[12px] px-3 py-1 rounded-lg bg-[#D3C0CD] text-white hover:bg-[#B89DAD] shrink-0">ייבוא</button>
+                      className="text-[12px] px-3 py-1 rounded-lg bg-[#D3C0CD] text-white border border-white hover:bg-[#B89DAD] shrink-0">ייבוא</button>
                   )}
                 </div>
               )
@@ -1059,7 +1059,7 @@ function NoteModal({ modal, onClose, onSave }) {
           className="w-full text-[13px] border border-gray-200 rounded-lg p-3 text-gray-800 resize-none focus:outline-none focus:border-[#E0197D]" />
         <div className="flex gap-2 justify-end mt-3">
           <button onClick={onClose} className="text-[13px] px-4 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">ביטול</button>
-          <button onClick={() => onSave(text)} className="text-[13px] px-4 py-1.5 rounded-lg bg-[#D3C0CD] text-white hover:bg-[#B89DAD]">שמירה</button>
+          <button onClick={() => onSave(text)} className="text-[13px] px-4 py-1.5 rounded-lg bg-[#D3C0CD] text-white border border-white hover:bg-[#B89DAD]">שמירה</button>
         </div>
       </div>
     </div>
@@ -1076,7 +1076,7 @@ function EditModal({ modal, onClose, onSave }) {
           className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:border-[#E0197D]" />
         <div className="flex gap-2 justify-end mt-3">
           <button onClick={onClose} className="text-[13px] px-4 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">ביטול</button>
-          <button onClick={() => onSave(label.trim())} className="text-[13px] px-4 py-1.5 rounded-lg bg-[#D3C0CD] text-white hover:bg-[#B89DAD]">שמירה</button>
+          <button onClick={() => onSave(label.trim())} className="text-[13px] px-4 py-1.5 rounded-lg bg-[#D3C0CD] text-white border border-white hover:bg-[#B89DAD]">שמירה</button>
         </div>
       </div>
     </div>
