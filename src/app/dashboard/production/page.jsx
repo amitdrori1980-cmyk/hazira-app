@@ -264,6 +264,35 @@ function ProductionInquiries() {
     alert(`הוסרו ${orphans.length} אירועים מההפקה הטכנית.`)
   }
 
+  async function syncAll() {
+    if (!activeEvents.length && !liveEvents.length) return
+    setBulkBusy(true)
+    // 1) עדכון כל האירועים הפעילים ליומן ולאילוצים
+    let ok = 0, created = 0
+    for (const ev of activeEvents) {
+      const r = await syncEventToCalendarAndConstraints(ev)
+      if (!r.error) { ok++; if (r.created) created++ }
+    }
+    // 2) איתור יתומים — אירועי הפקה טכנית שכבר לא קיימים ביומן
+    const { data: cal } = await supabase.from('events').select('title, date')
+    const calSet = new Set((cal || []).map(c => `${(c.title||'').trim()}|${c.date||''}`))
+    const orphans = liveEvents.filter(ev => !calSet.has(`${(ev.event_name||'').trim()}|${ev.date||''}`))
+    setBulkBusy(false)
+    let removed = 0
+    if (orphans.length) {
+      const list = orphans.map(o => `\u2022 ${o.event_name || '(ללא שם)'}${o.date ? ' \u2014 ' + o.date : ''}`).join('\n')
+      const msg = `העדכון ליומן הושלם (${ok} אירועים).\n\nהאירועים הבאים כבר לא קיימים ביומן ויוסרו מההפקה הטכנית:\n\n${list}\n\nלהסיר ${orphans.length} אירועים?`
+      if (window.confirm(msg)) {
+        const ts = new Date().toISOString()
+        const ids = orphans.map(o => o.id)
+        await supabase.from('production_events').update({ deleted_at: ts }).in('id', ids)
+        setEvents(prev => prev.map(e => ids.includes(e.id) ? { ...e, deleted_at: ts } : e))
+        removed = orphans.length
+      }
+    }
+    alert(`סונכרן עם היומן: עודכנו ${ok} אירועים` + (created ? ` (${created} חדשים)` : '') + (removed ? `, הוסרו ${removed} שאינם ביומן` : '') + '.')
+  }
+
   async function pushAllToCalendar() {
     if (!activeEvents.length) return
     if (!window.confirm(`לעדכן את כל ${activeEvents.length} האירועים בהפקה הטכנית — ליומן ולאילוצים?`)) return
@@ -586,13 +615,9 @@ function ProductionInquiries() {
             </button>
           </>
         )}
-        <button onClick={syncWithCalendar} disabled={bulkBusy}
-          className="bg-white border border-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-1 disabled:opacity-50">
-          <i className="ti ti-refresh"/> סנכרן עם היומן
-        </button>
-        <button onClick={pushAllToCalendar} disabled={bulkBusy || activeEvents.length===0}
+        <button onClick={syncAll} disabled={bulkBusy || (activeEvents.length===0 && liveEvents.length===0)}
           className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1 disabled:opacity-50">
-          <i className="ti ti-calendar-check"/> {bulkBusy ? 'מעדכן…' : 'עדכן הכל ליומן ואילוצים'}
+          <i className="ti ti-refresh"/> {bulkBusy ? 'מסנכרן…' : 'סנכרן עם היומן'}
         </button>
         <button onClick={openImport}
           className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1">
