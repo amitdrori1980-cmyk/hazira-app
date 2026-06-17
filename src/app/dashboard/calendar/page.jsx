@@ -323,6 +323,7 @@ export default function CalendarPage() {
   async function saveEventEdit() {
     if (!editingEvent) return
     setSavingEdit(true)
+    const old = events.find(e => e.id === editingEvent)
     await supabase.from('events').update({
       title: editForm.title,
       date: editForm.date,
@@ -332,6 +333,30 @@ export default function CalendarPage() {
       venue: (editForm.venue && editForm.venue !== 'אירועים מקבילים') ? editForm.venue : null,
       description: editForm.description || null,
     }).eq('id', editingEvent)
+    // סנכרון השינוי להפקה הטכנית — לפי האירוע התואם (התאמה לפי שם+תאריך ישנים)
+    if (old) {
+      const oldTitle = (old.title || '').trim()
+      const oldDate = old.date || null
+      const newTitle = (editForm.title || '').trim()
+      const newDate = editForm.date || null
+      let pq = supabase.from('production_events').select('id, event_name, date').is('deleted_at', null)
+      if (oldDate) pq = pq.eq('date', oldDate)
+      const { data: prows } = await pq
+      const pmatch = (prows || []).find(r => (r.event_name || '').trim() === oldTitle)
+      if (pmatch) {
+        await supabase.from('production_events').update({
+          event_name: editForm.title,
+          date: newDate,
+          type: editForm.type || null,
+          venue: (editForm.venue && editForm.venue !== 'אירועים מקבילים') ? editForm.venue : null,
+        }).eq('id', pmatch.id)
+      }
+      if (oldDate && (oldTitle !== newTitle || oldDate !== newDate)) {
+        await supabase.from('crew_constraints')
+          .update({ notes: editForm.title, date: newDate })
+          .eq('date', oldDate).eq('notes', old.title).eq('available', true).is('crew_member_id', null)
+      }
+    }
     setEvents(prev => prev.map(e => e.id === editingEvent ? { ...e, ...editForm } : e))
     setEditingEvent(null)
     setSavingEdit(false)

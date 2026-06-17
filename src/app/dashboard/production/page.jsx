@@ -280,7 +280,32 @@ function ProductionInquiries() {
 
   async function saveEventEdit() {
     if (!editingEvent) return
+    const old = events.find(e => e.id === editingEvent)
     await supabase.from('production_events').update(editEventVal).eq('id', editingEvent)
+    // סנכרון השינוי ליומן ולאילוצים — לפי האירוע התואם (התאמה לפי שם+תאריך ישנים)
+    if (old) {
+      const oldName = (old.event_name || '').trim()
+      const oldDate = old.date || null
+      const newName = (editEventVal.event_name || '').trim()
+      const newDate = editEventVal.date || null
+      let q = supabase.from('events').select('id, title, date')
+      if (oldDate) q = q.eq('date', oldDate)
+      const { data: rows } = await q
+      const match = (rows || []).find(r => (r.title || '').trim() === oldName)
+      if (match) {
+        await supabase.from('events').update({
+          title: editEventVal.event_name,
+          date: newDate,
+          type: editEventVal.type || null,
+          venue: editEventVal.venue || null,
+        }).eq('id', match.id)
+      }
+      if (oldDate && (oldName !== newName || oldDate !== newDate)) {
+        await supabase.from('crew_constraints')
+          .update({ notes: editEventVal.event_name, date: newDate })
+          .eq('date', oldDate).eq('notes', old.event_name).eq('available', true).is('crew_member_id', null)
+      }
+    }
     setEvents(prev => prev.map(e => e.id === editingEvent ? { ...e, ...editEventVal } : e))
     setEditingEvent(null)
   }
