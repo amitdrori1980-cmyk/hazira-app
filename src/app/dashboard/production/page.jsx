@@ -533,9 +533,9 @@ function ProductionInquiries() {
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-5">
                     <div className="text-[13px] font-semibold text-black whitespace-nowrap">{ev.event_name}</div>
-                    <div className="text-[13px] font-semibold text-black flex gap-2 flex-wrap">
+                    <div className="text-[13px] font-semibold text-black flex items-center gap-2 flex-wrap">
                       {ev.date && <span>{fmtDate(ev.date)}</span>}
                       {ev.day && <span>יום {ev.day}</span>}
                       {ev.venue && <span>{ev.venue}</span>}
