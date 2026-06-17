@@ -484,7 +484,7 @@ function Dashboard() {
       ) : (
         <div className="flex flex-col gap-3">
           {notes.map(ev => (
-            <div key={ev.id} className="border border-gray-100 rounded-xl p-4 bg-[#FCE4F3] text-right">
+            <div key={ev.id} className="border border-gray-100 rounded-xl p-4 bg-[#D3C0CD] text-right">
               <p className="text-[13.5px] text-gray-800 leading-relaxed">
                 בוקר טוב, האירוע "{ev.title}" הסתיים, אפשר להחליף מוניטורים וקאבר באתר.{' '}
                 {nextEv
@@ -642,7 +642,7 @@ function Monitor() {
                 return (
                   <button key={it.id} onClick={() => toggleItem(it, done)}
                     title={it.eventTitle + (it.free_text ? ' · ' + it.free_text : '')}
-                    className={`text-[12px] rounded-lg px-2 py-1 border transition-colors text-right ${done ? 'bg-[#FCE4F3] border-[#F3C9E2] text-[#A0106A] line-through' : overdue ? 'bg-red-50 border-red-100 text-red-500 hover:bg-red-100' : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-[#E0197D]'}`}>
+                    className={`text-[12px] rounded-lg px-2 py-1 border transition-colors text-right ${done ? 'bg-[#D3C0CD] border-[#D3C0CD] text-[#A0106A] line-through' : overdue ? 'bg-red-50 border-red-100 text-red-500 hover:bg-red-100' : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-[#E0197D]'}`}>
                     {it.source === 'campaign' && <i className="ti ti-rocket" style={{ fontSize: 11 }} />} {it.label}
                     <span className="text-gray-400 mr-1">· {it.eventTitle}</span>
                   </button>
@@ -681,7 +681,7 @@ function Monitor() {
         const futureWeeks = curWeeks.filter(w => w.week > curWk)
         const renderWeek = (w) => (
           <div key={w.week}>
-            <div className="text-[13px] font-bold text-[#A0106A] bg-[#FCE4F3] rounded-lg px-3 py-1.5 mb-2">שבוע {weekRangeLabel(w.week)}</div>
+            <div className="text-[13px] font-bold text-[#A0106A] bg-[#D3C0CD] rounded-lg px-3 py-1.5 mb-2">שבוע {weekRangeLabel(w.week)}</div>
             {renderDays(w.days)}
           </div>
         )
