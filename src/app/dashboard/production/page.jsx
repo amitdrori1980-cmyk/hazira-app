@@ -605,7 +605,7 @@ function ProductionInquiries() {
           ))}
         </div>
       </div>
-      <div className="flex flex-wrap justify-end gap-2 mb-4 no-print">
+      <div className="flex flex-wrap justify-start gap-2 mb-4 no-print">
         {selectMode ? (
           <>
             <button onClick={pushSelectedToCalendar} disabled={!selectedIds.size}
@@ -726,15 +726,15 @@ function ProductionInquiries() {
       {events.length > 0 && (
         <div className="flex items-center gap-2 mb-3 flex-row-reverse no-print">
           <button onClick={() => setView('active')}
-            className={`text-[12px] px-3 py-1.5 rounded-lg font-medium ${view === 'active' ? 'bg-[#E0197D] text-white' : 'bg-gray-100 text-gray-500 hover:text-[#E0197D]'}`}>
+            className={`text-[12px] px-3 py-1.5 rounded-lg font-medium ${view === 'active' ? 'bg-[#E0197D] text-white border border-[#E0197D]' : 'bg-white border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3]'}`}>
             פעילות ({activeEvents.length})
           </button>
           <button onClick={() => setView('archive')}
-            className={`text-[12px] px-3 py-1.5 rounded-lg font-medium ${view === 'archive' ? 'bg-[#E0197D] text-white' : 'bg-gray-100 text-gray-500 hover:text-[#E0197D]'}`}>
+            className={`text-[12px] px-3 py-1.5 rounded-lg font-medium ${view === 'archive' ? 'bg-[#E0197D] text-white border border-[#E0197D]' : 'bg-white border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3]'}`}>
             ארכיון ({archivedAll.length})
           </button>
           <button onClick={() => setView('trash')}
-            className={`text-[12px] px-3 py-1.5 rounded-lg font-medium ${view === 'trash' ? 'bg-[#E0197D] text-white' : 'bg-gray-100 text-gray-500 hover:text-[#E0197D]'}`}>
+            className={`text-[12px] px-3 py-1.5 rounded-lg font-medium ${view === 'trash' ? 'bg-[#E0197D] text-white border border-[#E0197D]' : 'bg-white border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3]'}`}>
             סל מיחזור ({deletedEvents.length})
           </button>
           {view === 'archive' && (
@@ -786,7 +786,7 @@ function ProductionInquiries() {
                   <tr className={`${printMode === 'selected' && !g.events.some(e => selectedIds.has(e.id)) ? 'hidden' : ''}`}>
                     <td style={{ padding: 0 }}>
                       <button onClick={() => setCollapsedMonths(p => ({ ...p, [g.key]: !p[g.key] }))}
-                        className="w-full flex items-center justify-between px-4 py-2.5 mb-2 bg-gray-50 border border-gray-100 rounded-xl flex-row-reverse hover:bg-gray-100">
+                        className="w-full flex items-center justify-between px-4 py-2.5 mb-2 bg-gray-50 border border-black rounded-xl flex-row-reverse hover:bg-gray-100">
                         <span className="text-[13px] font-semibold text-gray-700 flex items-center gap-2 flex-row-reverse">
                           <i className={`ti ${collapsedMonths[g.key] ? 'ti-chevron-down' : 'ti-chevron-up'} text-gray-400 no-print`} style={{fontSize:15}}/>
                           {g.label}
