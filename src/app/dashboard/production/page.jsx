@@ -594,7 +594,7 @@ function ProductionInquiries() {
     <div className="max-w-7xl">
       <style dangerouslySetInnerHTML={{__html: `.prod-print-thead { display: none; } @media print { html, body { height: auto !important; overflow: visible !important; } body * { visibility: hidden !important; } .prod-print-area, .prod-print-area * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .fixed.inset-0 { position: static !important; display: block !important; overflow: visible !important; height: auto !important; } main { display: block !important; } main > div:first-child { display: none !important; } .overflow-hidden, .overflow-y-auto { overflow: visible !important; height: auto !important; } aside, .no-print { display: none !important; } .prod-print-thead { display: table-header-group !important; } .prod-print-header-inner { display: flex; align-items: center; gap: 10px; padding: 2px 12px 8px; border-bottom: 2px solid #E0197D; direction: ltr; } .prod-print-area { position: static !important; padding: 12px; } .prod-print-area tr.prod-ev-card { break-inside: avoid !important; page-break-inside: avoid !important; } .prod-print-legend { display: flex !important; flex-wrap: wrap; gap: 4px 14px; align-items: center; padding: 6px 12px 10px; direction: rtl; } @page { margin: 12mm 8mm; } }`}} />
       
-      <div className="prod-legend bg-white border border-gray-100 rounded-xl px-4 py-2.5 mb-4 no-print">
+      <div className="prod-legend bg-white border border-black rounded-xl px-4 py-2.5 mb-4 no-print">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
           <span className="text-[12px] font-medium text-gray-500">מקרא סטטוסים:</span>
           {STATUSES.map(s => (
