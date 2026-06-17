@@ -50,6 +50,7 @@ function ProductionInquiries() {
   const [eventTypes, setEventTypes] = useState([])
   const [view, setView] = useState('active')
   const [archiveSearch, setArchiveSearch] = useState('')
+  const [prodSearch, setProdSearch] = useState('')
   const [openMonths, setOpenMonths] = useState({})
   const [collapsedMonths, setCollapsedMonths] = useState({})
   const [notesDraft, setNotesDraft] = useState({})
@@ -427,6 +428,9 @@ function ProductionInquiries() {
   const liveEvents = events.filter(e => !e.deleted_at)
   const deletedEvents = events.filter(e => e.deleted_at)
   const activeEvents = liveEvents.filter(e => !(e.date && e.date < todayStr))
+  const activeFiltered = prodSearch.trim()
+    ? activeEvents.filter(e => (e.event_name || '').toLowerCase().includes(prodSearch.trim().toLowerCase()))
+    : activeEvents
   const archivedAll = liveEvents.filter(e => e.date && e.date < todayStr)
   const archivedFiltered = archiveSearch.trim()
     ? archivedAll.filter(e => (e.event_name || '').toLowerCase().includes(archiveSearch.trim().toLowerCase()))
@@ -448,7 +452,7 @@ function ProductionInquiries() {
 
   const activeMonthGroups = (() => {
     const groups = {}
-    activeEvents.forEach(e => {
+    activeFiltered.forEach(e => {
       const key = (e.date || '').slice(0, 7)
       ;(groups[key] = groups[key] || []).push(e)
     })
@@ -540,7 +544,7 @@ function ProductionInquiries() {
                     </div>
                     {/* רשימת אנשים גלויה תמיד — שם ניטרלי + נקודת צבע לסטטוס, לחיצה פותחת תפריט */}
                     <div className="flex items-end gap-2 mt-1.5">
-                    <div dir="rtl" className="flex gap-1.5 justify-start flex-wrap md:flex-nowrap md:overflow-x-auto md:pb-1 [scrollbar-width:thin] flex-1 min-w-0" onClick={e => e.stopPropagation()}>
+                    <div dir="rtl" className="flex gap-1.5 justify-start flex-wrap flex-1 min-w-0" onClick={e => e.stopPropagation()}>
                       {evSlots.map((slot, idx) => {
                         if (!slot.name.trim() && idx !== firstEmptyHdr) return null
                         const st = getStatus(slot.status)
@@ -761,6 +765,11 @@ function ProductionInquiries() {
         </div>
       {view === 'active' && activeEvents.length > 0 && (
         <>
+          <div className="mb-3 no-print">
+            <input value={prodSearch} onChange={e => setProdSearch(e.target.value)}
+              placeholder="חיפוש לפי שם אירוע..."
+              className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right"/>
+          </div>
           <div className="flex justify-end mb-2 no-print">
             <button onClick={() => {
               const allCollapsed = activeMonthGroups.every(g => collapsedMonths[g.key])
@@ -804,6 +813,9 @@ function ProductionInquiries() {
               ))}
             </tbody>
           </table>
+          {activeMonthGroups.length === 0 && (
+            <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">לא נמצאו אירועים</div>
+          )}
         </>
       )}
       {view === 'active' && events.length > 0 && activeEvents.length === 0 && (
