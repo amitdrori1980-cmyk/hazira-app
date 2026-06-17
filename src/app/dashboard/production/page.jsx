@@ -605,7 +605,7 @@ function ProductionInquiries() {
           ))}
         </div>
       </div>
-      <div className="flex justify-end gap-2 mb-4 no-print">
+      <div className="flex flex-wrap justify-end gap-2 mb-4 no-print">
         {selectMode ? (
           <>
             <button onClick={pushSelectedToCalendar} disabled={!selectedIds.size}
@@ -624,25 +624,25 @@ function ProductionInquiries() {
         ) : (
           <>
             <button onClick={() => window.print()}
-              className="bg-white border border-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-1">
+              className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 min-w-[150px]">
               <i className="ti ti-file-type-pdf"/> ייצוא PDF
             </button>
             <button onClick={() => setSelectMode(true)}
-              className="bg-white border border-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-1">
+              className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 min-w-[150px]">
               <i className="ti ti-checkbox"/> בחר לייצוא
             </button>
           </>
         )}
         <button onClick={syncAll} disabled={bulkBusy || (activeEvents.length===0 && liveEvents.length===0)}
-          className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1 disabled:opacity-50">
+          className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 min-w-[150px] disabled:opacity-50">
           <i className="ti ti-refresh"/> {bulkBusy ? 'מסנכרן…' : 'סנכרן עם היומן'}
         </button>
         <button onClick={openImport}
-          className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1">
+          className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 min-w-[150px]">
           <i className="ti ti-calendar-down"/> ייבא מהיומן
         </button>
         <button onClick={() => { setShowNewEvent(v => !v); setShowImport(false) }}
-          className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1">
+          className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 min-w-[150px]">
           <i className="ti ti-plus"/> אירוע חדש
         </button>
       </div>
