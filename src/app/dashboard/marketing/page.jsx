@@ -485,7 +485,7 @@ function Dashboard() {
         <div className="flex flex-col gap-3">
           {notes.map(ev => (
             <div key={ev.id} className="border border-white rounded-xl p-4 bg-[#D3C0CD] text-right">
-              <p className="text-[13.5px] text-white leading-relaxed">
+              <p className="text-[13.5px] text-gray-800 leading-relaxed">
                 בוקר טוב, האירוע "{ev.title}" הסתיים, אפשר להחליף מוניטורים וקאבר באתר.{' '}
                 {nextEv
                   ? `האירוע הבא: "${nextEv.title}" בתאריך ${fmtDate(nextEv.date)}.`
@@ -661,7 +661,7 @@ function Monitor() {
         <div className="flex items-center gap-2">
           <i className="ti ti-calendar text-[#E0197D]" style={{ fontSize: 18 }} />
           <h2 className="text-[15px] font-bold text-gray-800">מוניטור — לוז שבועי</h2>
-          <span className="text-[12px] font-bold text-[#A0106A] bg-[#D3C0CD] border border-white rounded-lg px-2 py-0.5 whitespace-nowrap">{weekRangeLabel(weekKey(todayStr))}</span>
+          <span className="text-[13px] font-bold text-gray-600 whitespace-nowrap">· {weekRangeLabel(weekKey(todayStr))}</span>
         </div>
         <div className="flex gap-1.5">
           {[{ id: 'current', label: 'נוכחי' }, { id: 'archive', label: 'ארכיון' }].map(v => (
