@@ -531,7 +531,7 @@ function ProductionInquiries() {
                   <>
                     <div className="flex items-center gap-3">
                     <div className="text-[13px] font-semibold text-black whitespace-nowrap">{ev.event_name}</div>
-                    <div className="text-[13px] text-black flex-1 flex gap-2 justify-center flex-wrap">
+                    <div className="text-[13px] font-semibold text-black flex gap-2 flex-wrap">
                       {ev.date && <span>{fmtDate(ev.date)}</span>}
                       {ev.day && <span>יום {ev.day}</span>}
                       {ev.venue && <span>{ev.venue}</span>}
@@ -563,7 +563,7 @@ function ProductionInquiries() {
                     <textarea value={notesDraft[ev.id] ?? (ev.notes || '')} onClick={e=>e.stopPropagation()}
                       onChange={e=>setNotesDraft(d=>({...d,[ev.id]:e.target.value}))} onBlur={()=>saveNotes(ev)}
                       placeholder="הערות" dir="ltr" rows={2}
-                      className="w-40 md:w-80 shrink-0 self-end text-[11px] px-2 py-1 border border-black rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-y text-left"/>
+                      className="w-40 md:w-96 shrink-0 self-end h-28 text-[11px] px-2 py-1 border border-black rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-y text-left"/>
                     </div>
                   </>
                 )}
