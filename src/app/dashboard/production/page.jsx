@@ -1368,6 +1368,9 @@ export function GeneralSchedulesMode() {
   const [newVenue, setNewVenue] = useState('')
   const [saving, setSaving] = useState(false)
   const [importingId, setImportingId] = useState(null)
+  const [dragIdx, setDragIdx] = useState(null)
+  const [dragSch, setDragSch] = useState(null)
+  const [dropIdx, setDropIdx] = useState(null)
 
   useEffect(() => { load() }, [])
 
@@ -1448,6 +1451,25 @@ export function GeneralSchedulesMode() {
     await Promise.all(curr.map((r, i) => supabase.from('general_schedule_rows').update({ sort_order: i }).eq('id', r.id)))
   }
 
+  async function addRowAt(scheduleId, index) {
+    const curr = [...(rows[scheduleId] || [])]
+    const { data } = await supabase.from('general_schedule_rows').insert({
+      schedule_id: scheduleId, time:'', what:'', who:'', notes:'', sort_order: index
+    }).select().single()
+    if (!data) return
+    curr.splice(index, 0, data)
+    setRows(prev => ({ ...prev, [scheduleId]: curr }))
+    await Promise.all(curr.map((r,i) => supabase.from('general_schedule_rows').update({ sort_order: i }).eq('id', r.id)))
+  }
+  async function reorderRows(scheduleId, from, to) {
+    if (from == null || to == null || from === to) return
+    const curr = [...(rows[scheduleId] || [])]
+    const [moved] = curr.splice(from, 1)
+    const insertAt = to > from ? to - 1 : to
+    curr.splice(insertAt, 0, moved)
+    setRows(prev => ({ ...prev, [scheduleId]: curr }))
+    await Promise.all(curr.map((r,i) => supabase.from('general_schedule_rows').update({ sort_order: i }).eq('id', r.id)))
+  }
   async function importExcel(scheduleId, file) {
     setImportingId(scheduleId)
     const XLSX = await import('xlsx-js-style')
@@ -1711,10 +1733,13 @@ export function GeneralSchedulesMode() {
                   <tr><td colSpan={5} className="text-center text-[12px] text-gray-400 py-6">אין שורות — הוסף שורה או ייבא מאקסל</td></tr>
                 )}
                 {schRows.map((row, idx) => (
-                  <tr key={row.id} className={`border-b border-gray-50 group ${idx%2===0?'bg-white':'bg-[#FFF8F8]'}`}>
+                  <tr key={row.id}
+                    onDragOver={e => { if (dragSch !== sch.id) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; const r = e.currentTarget.getBoundingClientRect(); const t = (e.clientY - r.top) > r.height / 2 ? idx + 1 : idx; if (dropIdx !== t) setDropIdx(t) }}
+                    onDrop={e => { e.preventDefault(); reorderRows(sch.id, dragIdx, dropIdx); setDragIdx(null); setDragSch(null); setDropIdx(null) }}
+                    className={`border-b border-gray-50 group ${idx%2===0?'bg-white':'bg-[#FFF8F8]'} ${dragSch===sch.id && dragIdx===idx ? 'opacity-40' : ''} ${dragSch===sch.id && dropIdx===idx && dragIdx!==idx ? '[&>td]:border-t-2 [&>td]:border-t-[#E0197D]' : ''} ${dragSch===sch.id && idx===schRows.length-1 && dropIdx===schRows.length ? '[&>td]:border-b-2 [&>td]:border-b-[#E0197D]' : ''}`}>
                     <td className="border-l border-gray-100 px-3 py-2 whitespace-nowrap text-[12px] font-mono text-right" style={{width:'150px',minWidth:'150px'}}>
                       <input value={row.time||''} onChange={e => updateRow(sch.id, row.id, 'time', e.target.value)}
-                        className="w-full bg-transparent outline-none text-right font-mono"/>
+                        className="w-full bg-transparent outline-none text-right text-[12px] font-mono"/>
                     </td>
                     <td className="border-l border-gray-100 px-3 py-1" style={{minWidth:'180px'}}>
                       <textarea value={row.what||''} onChange={e=>updateRow(sch.id,row.id,'what',e.target.value)}
@@ -1730,14 +1755,16 @@ export function GeneralSchedulesMode() {
                     </td>
                     <td style={{width:"36px"}} className="align-middle">
                       <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => moveRow(sch.id, idx, -1)} disabled={idx===0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5">
-                          <i className="ti ti-chevron-up" style={{fontSize:10}}/>
+                        <span draggable onDragStart={e => { setDragSch(sch.id); setDragIdx(idx); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(row.id)) }}
+                          onDragEnd={() => { setDragIdx(null); setDragSch(null); setDropIdx(null) }}
+                          title="גרור לשינוי סדר" className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-600 p-0.5">
+                          <i className="ti ti-grip-vertical" style={{fontSize:11}}/>
+                        </span>
+                        <button onClick={() => addRowAt(sch.id, idx+1)} title="הוסף שורה מתחת" className="text-gray-300 hover:text-[#E0197D] p-0.5">
+                          <i className="ti ti-plus" style={{fontSize:11}}/>
                         </button>
                         <button onClick={() => deleteRow(sch.id, row.id)} className="text-gray-300 hover:text-red-500 p-0.5">
                           <i className="ti ti-trash" style={{fontSize:10}}/>
-                        </button>
-                        <button onClick={() => moveRow(sch.id, idx, 1)} disabled={idx===schRows.length-1} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5">
-                          <i className="ti ti-chevron-down" style={{fontSize:10}}/>
                         </button>
                       </div>
                     </td>
