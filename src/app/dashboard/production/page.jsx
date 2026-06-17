@@ -529,14 +529,16 @@ function ProductionInquiries() {
                   </div>
                 ) : (
                   <>
-                    <div className="text-[13px] font-semibold text-black">{ev.event_name}</div>
-                    <div className="text-[13px] text-black mt-0.5 flex gap-2 justify-end flex-wrap">
+                    <div className="flex items-center justify-between gap-3">
+                    <div className="text-[13px] font-semibold text-black whitespace-nowrap">{ev.event_name}</div>
+                    <div className="text-[13px] text-black flex gap-2 justify-end flex-wrap">
                       {ev.date && <span>{fmtDate(ev.date)}</span>}
                       {ev.day && <span>יום {ev.day}</span>}
                       {ev.venue && <span>{ev.venue}</span>}
                       {ev.type && <span className={`px-1.5 py-0.5 rounded-full ${getTypeStyle(ev.type)}`}>{getTypeLabel(ev.type)}</span>}
                       <span className="text-black">·</span>
                       <span>{filledCount}/{SLOTS} אנשים</span>
+                    </div>
                     </div>
                     {/* רשימת אנשים גלויה תמיד — שם ניטרלי + נקודת צבע לסטטוס, לחיצה פותחת תפריט */}
                     <div className="flex items-stretch gap-2 mt-1.5">
@@ -770,7 +772,7 @@ function ProductionInquiries() {
               {activeMonthGroups.every(g => collapsedMonths[g.key]) ? 'הרחב הכל' : 'כווץ הכל'}
             </button>
           </div>
-          <table className="w-full" style={{ borderCollapse: 'collapse' }}>
+          <table className="w-full table-fixed" style={{ borderCollapse: 'collapse' }}>
             <thead className="prod-print-thead">
               <tr><td>
                 <div className="prod-print-header-inner">
