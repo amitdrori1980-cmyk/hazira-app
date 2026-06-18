@@ -543,7 +543,7 @@ function ProductionInquiries() {
                     </div>
                     </div>
                     {/* רשימת אנשים גלויה תמיד — שם ניטרלי + נקודת צבע לסטטוס, לחיצה פותחת תפריט */}
-                    <div className="flex items-end gap-2 mt-1.5">
+                    <div className="flex flex-wrap items-end gap-2 mt-1.5">
                     <div dir="rtl" className="flex gap-1.5 justify-start flex-wrap flex-1 min-w-0" onClick={e => e.stopPropagation()}>
                       {evSlots.map((slot, idx) => {
                         if (!slot.name.trim() && idx !== firstEmptyHdr) return null
@@ -565,7 +565,7 @@ function ProductionInquiries() {
                     <textarea value={notesDraft[ev.id] ?? (ev.notes || '')} onClick={e=>e.stopPropagation()}
                       onChange={e=>setNotesDraft(d=>({...d,[ev.id]:e.target.value}))} onBlur={()=>saveNotes(ev)}
                       placeholder="הערות" dir="ltr" rows={2}
-                      className="w-40 md:w-80 shrink-0 self-end text-[11px] px-2 py-1 border border-black rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-y text-left"/>
+                      className="w-full md:w-80 shrink-0 self-end text-[11px] px-2 py-1 border border-black rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-y text-left"/>
                     </div>
                   </>
                 )}
@@ -628,25 +628,25 @@ function ProductionInquiries() {
         ) : (
           <>
             <button onClick={() => window.print()}
-              className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 min-w-[150px]">
+              className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
               <i className="ti ti-file-type-pdf"/> ייצוא PDF
             </button>
             <button onClick={() => setSelectMode(true)}
-              className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 min-w-[150px]">
+              className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
               <i className="ti ti-checkbox"/> בחר לייצוא
             </button>
           </>
         )}
         <button onClick={syncAll} disabled={bulkBusy || (activeEvents.length===0 && liveEvents.length===0)}
-          className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 min-w-[150px] disabled:opacity-50">
+          className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px] disabled:opacity-50">
           <i className="ti ti-refresh"/> {bulkBusy ? 'מסנכרן…' : 'סנכרן עם היומן'}
         </button>
         <button onClick={openImport}
-          className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 min-w-[150px]">
+          className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
           <i className="ti ti-calendar-down"/> ייבא מהיומן
         </button>
         <button onClick={() => { setShowNewEvent(v => !v); setShowImport(false) }}
-          className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 min-w-[150px]">
+          className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
           <i className="ti ti-plus"/> אירוע חדש
         </button>
       </div>
