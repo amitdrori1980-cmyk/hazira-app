@@ -102,13 +102,21 @@ function ProductionInquiries() {
         setFlashId(mid)
         if (match.date) setView(match.date < todayStr ? 'archive' : 'active')
         let tries = 0
-        const tryScroll = () => {
+        const firstScroll = () => {
           const el = document.getElementById('prod-ev-' + mid)
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          else if (tries++ < 25) setTimeout(tryScroll, 100)
+          if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return }
+          if (tries++ < 25) setTimeout(firstScroll, 100)
         }
-        setTimeout(tryScroll, 120)
-        setTimeout(() => setFlashId(null), 2800)
+        const reAnchor = () => {
+          const el = document.getElementById('prod-ev-' + mid)
+          if (!el) return
+          const vh = window.innerHeight || document.documentElement.clientHeight
+          const r = el.getBoundingClientRect()
+          if (r.bottom < 80 || r.top > vh - 80) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+        setTimeout(firstScroll, 120)
+        ;[700, 1400, 2400, 3400].forEach(t => setTimeout(reAnchor, t))
+        setTimeout(() => setFlashId(null), 3600)
       }
     })()
   }, [loading, events, didAutoOpen])
