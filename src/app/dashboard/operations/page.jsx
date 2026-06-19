@@ -373,7 +373,7 @@ export default function OperationsPage() {
 
   function renderShiftGroup(g, slotStatus) {
     return (
-      <div key={g.key} className="bg-[#94B7BB] border border-black/20 shadow-sm rounded-xl overflow-hidden mb-5">
+      <div key={g.key} className="bg-[#D4E0DE] border border-black/20 shadow-sm rounded-xl overflow-hidden mb-5">
         <div dir="rtl" className="px-4 py-2 bg-[#22372B] border-b border-black/20 flex items-center gap-2">
           <div className="text-right flex-1 min-w-0">
             <div className="text-[13px] font-semibold text-white">{g.event_title}</div>
@@ -402,7 +402,7 @@ export default function OperationsPage() {
           <div className="px-3 pt-3">
             <textarea key={g.key + '-evnotes'} defaultValue={shiftNotes[g.key] || ''} onBlur={e => saveShiftNote(g.key, e.target.value)}
               placeholder="הערות כלליות לאירוע..." rows={2} dir="rtl"
-              className="w-full text-[12px] px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] resize-none bg-gray-50 text-right"/>
+              className="w-full text-[12px] px-3 py-2 border border-black rounded-lg outline-none focus:border-[#E0197D] resize-none bg-gray-50 text-right"/>
           </div>
         ) : (shiftNotes[g.key] && <div className="px-4 pt-3 text-[12px] text-gray-600 text-right whitespace-pre-wrap">{shiftNotes[g.key]}</div>)}
         <div className="overflow-x-auto">
@@ -410,7 +410,7 @@ export default function OperationsPage() {
             {g.items.map(s => {
               const rejected = slotStatus[g.key + '::' + s.member_id] === 'rejected'
               return (
-              <div key={s.id} className={`flex flex-col items-stretch px-3 py-2.5 border shadow-sm rounded-xl w-[170px] relative ${rejected ? 'bg-red-100 border-red-300' : 'border-black/15'}`}>
+              <div key={s.id} className={`flex flex-col items-stretch px-3 py-2.5 border shadow-sm rounded-xl w-[170px] relative ${rejected ? 'bg-red-100 border-red-300' : 'border-black'}`}>
                 {isManager && <button onClick={() => deleteShift(s.id)}
                   className="absolute top-1 left-1 text-gray-200 hover:text-red-500">
                   <i className="ti ti-x" style={{fontSize:11}}/>
