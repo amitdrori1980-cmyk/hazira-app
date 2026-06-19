@@ -393,7 +393,7 @@ export default function OperationsPage() {
               </button>
             )}
             {isManager && <button onClick={() => deleteShiftGroup(g.items)}
-              className="text-white/60 hover:text-red-400 p-1">
+              className="text-white hover:text-red-400 p-1">
               <i className="ti ti-trash" style={{fontSize:13}}/>
             </button>}
           </div>
@@ -672,20 +672,20 @@ export default function OperationsPage() {
       <div className="flex gap-2 mb-4 border-b border-gray-100 pb-2">
 
         <button onClick={() => setTab('board')}
-          className={`text-[13px] px-4 py-1.5 rounded-lg border font-medium transition-colors ${tab === 'board' ? 'bg-white text-[#E0197D] border-[#E0197D]' : 'bg-white text-gray-500 border-gray-200 hover:border-[#E0197D] hover:text-[#E0197D]'}`}>
+          className={`text-[13px] px-4 py-1.5 rounded-lg border border-[#E0197D] font-medium transition-colors ${tab === 'board' ? 'bg-[#E0197D] text-white' : 'bg-white text-[#E0197D] hover:bg-[#E0197D]/10'}`}>
           אילוצים
         </button>
           <button onClick={() => setTab('shifts')}
-            className={`text-[13px] px-4 py-1.5 rounded-lg border font-medium transition-colors ${tab === 'shifts' ? 'bg-white text-[#E0197D] border-[#E0197D]' : 'bg-white text-gray-500 border-gray-200 hover:border-[#E0197D] hover:text-[#E0197D]'}`}>
+            className={`text-[13px] px-4 py-1.5 rounded-lg border border-[#E0197D] font-medium transition-colors ${tab === 'shifts' ? 'bg-[#E0197D] text-white' : 'bg-white text-[#E0197D] hover:bg-[#E0197D]/10'}`}>
             סידור עבודה
           </button>
         <button onClick={() => setTab('summary')}
-          className={`text-[13px] px-4 py-1.5 rounded-lg border font-medium transition-colors ${tab === 'summary' ? 'bg-white text-[#E0197D] border-[#E0197D]' : 'bg-white text-gray-500 border-gray-200 hover:border-[#E0197D] hover:text-[#E0197D]'}`}>
+          className={`text-[13px] px-4 py-1.5 rounded-lg border border-[#E0197D] font-medium transition-colors ${tab === 'summary' ? 'bg-[#E0197D] text-white' : 'bg-white text-[#E0197D] hover:bg-[#E0197D]/10'}`}>
           סיכום ערב
         </button>
         {isManager && (
           <button onClick={() => setTab('team')}
-            className={`text-[13px] px-4 py-1.5 rounded-lg border font-medium transition-colors ${tab === 'team' ? 'bg-white text-[#E0197D] border-[#E0197D]' : 'bg-white text-gray-500 border-gray-200 hover:border-[#E0197D] hover:text-[#E0197D]'}`}>
+            className={`text-[13px] px-4 py-1.5 rounded-lg border border-[#E0197D] font-medium transition-colors ${tab === 'team' ? 'bg-[#E0197D] text-white' : 'bg-white text-[#E0197D] hover:bg-[#E0197D]/10'}`}>
             צוות תפעול
           </button>
         )}
