@@ -374,7 +374,7 @@ export default function OperationsPage() {
   function renderShiftGroup(g, slotStatus) {
     return (
       <div key={g.key} className="bg-[#D4E0DE] border border-black/20 shadow-sm rounded-xl overflow-hidden mb-5">
-        <div dir="rtl" className="px-4 py-2 bg-[#22372B] border-b border-black/20 flex items-center gap-2">
+        <div dir="rtl" className="px-4 py-2 bg-[#4F213B] border-b border-black/20 flex items-center gap-2">
           <div className="text-right flex-1 min-w-0">
             <div className="text-[13px] font-semibold text-white">{g.event_title}</div>
             <div className="text-[11px] text-white/70">{(() => { if (!g.event_date) return ''; const [y,m,d] = g.event_date.split('-'); const HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; return `${+d} ${HE[+m-1]} ${y}` })()}</div>
