@@ -410,7 +410,7 @@ export default function OperationsPage() {
             {g.items.map(s => {
               const rejected = slotStatus[g.key + '::' + s.member_id] === 'rejected'
               return (
-              <div key={s.id} className={`flex flex-col items-stretch px-3 py-2.5 border shadow-sm rounded-xl w-[170px] relative ${rejected ? 'bg-red-100 border-red-300' : 'border-black'}`}>
+              <div key={s.id} className={`flex flex-col items-stretch px-3 py-2.5 border shadow-sm rounded-xl w-[170px] relative ${rejected ? 'border-red-400' : 'border-black'}`}>
                 {isManager && <button onClick={() => deleteShift(s.id)}
                   className="absolute top-1 left-1 text-gray-200 hover:text-red-500">
                   <i className="ti ti-x" style={{fontSize:11}}/>
@@ -420,7 +420,7 @@ export default function OperationsPage() {
                 </div>
                 {isManager ? (
                   <select value={s.role || ''} onChange={e => updateShiftRole(s.id, e.target.value)}
-                    className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full text-right bg-gray-50" dir="rtl">
+                    className="text-[11px] px-2 py-1 border border-black rounded-lg outline-none focus:border-[#E0197D] w-full text-right bg-transparent" dir="rtl">
                     <option value="">תפקיד...</option>
                     <option value="בר">בר</option>
                     <option value="קופה">קופה</option>
@@ -430,7 +430,7 @@ export default function OperationsPage() {
                 {isManager ? (
                   <textarea key={s.id + '-notes'} defaultValue={s.notes || ''} onBlur={e => updateShiftNotes(s.id, e.target.value)}
                     placeholder="הערות..." rows={2} dir="rtl"
-                    className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] w-full resize-none mt-1 bg-gray-50"/>
+                    className="text-[11px] px-2 py-1 border border-black rounded-lg outline-none focus:border-[#E0197D] w-full resize-none mt-1 bg-transparent"/>
                 ) : (s.notes && <div className="text-[11px] text-gray-500 text-right whitespace-pre-wrap mt-1">{s.notes}</div>)}
               </div>
               )})}
