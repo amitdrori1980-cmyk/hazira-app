@@ -377,7 +377,7 @@ export default function OperationsPage() {
         <div dir="rtl" className="px-4 py-1.5 bg-[#920049] border-b border-black/20 flex items-center gap-2">
           <div className="text-right flex-1 min-w-0">
             <div className="text-[13px] font-semibold text-white">{g.event_title}</div>
-            <div className="text-[11px] text-white/70">{(() => { if (!g.event_date) return ''; const [y,m,d] = g.event_date.split('-'); const HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; return `${+d} ${HE[+m-1]} ${y}` })()}</div>
+            <div className="text-[11px] text-white">{(() => { if (!g.event_date) return ''; const [y,m,d] = g.event_date.split('-'); const HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; return `${+d} ${HE[+m-1]} ${y}` })()}</div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {isManager && (
@@ -410,7 +410,7 @@ export default function OperationsPage() {
             {g.items.map(s => {
               const rejected = slotStatus[g.key + '::' + s.member_id] === 'rejected'
               return (
-              <div key={s.id} className={`flex flex-col items-stretch px-3 py-2.5 border shadow-sm rounded-xl w-[170px] relative bg-gray-50 ${rejected ? 'border-red-400' : 'border-black'}`}>
+              <div key={s.id} className={`flex flex-col items-stretch px-3 py-2.5 border shadow-sm rounded-xl w-[calc(50%_-_6px)] sm:w-[170px] relative bg-gray-50 ${rejected ? 'border-red-400' : 'border-black'}`}>
                 {isManager && <button onClick={() => deleteShift(s.id)}
                   className="absolute top-1 left-1 text-gray-200 hover:text-red-500">
                   <i className="ti ti-x" style={{fontSize:11}}/>
