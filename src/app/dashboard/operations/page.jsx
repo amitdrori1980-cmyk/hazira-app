@@ -383,13 +383,13 @@ export default function OperationsPage() {
             <div className="text-[11px] text-white/70">{g.items.length} עובדים</div>
             {isManager && (
               <button onClick={() => publishSchedule(g.key)}
-                className={`text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1 whitespace-nowrap ${shiftPub[g.key] ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-[#E0197D] text-white hover:bg-[#A0106A]'}`}>
+                className={`text-[11px] px-2.5 py-1 rounded-lg border border-white text-white flex items-center gap-1 whitespace-nowrap ${shiftPub[g.key] ? 'bg-white/20 hover:bg-white/30' : 'hover:bg-white/10'}`}>
                 <i className={`ti ${shiftPub[g.key] ? 'ti-check' : 'ti-send'}`} style={{fontSize:12}}/> {shiftPub[g.key] ? 'פורסם' : 'פרסם'}
               </button>
             )}
             {isManager && (
               <button onClick={() => { setSummary(v => ({ ...v, event_id: g.items[0]?.event_id || '', event_title: g.event_title, event_date: g.event_date })); setTab('summary') }}
-                className="text-[11px] border border-[#E0197D] text-[#E0197D] px-2.5 py-1 rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1 whitespace-nowrap">
+                className="text-[11px] border border-white text-white px-2.5 py-1 rounded-lg hover:bg-white/10 flex items-center gap-1 whitespace-nowrap">
                 <i className="ti ti-clipboard-text" style={{fontSize:12}}/> סיכום אירוע
               </button>
             )}
