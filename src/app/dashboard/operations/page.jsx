@@ -373,7 +373,7 @@ export default function OperationsPage() {
 
   function renderShiftGroup(g, slotStatus) {
     return (
-      <div key={g.key} className="bg-white border border-black/20 shadow-sm rounded-xl overflow-hidden mb-5">
+      <div key={g.key} className="bg-[#94B7BB] border border-black/20 shadow-sm rounded-xl overflow-hidden mb-5">
         <div dir="rtl" className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
           <div className="text-right flex-1 min-w-0">
             <div className="text-[13px] font-semibold text-gray-800">{g.event_title}</div>
