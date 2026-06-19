@@ -672,20 +672,20 @@ export default function OperationsPage() {
       <div className="flex gap-2 mb-4 border-b border-gray-100 pb-2">
 
         <button onClick={() => setTab('board')}
-          className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'board' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
+          className={`text-[13px] px-4 py-1.5 rounded-lg border font-medium transition-colors ${tab === 'board' ? 'bg-white text-[#E0197D] border-[#E0197D]' : 'bg-white text-gray-500 border-gray-200 hover:border-[#E0197D] hover:text-[#E0197D]'}`}>
           אילוצים
         </button>
           <button onClick={() => setTab('shifts')}
-            className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'shifts' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
+            className={`text-[13px] px-4 py-1.5 rounded-lg border font-medium transition-colors ${tab === 'shifts' ? 'bg-white text-[#E0197D] border-[#E0197D]' : 'bg-white text-gray-500 border-gray-200 hover:border-[#E0197D] hover:text-[#E0197D]'}`}>
             סידור עבודה
           </button>
         <button onClick={() => setTab('summary')}
-          className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'summary' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
+          className={`text-[13px] px-4 py-1.5 rounded-lg border font-medium transition-colors ${tab === 'summary' ? 'bg-white text-[#E0197D] border-[#E0197D]' : 'bg-white text-gray-500 border-gray-200 hover:border-[#E0197D] hover:text-[#E0197D]'}`}>
           סיכום ערב
         </button>
         {isManager && (
           <button onClick={() => setTab('team')}
-            className={`text-[13px] px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === 'team' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>
+            className={`text-[13px] px-4 py-1.5 rounded-lg border font-medium transition-colors ${tab === 'team' ? 'bg-white text-[#E0197D] border-[#E0197D]' : 'bg-white text-gray-500 border-gray-200 hover:border-[#E0197D] hover:text-[#E0197D]'}`}>
             צוות תפעול
           </button>
         )}
