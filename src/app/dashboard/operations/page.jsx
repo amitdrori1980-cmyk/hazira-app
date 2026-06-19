@@ -374,13 +374,13 @@ export default function OperationsPage() {
   function renderShiftGroup(g, slotStatus) {
     return (
       <div key={g.key} className="bg-[#94B7BB] border border-black/20 shadow-sm rounded-xl overflow-hidden mb-5">
-        <div dir="rtl" className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+        <div dir="rtl" className="px-4 py-3 bg-[#22372B] border-b border-black/20 flex items-center gap-2">
           <div className="text-right flex-1 min-w-0">
-            <div className="text-[13px] font-semibold text-gray-800">{g.event_title}</div>
-            <div className="text-[11px] text-gray-400">{(() => { if (!g.event_date) return ''; const [y,m,d] = g.event_date.split('-'); const HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; return `${+d} ${HE[+m-1]} ${y}` })()}</div>
+            <div className="text-[13px] font-semibold text-white">{g.event_title}</div>
+            <div className="text-[11px] text-white/70">{(() => { if (!g.event_date) return ''; const [y,m,d] = g.event_date.split('-'); const HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; return `${+d} ${HE[+m-1]} ${y}` })()}</div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="text-[11px] text-gray-400">{g.items.length} עובדים</div>
+            <div className="text-[11px] text-white/70">{g.items.length} עובדים</div>
             {isManager && (
               <button onClick={() => publishSchedule(g.key)}
                 className={`text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1 whitespace-nowrap ${shiftPub[g.key] ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-[#E0197D] text-white hover:bg-[#A0106A]'}`}>
@@ -394,7 +394,7 @@ export default function OperationsPage() {
               </button>
             )}
             {isManager && <button onClick={() => deleteShiftGroup(g.items)}
-              className="text-gray-300 hover:text-red-500 p-1">
+              className="text-white/60 hover:text-red-400 p-1">
               <i className="ti ti-trash" style={{fontSize:13}}/>
             </button>}
           </div>
