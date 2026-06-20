@@ -4,7 +4,7 @@ import crypto from 'crypto'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// HAZIRA-GOOGLE-API-V2
+// HAZIRA-GOOGLE-API-V3
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -152,8 +152,10 @@ export async function GET(req, { params }) {
     if (!code) return Response.redirect(back + '?google=error&m=no_code', 302)
     const payload = verifyState(state)
     if (!payload) return Response.redirect(back + '?google=error&m=bad_state', 302)
+    let grantedScope = ''
     try {
       const tok = await exchangeCode(code, req)
+      grantedScope = tok.scope || ''
       let email = null
       try {
         const ui = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -186,9 +188,9 @@ export async function GET(req, { params }) {
       await ensureCalendar(db, acct, at)
       return Response.redirect(back + '?google=connected', 302)
     } catch (e) {
-      const m = encodeURIComponent(String((e && e.message) || e).slice(0, 300))
-      const ru = encodeURIComponent(redirectUri(req))
-      return Response.redirect(back + '?google=error&m=' + m + '&ru=' + ru, 302)
+      const m = encodeURIComponent(String((e && e.message) || e).slice(0, 200))
+      const sc = encodeURIComponent(grantedScope)
+      return Response.redirect(back + '?google=error&m=' + m + '&sc=' + sc, 302)
     }
   }
 
