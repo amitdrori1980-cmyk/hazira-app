@@ -41,3 +41,28 @@ html {
 *, *::before, *::after {
   max-width: 100%;
 }
+
+/* HAZIRA-CURSOR-RULES — custom logo cursor */
+body {
+  cursor: url('/zira-cursor.png') 16 1, auto;
+}
+
+input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="search"], input[type="tel"],
+input[type="url"], input:not([type]), textarea, [contenteditable="true"] {
+  cursor: text;
+}
+
+input[type="checkbox"], input[type="radio"], input[type="button"],
+input[type="submit"], input[type="reset"], select,
+a, button, [role="button"], label, summary, .cursor-pointer {
+  cursor: pointer;
+}
+
+[draggable="true"], .cursor-grab {
+  cursor: grab;
+}
+
+[draggable="true"]:active, .cursor-grabbing, .cursor-grab:active {
+  cursor: grabbing;
+}
