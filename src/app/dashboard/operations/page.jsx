@@ -43,7 +43,7 @@ export default function OperationsPage() {
   const [boardManual, setBoardManual] = useState({ event_name: '', date: '' })
   const [boardRange, setBoardRange] = useState({ from: '', to: '' })
   const [colorMenu, setColorMenu] = useState(null)
-  // HAZIRA-OPS-GBTN-V2
+  // HAZIRA-OPS-GBTN-V3
   const [savedGShift, setSavedGShift] = useState(new Set())
   const [gBusy, setGBusy] = useState(null)
   const [gConn, setGConn] = useState(null)
@@ -377,7 +377,7 @@ export default function OperationsPage() {
     setShifts(prev => prev.map(s => s.id === id ? { ...s, notes } : s))
   }
 
-  // HAZIRA-OPS-GBTN-V2
+  // HAZIRA-OPS-GBTN-V3
   async function toggleGoogleShift(s) {
     if (gBusy) return
     setGBusy(s.id)
@@ -448,26 +448,26 @@ export default function OperationsPage() {
   function renderShiftGroup(g, slotStatus) {
     return (
       <div key={g.key} className="bg-[#D4E0DE] border border-black/20 shadow-sm rounded-xl overflow-hidden mb-5">
-        <div dir="rtl" className="px-4 py-1.5 bg-[#E0197D] border-b border-black/20 flex items-center gap-2">
+        <div dir="rtl" className="px-4 py-1.5 bg-white border border-[#E0197D] flex items-center gap-2">
           <div className="text-right flex-1 min-w-0">
-            <div className="text-[13px] font-semibold text-white">{g.event_title}</div>
-            <div className="text-[11px] text-white">{(() => { if (!g.event_date) return ''; const [y,m,d] = g.event_date.split('-'); const HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; return `${+d} ${HE[+m-1]} ${y}` })()}</div>
+            <div className="text-[13px] font-semibold text-[#E0197D]">{g.event_title}</div>
+            <div className="text-[11px] text-[#E0197D]">{(() => { if (!g.event_date) return ''; const [y,m,d] = g.event_date.split('-'); const HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; return `${+d} ${HE[+m-1]} ${y}` })()}</div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {isManager && (
               <button onClick={() => publishSchedule(g.key)}
-                className={`text-[11px] px-2.5 py-1 rounded-lg border border-white text-white flex items-center gap-1 whitespace-nowrap ${shiftPub[g.key] ? 'bg-white/20 hover:bg-white/30' : 'hover:bg-white/10'}`}>
+                className={`text-[11px] px-2.5 py-1 rounded-lg border border-[#E0197D] text-[#E0197D] flex items-center gap-1 whitespace-nowrap ${shiftPub[g.key] ? 'bg-[#E0197D]/15 hover:bg-[#E0197D]/25' : 'hover:bg-[#E0197D]/10'}`}>
                 <i className={`ti ${shiftPub[g.key] ? 'ti-check' : 'ti-send'}`} style={{fontSize:12}}/> {shiftPub[g.key] ? 'פורסם' : 'פרסם'}
               </button>
             )}
             {isManager && (
               <button onClick={() => { setSummary(v => ({ ...v, event_id: g.items[0]?.event_id || '', event_title: g.event_title, event_date: g.event_date })); setTab('summary') }}
-                className="text-[11px] border border-white text-white px-2.5 py-1 rounded-lg hover:bg-white/10 flex items-center gap-1 whitespace-nowrap">
+                className="text-[11px] border border-[#E0197D] text-[#E0197D] px-2.5 py-1 rounded-lg hover:bg-[#E0197D]/10 flex items-center gap-1 whitespace-nowrap">
                 <i className="ti ti-clipboard-text" style={{fontSize:12}}/> סיכום אירוע
               </button>
             )}
             {isManager && <button onClick={() => deleteShiftGroup(g.items)}
-              className="text-white hover:text-red-400 p-1">
+              className="text-[#E0197D] hover:text-red-500 p-1">
               <i className="ti ti-trash" style={{fontSize:13}}/>
             </button>}
           </div>
@@ -1110,7 +1110,7 @@ export default function OperationsPage() {
 
       {tab === 'shifts' && (
         <div className="max-w-5xl">
-          {/* HAZIRA-OPS-GBTN-V2 connect bar */}
+          {/* HAZIRA-OPS-GBTN-V3 connect bar */}
           {gMsg && <div className="mb-3 text-[12px] text-center text-gray-600 bg-[#FCE4F3] rounded-lg py-2 px-3">{gMsg}</div>}
           <div className="flex items-center justify-end gap-2 mb-4">
             {gConn?.connected ? (
