@@ -43,6 +43,12 @@ export default function OperationsPage() {
   const [boardManual, setBoardManual] = useState({ event_name: '', date: '' })
   const [boardRange, setBoardRange] = useState({ from: '', to: '' })
   const [colorMenu, setColorMenu] = useState(null)
+  // HAZIRA-OPS-GBTN
+  const [savedGShift, setSavedGShift] = useState(new Set())
+  const [gBusy, setGBusy] = useState(null)
+  const [gConn, setGConn] = useState(null)
+  const [connecting, setConnecting] = useState(false)
+  const [gMsg, setGMsg] = useState('')
   const [shiftsView, setShiftsView] = useState('active')
   const [openArchiveMonth, setOpenArchiveMonth] = useState(null)
 
@@ -371,10 +377,78 @@ export default function OperationsPage() {
     setShifts(prev => prev.map(s => s.id === id ? { ...s, notes } : s))
   }
 
+  // HAZIRA-OPS-GBTN
+  async function toggleGoogleShift(s) {
+    if (gBusy) return
+    setGBusy(s.id)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { alert('צריך להיות מחובר'); setGBusy(null); return }
+      const isSaved = savedGShift.has(s.id)
+      const res = await fetch('/api/google/' + (isSaved ? 'unsave' : 'save'), {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source_type: 'shift', source_id: s.id }),
+      })
+      const j = await res.json()
+      if (res.ok) {
+        setSavedGShift(prev => { const n = new Set(prev); if (j.saved) n.add(s.id); else n.delete(s.id); return n })
+      } else {
+        alert('שגיאה: ' + (j.error === 'not connected' ? 'צריך לחבר את יומן גוגל קודם' : (j.error || 'לא ידועה')))
+      }
+    } catch (err) {
+      alert('שגיאה בשמירה ליומן')
+    } finally {
+      setGBusy(null)
+    }
+  }
+
+  async function connectGoogle() {
+    setConnecting(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { alert('צריך להיות מחובר'); setConnecting(false); return }
+      const res = await fetch('/api/google/connect', { headers: { Authorization: 'Bearer ' + session.access_token } })
+      const j = await res.json()
+      if (j.url) window.location.href = j.url
+      else { alert('שגיאה בחיבור'); setConnecting(false) }
+    } catch (e) { setConnecting(false) }
+  }
+
+  async function disconnectGoogle() {
+    if (!window.confirm('לנתק את יומן גוגל? משמרות שכבר נשמרו יישארו ביומן.')) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      await fetch('/api/google/disconnect', { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' }, body: '{}' })
+      setGConn({ connected: false })
+      setSavedGShift(new Set())
+    } catch (e) {}
+  }
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    if (p.get('google') === 'connected') setGMsg('יומן גוגל חובר בהצלחה.')
+    else if (p.get('google') === 'error') setGMsg('החיבור ליומן גוגל נכשל. נסה שוב.')
+    async function loadG() {
+      const { data: gl } = await supabase.from('google_calendar_links').select('source_id').eq('source_type', 'shift')
+      setSavedGShift(new Set((gl || []).map(r => r.source_id)))
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          const st = await fetch('/api/google/status', { headers: { Authorization: 'Bearer ' + session.access_token } })
+          if (st.ok) setGConn(await st.json())
+          fetch('/api/google/sync', { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' }, body: '{}' })
+        }
+      } catch (e) {}
+    }
+    loadG()
+  }, [])
+
   function renderShiftGroup(g, slotStatus) {
     return (
       <div key={g.key} className="bg-[#D4E0DE] border border-black/20 shadow-sm rounded-xl overflow-hidden mb-5">
-        <div dir="rtl" className="px-4 py-1.5 bg-[#88027B] border-b border-black/20 flex items-center gap-2">
+        <div dir="rtl" className="px-4 py-1.5 bg-[#0099B1] border-b border-black/20 flex items-center gap-2">
           <div className="text-right flex-1 min-w-0">
             <div className="text-[13px] font-semibold text-white">{g.event_title}</div>
             <div className="text-[11px] text-white">{(() => { if (!g.event_date) return ''; const [y,m,d] = g.event_date.split('-'); const HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; return `${+d} ${HE[+m-1]} ${y}` })()}</div>
@@ -415,6 +489,11 @@ export default function OperationsPage() {
                   className="absolute top-1 left-1 text-gray-200 hover:text-red-500">
                   <i className="ti ti-x" style={{fontSize:11}}/>
                 </button>}
+                {shiftPub[g.key] && myMember && s.member_id === myMember.id && gConn?.connected && (
+                  <button onClick={() => toggleGoogleShift(s)} disabled={gBusy === s.id}
+                    className={`absolute top-1 right-1 w-6 h-6 flex items-center justify-center rounded font-bold text-[13px] leading-none ${savedGShift.has(s.id) ? 'bg-[#E0197D] text-white' : 'text-gray-300 hover:text-[#E0197D] border border-gray-200 bg-white'} ${gBusy === s.id ? 'opacity-50' : ''}`}
+                    title={savedGShift.has(s.id) ? 'מסונכרן ליומן גוגל — לחץ להסרה' : 'שמור ליומן גוגל'}>G</button>
+                )}
                 <div className="text-[12px] font-medium text-gray-700 text-right mb-2 mt-1 pl-4">
                   {crew.find(c=>c.id===s.member_id)?.full_name || '—'}
                 </div>
@@ -1031,6 +1110,21 @@ export default function OperationsPage() {
 
       {tab === 'shifts' && (
         <div className="max-w-5xl">
+          {/* HAZIRA-OPS-GBTN connect bar */}
+          {gMsg && <div className="mb-3 text-[12px] text-center text-gray-600 bg-[#FCE4F3] rounded-lg py-2 px-3">{gMsg}</div>}
+          <div className="flex items-center justify-end gap-2 mb-4">
+            {gConn?.connected ? (
+              <>
+                <span className="text-[12px] text-gray-500">יומן גוגל מחובר{gConn.email ? ' (' + gConn.email + ')' : ''}</span>
+                <button onClick={disconnectGoogle} className="text-[12px] text-gray-400 hover:text-red-500 underline">נתק</button>
+              </>
+            ) : (
+              <button onClick={connectGoogle} disabled={connecting}
+                className="text-[12px] px-4 py-1.5 rounded-lg border border-[#E0197D] text-[#E0197D] font-medium hover:bg-[#E0197D]/10 disabled:opacity-50">
+                {connecting ? 'מתחבר...' : 'חבר יומן גוגל'}
+              </button>
+            )}
+          </div>
           <div className="flex gap-2 mb-4">
             <button onClick={() => setShiftsView('active')}
               className={`text-[12px] px-4 py-1.5 rounded-lg font-medium transition-colors ${shiftsView === 'active' ? 'bg-[#E0197D] text-white' : 'bg-gray-100 text-gray-500 hover:text-[#E0197D]'}`}>
