@@ -4,7 +4,7 @@ import crypto from 'crypto'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// HAZIRA-GOOGLE-API
+// HAZIRA-GOOGLE-API-V2
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -149,8 +149,9 @@ export async function GET(req, { params }) {
     const code = url.searchParams.get('code')
     const state = url.searchParams.get('state')
     const back = originOf(req) + '/dashboard/google-test'
+    if (!code) return Response.redirect(back + '?google=error&m=no_code', 302)
     const payload = verifyState(state)
-    if (!code || !payload) return Response.redirect(back + '?google=error', 302)
+    if (!payload) return Response.redirect(back + '?google=error&m=bad_state', 302)
     try {
       const tok = await exchangeCode(code, req)
       let email = null
@@ -185,7 +186,9 @@ export async function GET(req, { params }) {
       await ensureCalendar(db, acct, at)
       return Response.redirect(back + '?google=connected', 302)
     } catch (e) {
-      return Response.redirect(back + '?google=error', 302)
+      const m = encodeURIComponent(String((e && e.message) || e).slice(0, 300))
+      const ru = encodeURIComponent(redirectUri(req))
+      return Response.redirect(back + '?google=error&m=' + m + '&ru=' + ru, 302)
     }
   }
 
