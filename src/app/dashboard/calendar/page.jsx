@@ -38,6 +38,34 @@ export default function CalendarPage() {
   const [inqRows, setInqRows] = useState([])
   const [inqAdded, setInqAdded] = useState(new Set())
   const [inqBusy, setInqBusy] = useState(null)
+  // HAZIRA-GCAL-BTN
+  const [savedGoogle, setSavedGoogle] = useState(new Set())
+  const [gBusy, setGBusy] = useState(null)
+
+  async function toggleGoogle(e) {
+    if (gBusy) return
+    setGBusy(e.id)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { alert('צריך להיות מחובר'); setGBusy(null); return }
+      const isSaved = savedGoogle.has(e.id)
+      const res = await fetch('/api/google/' + (isSaved ? 'unsave' : 'save'), {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source_type: 'event', source_id: e.id }),
+      })
+      const j = await res.json()
+      if (res.ok) {
+        setSavedGoogle(prev => { const n = new Set(prev); if (j.saved) n.add(e.id); else n.delete(e.id); return n })
+      } else {
+        alert('שגיאה: ' + (j.error === 'not connected' ? 'צריך לחבר את יומן גוגל קודם (דף הבדיקה)' : (j.error || 'לא ידועה')))
+      }
+    } catch (err) {
+      alert('שגיאה בשמירה ליומן')
+    } finally {
+      setGBusy(null)
+    }
+  }
 
   const getTypeStyle = v => { const t = eventTypes.find(t => t.value === v); return t ? t.color : 'bg-gray-100 text-gray-600' }
   const getTypeLabel = v => { const t = eventTypes.find(t => t.value === v); return t ? t.label : v }
@@ -65,6 +93,12 @@ export default function CalendarPage() {
       setEventTypes(ts || [])
       const { data: pe } = await supabase.from('production_events').select('event_name, date').is('deleted_at', null)
       setInqRows(pe || [])
+      const { data: gl } = await supabase.from('google_calendar_links').select('source_id').eq('source_type', 'event')
+      setSavedGoogle(new Set((gl || []).map(r => r.source_id)))
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) fetch('/api/google/sync', { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' }, body: '{}' })
+      } catch (e) {}
     }
     load()
   }, [])
@@ -551,6 +585,11 @@ export default function CalendarPage() {
                       <i className={`ti ${inInq(e) ? 'ti-clipboard-check' : 'ti-clipboard-plus'}`} style={{fontSize:13}}/>
                     </button>
                   )}
+                  <button onClick={() => toggleGoogle(e)} disabled={gBusy === e.id}
+                    className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded font-bold text-[13px] leading-none ${savedGoogle.has(e.id) ? 'bg-[#E0197D] text-white' : 'text-gray-300 hover:text-[#E0197D] border border-gray-200'} ${gBusy === e.id ? 'opacity-50' : ''}`}
+                    title={savedGoogle.has(e.id) ? 'מסונכרן ליומן גוגל — לחץ להסרה' : 'שמור ליומן גוגל'}>
+                    G
+                  </button>
                   <div className="flex-1">
                     <div className="text-[13px] font-medium text-right">{e.title}</div>
                     {e.description && <div className="text-[12px] text-gray-500 text-right mt-0.5">{e.description}</div>}
