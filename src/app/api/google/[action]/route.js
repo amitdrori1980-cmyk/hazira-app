@@ -4,7 +4,7 @@ import crypto from 'crypto'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// HAZIRA-GOOGLE-API-V3
+// HAZIRA-GOOGLE-API-V4
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -113,6 +113,144 @@ async function ensureCalendar(db, acct, accessToken) {
   return cal.id
 }
 
+function hasTime(t) {
+  const s = t == null ? '' : String(t).trim()
+  return s !== '' && s.toLowerCase() !== 'null'
+}
+function timeWithSeconds(t) {
+  const s = String(t).trim()
+  return s.length === 5 ? s + ':00' : s
+}
+function pad2(n) {
+  return String(n).padStart(2, '0')
+}
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+function addHoursToTime(dateStr, timeStr, hours) {
+  const parts = timeWithSeconds(timeStr).split(':')
+  let total = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10) + hours * 60
+  let dayShift = 0
+  while (total >= 1440) {
+    total -= 1440
+    dayShift += 1
+  }
+  const nh = Math.floor(total / 60)
+  const nm = total % 60
+  const ndate = dayShift ? addDays(dateStr, dayShift) : dateStr
+  return ndate + 'T' + pad2(nh) + ':' + pad2(nm) + ':00'
+}
+
+function eventPayloadFromEvent(ev) {
+  const summary = ev.title || 'אירוע'
+  const location = ev.venue || undefined
+  const description = ev.description || ev.crew_notes || undefined
+  if (hasTime(ev.time)) {
+    return {
+      summary,
+      location,
+      description,
+      start: { dateTime: ev.date + 'T' + timeWithSeconds(ev.time), timeZone: 'Asia/Jerusalem' },
+      end: { dateTime: addHoursToTime(ev.date, ev.time, 2), timeZone: 'Asia/Jerusalem' },
+    }
+  }
+  const endBase = ev.end_date && ev.end_date >= ev.date ? ev.end_date : ev.date
+  return {
+    summary,
+    location,
+    description,
+    start: { date: ev.date },
+    end: { date: addDays(endBase, 1) },
+  }
+}
+
+function eventPayloadFromShift(sh, linked) {
+  const summary = (sh.event_title || 'משמרת') + (sh.role ? ' — ' + sh.role : '')
+  const date = sh.event_date
+  const location = (linked && linked.venue) || undefined
+  const description = sh.notes || undefined
+  const t = linked && linked.time
+  if (hasTime(t)) {
+    return {
+      summary,
+      location,
+      description,
+      start: { dateTime: date + 'T' + timeWithSeconds(t), timeZone: 'Asia/Jerusalem' },
+      end: { dateTime: addHoursToTime(date, t, 2), timeZone: 'Asia/Jerusalem' },
+    }
+  }
+  return {
+    summary,
+    location,
+    description,
+    start: { date },
+    end: { date: addDays(date, 1) },
+  }
+}
+
+function calUrl(calId, suffix) {
+  return 'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(calId) + '/events' + (suffix || '')
+}
+async function calInsert(accessToken, calId, payload) {
+  const res = await fetch(calUrl(calId, ''), {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) throw new Error('event insert failed: ' + (await res.text()))
+  return res.json()
+}
+async function calUpdate(accessToken, calId, eventId, payload) {
+  const res = await fetch(calUrl(calId, '/' + encodeURIComponent(eventId)), {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) throw new Error('event update failed: ' + (await res.text()))
+  return res.json()
+}
+async function calDelete(accessToken, calId, eventId) {
+  const res = await fetch(calUrl(calId, '/' + encodeURIComponent(eventId)), {
+    method: 'DELETE',
+    headers: { Authorization: 'Bearer ' + accessToken },
+  })
+  if (!res.ok && res.status !== 410 && res.status !== 404) {
+    throw new Error('event delete failed: ' + (await res.text()))
+  }
+  return true
+}
+
+async function fetchSource(db, source_type, source_id) {
+  if (source_type === 'event') {
+    const { data } = await db.from('events').select('*').eq('id', source_id).maybeSingle()
+    return { row: data, linked: null }
+  }
+  if (source_type === 'shift') {
+    const { data } = await db.from('operations_shifts').select('*').eq('id', source_id).maybeSingle()
+    let linked = null
+    if (data && data.event_id) {
+      const r = await db.from('events').select('*').eq('id', data.event_id).maybeSingle()
+      linked = r.data || null
+    }
+    return { row: data, linked }
+  }
+  return { row: null, linked: null }
+}
+
+async function ensureReady(db, uid) {
+  const { data: acct } = await db.from('google_accounts').select('*').eq('user_id', uid).maybeSingle()
+  if (!acct) throw new Error('not connected')
+  const accessToken = await validAccessToken(db, acct)
+  const calId = await ensureCalendar(db, acct, accessToken)
+  return { acct, accessToken, calId }
+}
+
+function payloadFor(source_type, row, linked) {
+  return source_type === 'event' ? eventPayloadFromEvent(row) : eventPayloadFromShift(row, linked)
+}
+
 export async function GET(req, { params }) {
   const action = params.action
   const db = admin()
@@ -195,4 +333,105 @@ export async function GET(req, { params }) {
   }
 
   return Response.json({ error: 'unknown action' }, { status: 404 })
+}
+
+export async function POST(req, { params }) {
+  const action = params.action
+  const db = admin()
+  const user = await userFromAuthHeader(req)
+  if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+  let body = {}
+  try {
+    body = await req.json()
+  } catch (e) {}
+
+  try {
+    if (action === 'save') {
+      const source_type = body.source_type
+      const source_id = body.source_id
+      if (!source_type || !source_id) return Response.json({ error: 'missing params' }, { status: 400 })
+      const { accessToken, calId } = await ensureReady(db, user.id)
+      const { row, linked } = await fetchSource(db, source_type, source_id)
+      if (!row) return Response.json({ error: 'source not found' }, { status: 404 })
+      const payload = payloadFor(source_type, row, linked)
+      const { data: existingLink } = await db
+        .from('google_calendar_links')
+        .select('google_event_id')
+        .eq('user_id', user.id)
+        .eq('source_type', source_type)
+        .eq('source_id', String(source_id))
+        .maybeSingle()
+      let gid
+      if (existingLink) {
+        await calUpdate(accessToken, calId, existingLink.google_event_id, payload)
+        gid = existingLink.google_event_id
+      } else {
+        const gev = await calInsert(accessToken, calId, payload)
+        gid = gev.id
+      }
+      await db.from('google_calendar_links').upsert(
+        {
+          user_id: user.id,
+          source_type,
+          source_id: String(source_id),
+          google_event_id: gid,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,source_type,source_id' }
+      )
+      return Response.json({ saved: true })
+    }
+
+    if (action === 'unsave') {
+      const source_type = body.source_type
+      const source_id = body.source_id
+      if (!source_type || !source_id) return Response.json({ error: 'missing params' }, { status: 400 })
+      const { accessToken, calId } = await ensureReady(db, user.id)
+      const { data: link } = await db
+        .from('google_calendar_links')
+        .select('google_event_id')
+        .eq('user_id', user.id)
+        .eq('source_type', source_type)
+        .eq('source_id', String(source_id))
+        .maybeSingle()
+      if (link) {
+        try {
+          await calDelete(accessToken, calId, link.google_event_id)
+        } catch (e) {}
+        await db
+          .from('google_calendar_links')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('source_type', source_type)
+          .eq('source_id', String(source_id))
+      }
+      return Response.json({ saved: false })
+    }
+
+    if (action === 'sync') {
+      const { accessToken, calId } = await ensureReady(db, user.id)
+      const { data: links } = await db.from('google_calendar_links').select('*').eq('user_id', user.id)
+      let updated = 0
+      for (const link of links || []) {
+        const { row, linked } = await fetchSource(db, link.source_type, link.source_id)
+        if (!row || row.deleted_at) {
+          try {
+            await calDelete(accessToken, calId, link.google_event_id)
+          } catch (e) {}
+          await db.from('google_calendar_links').delete().eq('id', link.id)
+          continue
+        }
+        const payload = payloadFor(link.source_type, row, linked)
+        try {
+          await calUpdate(accessToken, calId, link.google_event_id, payload)
+          updated++
+        } catch (e) {}
+      }
+      return Response.json({ synced: true, updated })
+    }
+
+    return Response.json({ error: 'unknown action' }, { status: 404 })
+  } catch (e) {
+    return Response.json({ error: String((e && e.message) || e) }, { status: 500 })
+  }
 }
