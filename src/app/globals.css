@@ -42,7 +42,7 @@ html {
   max-width: 100%;
 }
 
-/* HAZIRA-CURSOR-RULES — custom logo cursor */
+/* HAZIRA-CURSOR-RULES-V2 — custom logo cursor */
 body {
   cursor: url('/zira-cursor.png') 16 1, auto;
 }
@@ -56,7 +56,7 @@ input[type="url"], input:not([type]), textarea, [contenteditable="true"] {
 input[type="checkbox"], input[type="radio"], input[type="button"],
 input[type="submit"], input[type="reset"], select,
 a, button, [role="button"], label, summary, .cursor-pointer {
-  cursor: pointer;
+  cursor: url('/zira-cursor.png') 16 1, auto;
 }
 
 [draggable="true"], .cursor-grab {
