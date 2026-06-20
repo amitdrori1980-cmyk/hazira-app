@@ -483,7 +483,7 @@ function Dashboard() {
         <div className="text-center text-gray-400 text-[13px] py-8">אין הודעות חדשות</div>
       ) : (
         <div className="flex flex-col gap-3">
-          {/* HAZIRA-MKT-NOTIF-GRAY-V2 */}
+          {/* HAZIRA-MKT-NOTIF-GRAY-V3 */}
           {notes.map(ev => (
             <div key={ev.id} className="border border-black/20 rounded-xl p-4 bg-gray-100 text-right">
               <p className="text-[13.5px] text-gray-800 leading-relaxed">
@@ -634,7 +634,7 @@ function Monitor() {
           <div key={day.date} className="flex items-start gap-3 px-2 py-2 border-b border-gray-100 last:border-0">
             <div className="w-16 shrink-0 text-[12px] leading-tight pt-1">
               <div className="text-gray-600 font-medium">יום {dayName(day.date)}</div>
-              <div className="text-white">{fmtShort(day.date)}</div>
+              <div className="text-black">{fmtShort(day.date)}</div>
             </div>
             <div className="flex-1 min-w-0 flex flex-wrap gap-1.5">
               {day.items.map(it => {
@@ -643,7 +643,7 @@ function Monitor() {
                 return (
                   <button key={it.id} onClick={() => toggleItem(it, done)}
                     title={it.eventTitle + (it.free_text ? ' · ' + it.free_text : '')}
-                    className={`text-[12px] rounded-lg px-2 py-1 border transition-colors text-right ${done ? 'bg-[#D3C0CD] border-white text-[#A0106A] line-through' : overdue ? 'bg-red-50 border-red-100 text-red-500 hover:bg-red-100' : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-[#E0197D]'}`}>
+                    className={`text-[12px] rounded-lg px-2 py-1 border border-black/20 transition-colors text-right hover:border-[#E0197D] ${done ? 'bg-[#D3C0CD] text-[#A0106A] line-through' : overdue ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-gray-50 text-gray-700'}`}>
                     {it.source === 'campaign' && <i className="ti ti-rocket" style={{ fontSize: 11 }} />} {it.label}
                     <span className="text-gray-400 mr-1">· {it.eventTitle}</span>
                   </button>
