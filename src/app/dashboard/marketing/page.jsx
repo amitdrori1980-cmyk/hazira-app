@@ -483,9 +483,9 @@ function Dashboard() {
         <div className="text-center text-gray-400 text-[13px] py-8">אין הודעות חדשות</div>
       ) : (
         <div className="flex flex-col gap-3">
-          {/* HAZIRA-MKT-NOTIF-GRAY */}
+          {/* HAZIRA-MKT-NOTIF-GRAY-V2 */}
           {notes.map(ev => (
-            <div key={ev.id} className="border border-white rounded-xl p-4 bg-gray-100 text-right">
+            <div key={ev.id} className="border border-black/20 rounded-xl p-4 bg-gray-100 text-right">
               <p className="text-[13.5px] text-gray-800 leading-relaxed">
                 בוקר טוב, האירוע "{ev.title}" הסתיים, אפשר להחליף מוניטורים וקאבר באתר.{' '}
                 {nextEv
