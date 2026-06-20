@@ -4,13 +4,13 @@ import crypto from 'crypto'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// HAZIRA-GOOGLE-API-V4
+// HAZIRA-GOOGLE-API-V5
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
-const SCOPES = 'openid email https://www.googleapis.com/auth/calendar'
+const SCOPES = 'openid email https://www.googleapis.com/auth/calendar.app.created'
 
 function admin() {
   return createClient(SUPA_URL, SERVICE_KEY, { auth: { persistSession: false } })
@@ -286,7 +286,7 @@ export async function GET(req, { params }) {
     const url = new URL(req.url)
     const code = url.searchParams.get('code')
     const state = url.searchParams.get('state')
-    const back = originOf(req) + '/dashboard/google-test'
+    const back = originOf(req) + '/dashboard/calendar'
     if (!code) return Response.redirect(back + '?google=error&m=no_code', 302)
     const payload = verifyState(state)
     if (!payload) return Response.redirect(back + '?google=error&m=bad_state', 302)
@@ -428,6 +428,26 @@ export async function POST(req, { params }) {
         } catch (e) {}
       }
       return Response.json({ synced: true, updated })
+    }
+
+    if (action === 'disconnect') {
+      const { data: acct } = await db
+        .from('google_accounts')
+        .select('refresh_token, access_token')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      try {
+        const tk = acct && (acct.refresh_token || acct.access_token)
+        if (tk) {
+          await fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(tk), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          })
+        }
+      } catch (e) {}
+      await db.from('google_calendar_links').delete().eq('user_id', user.id)
+      await db.from('google_accounts').delete().eq('user_id', user.id)
+      return Response.json({ disconnected: true })
     }
 
     return Response.json({ error: 'unknown action' }, { status: 404 })

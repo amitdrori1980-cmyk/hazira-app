@@ -38,11 +38,14 @@ export default function CalendarPage() {
   const [inqRows, setInqRows] = useState([])
   const [inqAdded, setInqAdded] = useState(new Set())
   const [inqBusy, setInqBusy] = useState(null)
-  // HAZIRA-GCAL-BTN2
+  // HAZIRA-GCAL-BTN3
   const [savedGoogle, setSavedGoogle] = useState(new Set())
   const [gBusy, setGBusy] = useState(null)
   const [gAllBusy, setGAllBusy] = useState(false)
   const [gAllProgress, setGAllProgress] = useState({ done: 0, total: 0 })
+  const [gConn, setGConn] = useState(null)
+  const [connecting, setConnecting] = useState(false)
+  const [gMsg, setGMsg] = useState('')
 
   async function toggleGoogle(e) {
     if (gBusy) return
@@ -67,6 +70,35 @@ export default function CalendarPage() {
     } finally {
       setGBusy(null)
     }
+  }
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    if (p.get('google') === 'connected') setGMsg('יומן גוגל חובר בהצלחה.')
+    else if (p.get('google') === 'error') setGMsg('החיבור ליומן גוגל נכשל. נסה שוב.')
+  }, [])
+
+  async function connectGoogle() {
+    setConnecting(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { alert('צריך להיות מחובר'); setConnecting(false); return }
+      const res = await fetch('/api/google/connect', { headers: { Authorization: 'Bearer ' + session.access_token } })
+      const j = await res.json()
+      if (j.url) window.location.href = j.url
+      else { alert('שגיאה בחיבור'); setConnecting(false) }
+    } catch (e) { setConnecting(false) }
+  }
+
+  async function disconnectGoogle() {
+    if (!window.confirm('לנתק את יומן גוגל? אירועים שכבר נשמרו יישארו ביומן.')) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      await fetch('/api/google/disconnect', { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' }, body: '{}' })
+      setGConn({ connected: false })
+      setSavedGoogle(new Set())
+    } catch (e) {}
   }
 
   async function bulkGoogle(saveMode) {
@@ -132,7 +164,11 @@ export default function CalendarPage() {
       setSavedGoogle(new Set((gl || []).map(r => r.source_id)))
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        if (session) fetch('/api/google/sync', { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' }, body: '{}' })
+        if (session) {
+          const st = await fetch('/api/google/status', { headers: { Authorization: 'Bearer ' + session.access_token } })
+          if (st.ok) setGConn(await st.json())
+          fetch('/api/google/sync', { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' }, body: '{}' })
+        }
       } catch (e) {}
     }
     load()
@@ -432,8 +468,21 @@ export default function CalendarPage() {
 
   return (
     <div className="w-full">
-      <div dir="rtl" className="flex justify-end mb-3">
-        {(() => {
+      <div dir="rtl" className="flex flex-wrap justify-between items-center gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          {gConn && gConn.connected ? (
+            <>
+              <span className="text-[12px] text-green-700">יומן גוגל מחובר{gConn.email ? ' (' + gConn.email + ')' : ''}</span>
+              <button onClick={disconnectGoogle} className="text-[12px] text-gray-400 hover:text-red-500 underline">נתק</button>
+            </>
+          ) : (
+            <button onClick={connectGoogle} disabled={connecting}
+              className="text-[12px] px-3 py-1.5 rounded-lg border border-[#E0197D] text-[#E0197D] bg-white flex items-center gap-1.5 disabled:opacity-50">
+              <span className="font-bold">G</span>{connecting ? 'מתחבר...' : 'חבר יומן גוגל'}
+            </button>
+          )}
+        </div>
+        {gConn && gConn.connected && (() => {
           const allSavedAll = events.length > 0 && events.every(e => savedGoogle.has(e.id))
           return (
             <button onClick={() => bulkGoogle(!allSavedAll)} disabled={gAllBusy || events.length === 0}
@@ -444,6 +493,7 @@ export default function CalendarPage() {
           )
         })()}
       </div>
+      {gMsg && <div dir="rtl" className="mb-3 p-2 rounded-lg bg-[#FCE4F3] text-[#A0106A] text-[12px] text-center">{gMsg}</div>}
       <div ref={gridRef} className={`bg-white border border-gray-100 rounded-xl p-5 mb-3 ${selectedDay ? 'hidden' : ''}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
@@ -632,11 +682,13 @@ export default function CalendarPage() {
                       <i className={`ti ${inInq(e) ? 'ti-clipboard-check' : 'ti-clipboard-plus'}`} style={{fontSize:13}}/>
                     </button>
                   )}
-                  <button onClick={() => toggleGoogle(e)} disabled={gBusy === e.id}
-                    className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded font-bold text-[13px] leading-none ${savedGoogle.has(e.id) ? 'bg-[#E0197D] text-white' : 'text-gray-300 hover:text-[#E0197D] border border-gray-200'} ${gBusy === e.id ? 'opacity-50' : ''}`}
-                    title={savedGoogle.has(e.id) ? 'מסונכרן ליומן גוגל — לחץ להסרה' : 'שמור ליומן גוגל'}>
-                    G
-                  </button>
+                  {gConn && gConn.connected && (
+                    <button onClick={() => toggleGoogle(e)} disabled={gBusy === e.id}
+                      className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded font-bold text-[13px] leading-none ${savedGoogle.has(e.id) ? 'bg-[#E0197D] text-white' : 'text-gray-300 hover:text-[#E0197D] border border-gray-200'} ${gBusy === e.id ? 'opacity-50' : ''}`}
+                      title={savedGoogle.has(e.id) ? 'מסונכרן ליומן גוגל — לחץ להסרה' : 'שמור ליומן גוגל'}>
+                      G
+                    </button>
+                  )}
                   <div className="flex-1">
                     <div className="text-[13px] font-medium text-right">{e.title}</div>
                     {e.description && <div className="text-[12px] text-gray-500 text-right mt-0.5">{e.description}</div>}
