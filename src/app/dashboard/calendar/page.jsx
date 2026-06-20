@@ -38,9 +38,11 @@ export default function CalendarPage() {
   const [inqRows, setInqRows] = useState([])
   const [inqAdded, setInqAdded] = useState(new Set())
   const [inqBusy, setInqBusy] = useState(null)
-  // HAZIRA-GCAL-BTN
+  // HAZIRA-GCAL-BTN2
   const [savedGoogle, setSavedGoogle] = useState(new Set())
   const [gBusy, setGBusy] = useState(null)
+  const [gAllBusy, setGAllBusy] = useState(false)
+  const [gAllProgress, setGAllProgress] = useState({ done: 0, total: 0 })
 
   async function toggleGoogle(e) {
     if (gBusy) return
@@ -65,6 +67,39 @@ export default function CalendarPage() {
     } finally {
       setGBusy(null)
     }
+  }
+
+  async function bulkGoogle(saveMode) {
+    if (gAllBusy) return
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { alert('צריך להיות מחובר'); return }
+    const targets = saveMode ? events.filter(e => !savedGoogle.has(e.id)) : events.filter(e => savedGoogle.has(e.id))
+    if (targets.length === 0) return
+    if (!window.confirm(saveMode ? ('לשמור ' + targets.length + ' אירועים ליומן גוגל?') : ('להסיר ' + targets.length + ' אירועים מיומן גוגל?'))) return
+    setGAllBusy(true)
+    setGAllProgress({ done: 0, total: targets.length })
+    const endpoint = saveMode ? '/api/google/save' : '/api/google/unsave'
+    const queue = targets.slice()
+    let done = 0
+    async function worker() {
+      while (queue.length) {
+        const e = queue.shift()
+        try {
+          const res = await fetch(endpoint, { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify({ source_type: 'event', source_id: e.id }) })
+          const j = await res.json()
+          if (res.ok) {
+            setSavedGoogle(prev => { const n = new Set(prev); if (j.saved) n.add(e.id); else n.delete(e.id); return n })
+          }
+        } catch (err) {}
+        done++
+        setGAllProgress({ done, total: targets.length })
+      }
+    }
+    const N = Math.min(4, targets.length)
+    const workers = []
+    for (let i = 0; i < N; i++) workers.push(worker())
+    await Promise.all(workers)
+    setGAllBusy(false)
   }
 
   const getTypeStyle = v => { const t = eventTypes.find(t => t.value === v); return t ? t.color : 'bg-gray-100 text-gray-600' }
@@ -397,6 +432,18 @@ export default function CalendarPage() {
 
   return (
     <div className="w-full">
+      <div dir="rtl" className="flex justify-end mb-3">
+        {(() => {
+          const allSavedAll = events.length > 0 && events.every(e => savedGoogle.has(e.id))
+          return (
+            <button onClick={() => bulkGoogle(!allSavedAll)} disabled={gAllBusy || events.length === 0}
+              className={`text-[12px] px-3 py-1.5 rounded-lg border flex items-center gap-1.5 ${allSavedAll ? 'border-[#E0197D] text-[#E0197D] bg-white' : 'bg-[#E0197D] text-white border-[#E0197D]'} disabled:opacity-50`}>
+              <span className="font-bold">G</span>
+              {gAllBusy ? ('מסנכרן ' + gAllProgress.done + '/' + gAllProgress.total + '...') : (allSavedAll ? 'הסר את כל היומן מגוגל' : 'שמור את כל היומן ליומן גוגל')}
+            </button>
+          )
+        })()}
+      </div>
       <div ref={gridRef} className={`bg-white border border-gray-100 rounded-xl p-5 mb-3 ${selectedDay ? 'hidden' : ''}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
