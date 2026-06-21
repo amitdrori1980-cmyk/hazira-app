@@ -130,7 +130,7 @@ export default function MarketingPage() {
   )
 }
 
-// HAZIRA-MKT-TASKS-V3
+// HAZIRA-MKT-TASKS-V4
 function MarketingTasks() {
   const [tasks, setTasks] = useState([])
   const [comments, setComments] = useState({})
@@ -139,6 +139,7 @@ function MarketingTasks() {
   const [myId, setMyId] = useState('')
   const [openChat, setOpenChat] = useState({})
   const [commentText, setCommentText] = useState({})
+  const [collapsed, setCollapsed] = useState({})
 
   useEffect(() => { load() }, [])
 
@@ -245,6 +246,7 @@ function MarketingTasks() {
       {tasks.map(t => {
         const chat = comments[t.id] || []
         const isOpen = !!openChat[t.id]
+        const isCollapsed = !!collapsed[t.id]
         return (
           <div key={t.id} className="bg-white border border-[#E0197D] rounded-xl p-4 flex flex-col gap-3">
             <div className="flex items-start gap-3 flex-row-reverse">
@@ -266,6 +268,7 @@ function MarketingTasks() {
                     placeholder="תיאור המשימה…"
                   />
                 </div>
+                {!isCollapsed && (<>
                 <div>
                   <label className="text-[12px] text-gray-500">הערות</label>
                   <textarea
@@ -285,16 +288,27 @@ function MarketingTasks() {
                     placeholder="מה השלב הבא…"
                   />
                 </div>
+                </>)}
               </div>
-              <button
-                onClick={() => deleteRow(t.id)}
-                title="מחק שורה"
-                className="text-gray-400 hover:text-red-500 shrink-0"
-              >
-                <i className="ti ti-trash" style={{ fontSize: 16 }} />
-              </button>
+              <div className="flex flex-col items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setCollapsed(prev => ({ ...prev, [t.id]: !prev[t.id] }))}
+                  title={isCollapsed ? 'הרחב' : 'כווץ'}
+                  className="text-gray-400 hover:text-[#E0197D]"
+                >
+                  <i className={`ti ${isCollapsed ? 'ti-chevron-down' : 'ti-chevron-up'}`} style={{ fontSize: 18 }} />
+                </button>
+                <button
+                  onClick={() => deleteRow(t.id)}
+                  title="מחק שורה"
+                  className="text-gray-400 hover:text-red-500"
+                >
+                  <i className="ti ti-trash" style={{ fontSize: 16 }} />
+                </button>
+              </div>
             </div>
 
+            {!isCollapsed && (
             <div className="border-t border-gray-100 pt-2">
               <button
                 onClick={() => setOpenChat(prev => ({ ...prev, [t.id]: !prev[t.id] }))}
@@ -335,6 +349,7 @@ function MarketingTasks() {
                 </div>
               )}
             </div>
+            )}
           </div>
         )
       })}
