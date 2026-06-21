@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+// HAZIRA-MSG-PUSH-V1
 
 const PRI_COLOR = {
   'דחוף': 'bg-[#FAECE7] text-[#4A1B0C]',
@@ -74,6 +75,21 @@ export default function MessagesPage() {
     setLoading(false)
   }
 
+  async function pushNotify(userIds, body) {
+    try {
+      const ids = (Array.isArray(userIds) ? userIds : [userIds]).filter(Boolean)
+      if (ids.length === 0) return
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess && sess.session ? sess.session.access_token : null
+      if (!token) return
+      await fetch('/api/push/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ user_ids: ids, title: 'הזירה', body: body, url: '/dashboard/messages' }),
+      })
+    } catch (e) {}
+  }
+
   async function sendMessage(e) {
     e.preventDefault()
     if (!form.body.trim()) return
@@ -94,6 +110,9 @@ export default function MessagesPage() {
       if (member?.user_id) payload.to_user = member.user_id
     }
     await supabase.from('messages').insert(payload)
+    if (payload.to_user) {
+      await pushNotify(payload.to_user, 'הודעה חדשה מ' + (profile.full_name || ''))
+    }
     setForm({ body:'', target_type:'all', to_dept:'', to_crew_id:'', priority:'רגיל' })
     await load()
     setSending(false)
@@ -150,6 +169,9 @@ export default function MessagesPage() {
       read: false,
       priority: 'רגיל',
     })
+    if (dateCheckForm.to_crew_id) {
+      await pushNotify(dateCheckForm.to_crew_id, 'בדיקת תאריך חדשה מ' + (profile.full_name || ''))
+    }
     setDateCheckForm({ to_crew_id:'', event_id:'', notes:'' })
     setShowDateCheck(false)
     setSendingDateCheck(false)
