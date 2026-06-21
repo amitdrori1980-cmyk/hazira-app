@@ -1,4 +1,4 @@
-// HAZIRA-PUSH-SEND-V1
+// HAZIRA-PUSH-SEND-V2
 import { createClient } from '@supabase/supabase-js'
 import webpush from 'web-push'
 
@@ -51,6 +51,7 @@ export async function POST(req) {
     const payload = JSON.stringify({
       title: body.title || 'הזירה',
       body: body.body || 'התראת בדיקה מהמערכת',
+      icon: body.icon || '/zira-cursor.png',
       url: body.url || '/dashboard',
     })
 
