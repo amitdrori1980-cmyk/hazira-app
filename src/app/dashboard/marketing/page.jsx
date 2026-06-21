@@ -125,13 +125,217 @@ export default function MarketingPage() {
       )}
       {tab === 'gantts' && <Gantts />}
       {tab === 'campaign' && <Campaign />}
-      {tab === 'tasks' && (
-        <div className="bg-white border border-gray-100 rounded-xl p-12 text-center text-gray-400">
-          <i className={`ti ${active.icon}`} style={{ fontSize: 36 }} />
-          <div className="mt-3 text-sm">אזור "{active.label}" — בהקמה</div>
-          <div className="mt-1 text-[12px] text-gray-300">התוכן יתווסף בהמשך</div>
-        </div>
+      {tab === 'tasks' && <MarketingTasks />}
+    </div>
+  )
+}
+
+// HAZIRA-MKT-TASKS-V1
+function MarketingTasks() {
+  const [tasks, setTasks] = useState([])
+  const [comments, setComments] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [me, setMe] = useState('')
+  const [openChat, setOpenChat] = useState({})
+  const [commentText, setCommentText] = useState({})
+
+  useEffect(() => { load() }, [])
+
+  async function load() {
+    setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    let name = user ? (user.email || '') : ''
+    if (user) {
+      const { data: p } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
+      name = (p && p.full_name) || user.email || ''
+    }
+    setMe(name)
+    const { data: ts } = await supabase.from('marketing_tasks').select('*').order('created_at', { ascending: true })
+    const list = ts || []
+    setTasks(list)
+    const ids = list.map(t => t.id)
+    if (ids.length > 0) {
+      const { data: cs } = await supabase
+        .from('marketing_task_comments')
+        .select('*')
+        .in('task_id', ids)
+        .order('created_at', { ascending: true })
+      const grouped = {}
+      ;(cs || []).forEach(c => {
+        if (!grouped[c.task_id]) grouped[c.task_id] = []
+        grouped[c.task_id].push(c)
+      })
+      setComments(grouped)
+    } else {
+      setComments({})
+    }
+    setLoading(false)
+  }
+
+  async function addRow() {
+    const { data, error } = await supabase
+      .from('marketing_tasks')
+      .insert({ free_text: '', notes: '', next_step: '', done: false, created_by: me })
+      .select()
+      .single()
+    if (!error && data) setTasks(prev => [...prev, data])
+  }
+
+  function setLocal(id, field, value) {
+    setTasks(prev => prev.map(t => (t.id === id ? { ...t, [field]: value } : t)))
+  }
+
+  async function saveField(id, field, value) {
+    const upd = {}
+    upd[field] = value
+    await supabase.from('marketing_tasks').update(upd).eq('id', id)
+  }
+
+  async function toggleDone(id, val) {
+    setLocal(id, 'done', val)
+    await supabase.from('marketing_tasks').update({ done: val }).eq('id', id)
+  }
+
+  async function deleteRow(id) {
+    await supabase.from('marketing_tasks').delete().eq('id', id)
+    setTasks(prev => prev.filter(t => t.id !== id))
+    setComments(prev => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+  }
+
+  async function addComment(taskId) {
+    const text = (commentText[taskId] || '').trim()
+    if (!text) return
+    const { data, error } = await supabase
+      .from('marketing_task_comments')
+      .insert({ task_id: taskId, sender: me, body: text })
+      .select()
+      .single()
+    if (!error && data) {
+      setComments(prev => ({ ...prev, [taskId]: [...(prev[taskId] || []), data] }))
+      setCommentText(prev => ({ ...prev, [taskId]: '' }))
+    }
+  }
+
+  if (loading) {
+    return <div className="text-center text-gray-400 py-10">טוען…</div>
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <button
+          onClick={addRow}
+          className="px-4 py-2 rounded-lg border border-[#E0197D] text-[#E0197D] font-medium hover:bg-[#FCE4F3] transition-colors flex items-center gap-1.5 flex-row-reverse"
+        >
+          <i className="ti ti-plus" style={{ fontSize: 16 }} />
+          הוספת שורה
+        </button>
+      </div>
+
+      {tasks.length === 0 && (
+        <div className="text-center text-gray-400 py-10 text-sm">אין משימות עדיין. הוסף שורה ראשונה.</div>
       )}
+
+      {tasks.map(t => {
+        const chat = comments[t.id] || []
+        const isOpen = !!openChat[t.id]
+        return (
+          <div key={t.id} className="bg-white border border-[#E0197D] rounded-xl p-4 flex flex-col gap-3">
+            <div className="flex items-start gap-3 flex-row-reverse">
+              <input
+                type="checkbox"
+                checked={!!t.done}
+                onChange={e => toggleDone(t.id, e.target.checked)}
+                className="mt-1 w-5 h-5 accent-[#E0197D] shrink-0"
+                title="בוצע"
+              />
+              <div className="flex-1 flex flex-col gap-3">
+                <div>
+                  <label className="text-[12px] text-gray-500">טקסט חופשי</label>
+                  <textarea
+                    defaultValue={t.free_text || ''}
+                    onBlur={e => saveField(t.id, 'free_text', e.target.value)}
+                    rows={2}
+                    className="w-full mt-1 p-2 rounded-lg border border-gray-300 text-sm text-right resize-y"
+                    placeholder="תיאור המשימה…"
+                  />
+                </div>
+                <div>
+                  <label className="text-[12px] text-gray-500">הערות</label>
+                  <textarea
+                    defaultValue={t.notes || ''}
+                    onBlur={e => saveField(t.id, 'notes', e.target.value)}
+                    rows={2}
+                    className="w-full mt-1 p-2 rounded-lg border border-gray-300 text-sm text-right resize-y"
+                    placeholder="הערות…"
+                  />
+                </div>
+                <div>
+                  <label className="text-[12px] text-gray-500">השלב הבא</label>
+                  <input
+                    defaultValue={t.next_step || ''}
+                    onBlur={e => saveField(t.id, 'next_step', e.target.value)}
+                    className="w-full mt-1 p-2 rounded-lg border border-gray-300 text-sm text-right"
+                    placeholder="מה השלב הבא…"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={() => deleteRow(t.id)}
+                title="מחק שורה"
+                className="text-gray-400 hover:text-red-500 shrink-0"
+              >
+                <i className="ti ti-trash" style={{ fontSize: 16 }} />
+              </button>
+            </div>
+
+            <div className="border-t border-gray-100 pt-2">
+              <button
+                onClick={() => setOpenChat(prev => ({ ...prev, [t.id]: !prev[t.id] }))}
+                className="text-[13px] text-[#E0197D] flex items-center gap-1 flex-row-reverse"
+              >
+                <i className={`ti ${isOpen ? 'ti-chevron-up' : 'ti-chevron-down'}`} style={{ fontSize: 14 }} />
+                {chat.length > 0 ? `תגובות (${chat.length})` : 'תגובות'}
+              </button>
+
+              {isOpen && (
+                <div className="mt-2 flex flex-col gap-2">
+                  {chat.length === 0 && (
+                    <div className="text-[12px] text-gray-400 text-right">אין תגובות עדיין.</div>
+                  )}
+                  {chat.map(c => (
+                    <div key={c.id} className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-right">
+                      <div className="text-[11px] text-gray-500 mb-0.5">
+                        {(c.sender || '') + (c.created_at ? ' · ' + new Date(c.created_at).toLocaleString('he-IL') : '')}
+                      </div>
+                      <div className="text-sm text-gray-800 whitespace-pre-wrap">{c.body}</div>
+                    </div>
+                  ))}
+                  <div className="flex gap-2 flex-row-reverse">
+                    <input
+                      value={commentText[t.id] || ''}
+                      onChange={e => setCommentText(prev => ({ ...prev, [t.id]: e.target.value }))}
+                      onKeyDown={e => { if (e.key === 'Enter') addComment(t.id) }}
+                      className="flex-1 p-2 rounded-lg border border-gray-300 text-sm text-right"
+                      placeholder="כתוב תגובה…"
+                    />
+                    <button
+                      onClick={() => addComment(t.id)}
+                      className="px-3 py-2 rounded-lg bg-[#E0197D] text-white text-sm shrink-0"
+                    >
+                      שלח
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
