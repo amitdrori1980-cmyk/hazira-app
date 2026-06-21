@@ -130,7 +130,7 @@ export default function MarketingPage() {
   )
 }
 
-// HAZIRA-MKT-TASKS-V2
+// HAZIRA-MKT-TASKS-V3
 function MarketingTasks() {
   const [tasks, setTasks] = useState([])
   const [comments, setComments] = useState({})
@@ -177,7 +177,7 @@ function MarketingTasks() {
   async function addRow() {
     const { data, error } = await supabase
       .from('marketing_tasks')
-      .insert({ free_text: '', notes: '', next_step: '', done: false, created_by: myId })
+      .insert({ title: '', free_text: '', notes: '', next_step: '', done: false, created_by: myId })
       .select()
       .single()
     if (!error && data) setTasks(prev => [...prev, data])
