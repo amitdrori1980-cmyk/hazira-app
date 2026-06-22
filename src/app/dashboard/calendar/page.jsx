@@ -38,7 +38,7 @@ export default function CalendarPage() {
   const [inqRows, setInqRows] = useState([])
   const [inqAdded, setInqAdded] = useState(new Set())
   const [inqBusy, setInqBusy] = useState(null)
-  // HAZIRA-GCAL-BTN3
+  // HAZIRA-GCAL-BTN4
   const [savedGoogle, setSavedGoogle] = useState(new Set())
   const [gBusy, setGBusy] = useState(null)
   const [gAllBusy, setGAllBusy] = useState(false)
@@ -46,6 +46,7 @@ export default function CalendarPage() {
   const [gConn, setGConn] = useState(null)
   const [connecting, setConnecting] = useState(false)
   const [gMsg, setGMsg] = useState('')
+  const [gPurging, setGPurging] = useState(false)
 
   async function toggleGoogle(e) {
     if (gBusy) return
@@ -132,6 +133,28 @@ export default function CalendarPage() {
     for (let i = 0; i < N; i++) workers.push(worker())
     await Promise.all(workers)
     setGAllBusy(false)
+  }
+
+  async function purgeGoogle() {
+    if (gPurging || gAllBusy) return
+    if (!window.confirm('פעולה זו תמחק מיומן גוגל את כל האירועים שהאפליקציה יצרה (לא נוגע ביומן האישי שלך). להמשיך?')) return
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { alert('צריך להיות מחובר'); return }
+    setGPurging(true)
+    setGMsg('מנקה אירועים מיומן גוגל...')
+    try {
+      const res = await fetch('/api/google/purge', { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' }, body: '{}' })
+      const j = await res.json()
+      if (res.ok && j.purged) {
+        setSavedGoogle(new Set())
+        setGMsg('נמחקו ' + (j.deleted || 0) + ' אירועים מגוגל. עכשיו אפשר ללחוץ "שמור את כל היומן" כדי לרשום מחדש.')
+      } else {
+        setGMsg('שגיאה בניקוי: ' + (j.error || res.status))
+      }
+    } catch (e) {
+      setGMsg('שגיאה בניקוי: ' + (e && e.message ? e.message : String(e)))
+    }
+    setGPurging(false)
   }
 
   const getTypeStyle = v => { const t = eventTypes.find(t => t.value === v); return t ? t.color : 'bg-gray-100 text-gray-600' }
@@ -492,6 +515,13 @@ export default function CalendarPage() {
             </button>
           )
         })()}
+        {gConn && gConn.connected && (
+          <button onClick={purgeGoogle} disabled={gPurging || gAllBusy}
+            className="text-[12px] px-3 py-1.5 rounded-lg border border-red-300 text-red-500 bg-white flex items-center gap-1.5 disabled:opacity-50">
+            <i className="ti ti-trash" style={{ fontSize: 14 }} />
+            {gPurging ? 'מנקה...' : 'נקה הכל מגוגל'}
+          </button>
+        )}
       </div>
       {gMsg && <div dir="rtl" className="mb-3 p-2 rounded-lg bg-[#FCE4F3] text-[#A0106A] text-[12px] text-center">{gMsg}</div>}
       <div ref={gridRef} className={`bg-white border border-gray-100 rounded-xl p-5 mb-3 ${selectedDay ? 'hidden' : ''}`}>

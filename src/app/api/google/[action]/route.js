@@ -4,7 +4,7 @@ import crypto from 'crypto'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// HAZIRA-GOOGLE-API-V5
+// HAZIRA-GOOGLE-API-V6
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -448,6 +448,39 @@ export async function POST(req, { params }) {
       await db.from('google_calendar_links').delete().eq('user_id', user.id)
       await db.from('google_accounts').delete().eq('user_id', user.id)
       return Response.json({ disconnected: true })
+    }
+
+    if (action === 'purge') {
+      const { accessToken, calId } = await ensureReady(db, user.id)
+      const ids = []
+      let pageToken = ''
+      let guard = 0
+      while (guard < 50) {
+        guard++
+        const suffix = '?maxResults=2500&showDeleted=false' + (pageToken ? ('&pageToken=' + encodeURIComponent(pageToken)) : '')
+        const res = await fetch(calUrl(calId, suffix), {
+          headers: { Authorization: 'Bearer ' + accessToken },
+        })
+        if (!res.ok) break
+        const data = await res.json()
+        for (const it of (data.items || [])) {
+          if (it.id) ids.push(it.id)
+        }
+        if (data.nextPageToken) {
+          pageToken = data.nextPageToken
+        } else {
+          break
+        }
+      }
+      let deleted = 0
+      for (const id of ids) {
+        try {
+          await calDelete(accessToken, calId, id)
+          deleted++
+        } catch (e) {}
+      }
+      await db.from('google_calendar_links').delete().eq('user_id', user.id)
+      return Response.json({ purged: true, deleted })
     }
 
     return Response.json({ error: 'unknown action' }, { status: 404 })
