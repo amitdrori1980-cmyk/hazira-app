@@ -66,6 +66,8 @@ function ProductionInquiries() {
   const [syncBusy, setSyncBusy] = useState(false)
   const [printMode, setPrintMode] = useState(null)
   const [flashId, setFlashId] = useState(null)
+  const [allGenScheds, setAllGenScheds] = useState([])
+  const [linkPickerFor, setLinkPickerFor] = useState(null)
 
   const getTypeStyle = v => { const t = eventTypes.find(t => t.value === v); return t ? t.color : 'bg-gray-100 text-gray-600' }
   const getTypeLabel = v => { const t = eventTypes.find(t => t.value === v); return t ? t.label : v }
@@ -126,6 +128,8 @@ function ProductionInquiries() {
     setEvents((evs || []).slice().sort((a, b) => (a.date || '9999-12-31').localeCompare(b.date || '9999-12-31')))
     const { data: ts } = await supabase.from('event_types').select('*').order('sort_order')
     setEventTypes(ts || [])
+    const { data: gscheds } = await supabase.from('general_schedules').select('id,title,linked_event_id')
+    setAllGenScheds(gscheds || [])
     if (ts && ts.length) setNewEvent(p => p.type ? p : { ...p, type: ts[0].value })
     if (evs?.length) {
       const { data: ppl } = await supabase.from('production_people').select('*').in('production_event_id', evs.map(e => e.id))
@@ -139,6 +143,27 @@ function ProductionInquiries() {
       setSlots(map)
     }
     setLoading(false)
+  }
+
+  const linkedFor = ev => allGenScheds.find(g => g.linked_event_id === ev.id) || null
+
+  async function linkSchedule(ev, gsId) {
+    if (!ev || !gsId) return
+    await supabase.from('general_schedules').update({ linked_event_id: null }).eq('linked_event_id', ev.id)
+    await supabase.from('general_schedules').update({ linked_event_id: ev.id }).eq('id', gsId)
+    setAllGenScheds(prev => prev.map(g => g.id === gsId ? { ...g, linked_event_id: ev.id } : (g.linked_event_id === ev.id ? { ...g, linked_event_id: null } : g)))
+    setLinkPickerFor(null)
+  }
+
+  async function unlinkSchedule(gs) {
+    if (!gs) return
+    await supabase.from('general_schedules').update({ linked_event_id: null }).eq('id', gs.id)
+    setAllGenScheds(prev => prev.map(g => g.id === gs.id ? { ...g, linked_event_id: null } : g))
+  }
+
+  function openLinkedSchedule(gs) {
+    if (!gs) return
+    window.location.href = '/dashboard/specs?tab=rundowns&schedule=' + gs.id
   }
 
   async function addEvent() {
@@ -590,6 +615,37 @@ function ProductionInquiries() {
                 {ev.date && <button onClick={e=>{e.stopPropagation();router.push(`/dashboard/calendar?day=${ev.date}&ev=${encodeURIComponent(ev.event_name)}`)}}
                   className="text-black hover:text-[#E0197D] p-1" title="הקפצה ליומן (תצוגה יומית)">
                   <i className="ti ti-external-link" style={{fontSize:13}}/></button>}
+                {(() => {
+                  const linkedGs = linkedFor(ev)
+                  if (linkPickerFor === ev.id) {
+                    return (
+                      <select autoFocus defaultValue="" onClick={e=>e.stopPropagation()}
+                        onChange={e => { if (e.target.value) linkSchedule(ev, e.target.value); else setLinkPickerFor(null) }}
+                        onBlur={() => setLinkPickerFor(null)}
+                        className="no-print text-[12px] px-2 py-1 border border-[#E0197D] rounded-lg bg-white outline-none text-right max-w-[150px]">
+                        <option value="">בחר לוז…</option>
+                        {allGenScheds.map(g => <option key={g.id} value={g.id}>{g.title}{g.linked_event_id && g.linked_event_id !== ev.id ? ' (מקושר)' : ''}</option>)}
+                      </select>
+                    )
+                  }
+                  if (linkedGs) {
+                    return (
+                      <>
+                        <button onClick={e=>{e.stopPropagation();openLinkedSchedule(linkedGs)}}
+                          className="text-[#E0197D] hover:text-[#A0106A] p-1" title={'פתח לוז: ' + linkedGs.title}>
+                          <i className="ti ti-list" style={{fontSize:13}}/></button>
+                        <button onClick={e=>{e.stopPropagation();unlinkSchedule(linkedGs)}}
+                          className="text-black hover:text-red-500 p-1" title="נתק לוז">
+                          <i className="ti ti-unlink" style={{fontSize:13}}/></button>
+                      </>
+                    )
+                  }
+                  return (
+                    <button onClick={e=>{e.stopPropagation();setLinkPickerFor(ev.id)}}
+                      className="text-black hover:text-[#E0197D] p-1" title="קשר לוז">
+                      <i className="ti ti-link" style={{fontSize:13}}/></button>
+                  )
+                })()}
                 <button onClick={e=>{e.stopPropagation();setEditingEvent(ev.id);setEditEventVal({event_name:ev.event_name,date:ev.date||'',day:ev.day||'',venue:ev.venue||'',type:ev.type||''})}}
                   className="text-black hover:text-gray-600 p-1"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
                 <button onClick={e=>{e.stopPropagation();if(window.confirm('למחוק את האירוע?'))deleteEvent(ev.id)}}
@@ -1008,18 +1064,10 @@ function ProductionSchedule({ profile }) {
   const [importing, setImporting] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
   const [templates, setTemplates] = useState([])
-  const [linkedSchedule, setLinkedSchedule] = useState(null)
-  const [allGenScheds, setAllGenScheds] = useState([])
-  const [showLinkPicker, setShowLinkPicker] = useState(false)
 
   useEffect(() => {
     supabase.from('events').select('id,title,date,venue').order('date').then(({ data }) => setEvents(data || []))
     supabase.from('crew_members').select('id,full_name,role').eq('active',true).order('full_name').then(({ data }) => setCrew(data || []))
-    supabase.from('general_schedules').select('id,title,linked_event_id').order('title', { ascending: true }).then(({ data }) => setAllGenScheds(data || []))
-    try {
-      const ev = new URLSearchParams(window.location.search).get('event')
-      if (ev) selectEvent(ev)
-    } catch (e) {}
   }, [])
 
   async function importFromExcel(excelRows, fileName) {
@@ -1046,7 +1094,7 @@ function ProductionSchedule({ profile }) {
 
   async function selectEvent(eventId) {
     setSelectedEvent(eventId)
-    setSchedule(null); setRows([]); setLinkedSchedule(null); setShowLinkPicker(false)
+    setSchedule(null); setRows([])
     if (!eventId) return
     setLoading(true)
     const { data: sch } = await supabase.from('schedules').select('*').eq('event_id', eventId).single()
@@ -1055,30 +1103,7 @@ function ProductionSchedule({ profile }) {
       const { data: r } = await supabase.from('schedule_rows').select('*').eq('schedule_id', sch.id).order('sort_order')
       setRows(r || [])
     }
-    const { data: linked } = await supabase.from('general_schedules').select('*').eq('linked_event_id', eventId).maybeSingle()
-    setLinkedSchedule(linked || null)
     setLoading(false)
-  }
-
-  async function linkSchedule(gsId) {
-    if (!selectedEvent || !gsId) return
-    await supabase.from('general_schedules').update({ linked_event_id: null }).eq('linked_event_id', selectedEvent)
-    const { data } = await supabase.from('general_schedules').update({ linked_event_id: selectedEvent }).eq('id', gsId).select().single()
-    setLinkedSchedule(data || null)
-    setShowLinkPicker(false)
-    setAllGenScheds(prev => prev.map(g => g.id === gsId ? { ...g, linked_event_id: selectedEvent } : (g.linked_event_id === selectedEvent ? { ...g, linked_event_id: null } : g)))
-  }
-
-  async function unlinkSchedule() {
-    if (!linkedSchedule) return
-    await supabase.from('general_schedules').update({ linked_event_id: null }).eq('id', linkedSchedule.id)
-    setAllGenScheds(prev => prev.map(g => g.id === linkedSchedule.id ? { ...g, linked_event_id: null } : g))
-    setLinkedSchedule(null)
-  }
-
-  function openLinkedSchedule() {
-    if (!linkedSchedule) return
-    window.location.href = '/dashboard/specs?tab=rundowns&schedule=' + linkedSchedule.id
   }
 
   async function createSchedule() {
@@ -1191,34 +1216,6 @@ function ProductionSchedule({ profile }) {
             {events.map(e => <option key={e.id} value={e.id}>{e.title} — {fmtDate(e.date)}</option>)}
           </select>
         </div>
-
-        {selectedEvent && (
-          <div className="bg-white border border-gray-100 rounded-xl p-3 mb-4 no-print flex items-center gap-2 flex-row-reverse flex-wrap">
-            {linkedSchedule ? (
-              <>
-                <button onClick={openLinkedSchedule}
-                  className="bg-[#E0197D] text-white text-[13px] px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1.5">
-                  <i className="ti ti-external-link" style={{fontSize:15}}/> פתח לוז: {linkedSchedule.title}
-                </button>
-                <button onClick={unlinkSchedule}
-                  className="text-[12px] text-gray-400 hover:text-red-500 flex items-center gap-1">
-                  <i className="ti ti-unlink" style={{fontSize:14}}/> נתק
-                </button>
-              </>
-            ) : showLinkPicker ? (
-              <select autoFocus defaultValue="" onChange={e => { if (e.target.value) linkSchedule(e.target.value) }}
-                className="text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right">
-                <option value="">בחר לוז לקישור...</option>
-                {allGenScheds.map(g => <option key={g.id} value={g.id}>{g.title}{g.linked_event_id && g.linked_event_id !== selectedEvent ? ' (מקושר לאירוע אחר)' : ''}</option>)}
-              </select>
-            ) : (
-              <button onClick={() => setShowLinkPicker(true)}
-                className="text-[13px] px-4 py-2 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1.5">
-                <i className="ti ti-link" style={{fontSize:15}}/> קשר לוז
-              </button>
-            )}
-          </div>
-        )}
 
         {importing && (
           <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-4 text-[13px] text-green-700 flex items-center gap-2 flex-row-reverse no-print">
@@ -1425,7 +1422,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V2
+// HAZIRA-GENSCHED-DAYS-V3
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
@@ -1463,6 +1460,14 @@ export function GeneralSchedulesMode() {
       }
     } catch (e) {}
   }, [])
+
+  async function backToProduction(prodEventId) {
+    if (!prodEventId) { window.location.href = '/dashboard/production'; return }
+    const { data } = await supabase.from('production_events').select('event_name,date').eq('id', prodEventId).maybeSingle()
+    const name = data && data.event_name ? data.event_name : ''
+    const date = data && data.date ? data.date : ''
+    window.location.href = '/dashboard/production?inq=' + encodeURIComponent(name) + (date ? '&date=' + encodeURIComponent(date) : '')
+  }
 
   async function load() {
     setLoading(true)
@@ -1799,7 +1804,7 @@ export function GeneralSchedulesMode() {
               <div className="border-t border-gray-50">
                 {sch.linked_event_id && (
                   <div className="px-4 pt-3 no-print">
-                    <button onClick={() => { window.location.href = '/dashboard/production?event=' + sch.linked_event_id }}
+                    <button onClick={() => backToProduction(sch.linked_event_id)}
                       className="text-[12px] px-3 py-1.5 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1.5">
                       <i className="ti ti-arrow-back-up" style={{fontSize:14}}/> חזרה להפקה הטכנית
                     </button>
