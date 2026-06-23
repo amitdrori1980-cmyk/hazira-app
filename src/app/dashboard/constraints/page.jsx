@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS   = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']
+// HAZIRA-CONSTRAINTS-DAY-V1
 
 // כינויים לתצוגה בתפריט (גובר על השם הפרטי האוטומטי)
 const NAME_OVERRIDES = {
@@ -689,7 +690,7 @@ export default function ConstraintsPage() {
                 <i className="ti ti-chevron-right" style={{fontSize:20}}/>
               </button>
               <div className="text-[16px] font-semibold text-gray-900 text-center min-w-[70px]">
-                {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
+                {HE_DAYS[new Date(parseInt(selectedDay.split('-')[0]), parseInt(selectedDay.split('-')[1])-1, parseInt(selectedDay.split('-')[2])).getDay()]} · {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
               </div>
               <button onClick={()=>shiftSelectedDay(1)} title="יום הבא" className="text-gray-400 hover:text-[#E0197D] p-1 rounded-lg hover:bg-gray-50">
                 <i className="ti ti-chevron-left" style={{fontSize:20}}/>
