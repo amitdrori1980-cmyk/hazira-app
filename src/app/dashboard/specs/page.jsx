@@ -767,6 +767,14 @@ export default function SpecsPage() {
   const [showLoadModal, setShowLoadModal] = useState(false)
   const [loadingTemplate, setLoadingTemplate] = useState(false)
 
+  // HAZIRA-SPECS-LINK-V1
+  useEffect(() => {
+    try {
+      const tab = new URLSearchParams(window.location.search).get('tab')
+      if (tab === 'rundowns') setMode('rundowns')
+    } catch (e) {}
+  }, [])
+
   useEffect(() => {
     async function load() {
       const [{ data: evs }, { data: cats }, { data: subs }, { data: items }, { data: tmps }] = await Promise.all([

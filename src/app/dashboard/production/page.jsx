@@ -1008,10 +1008,18 @@ function ProductionSchedule({ profile }) {
   const [importing, setImporting] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
   const [templates, setTemplates] = useState([])
+  const [linkedSchedule, setLinkedSchedule] = useState(null)
+  const [allGenScheds, setAllGenScheds] = useState([])
+  const [showLinkPicker, setShowLinkPicker] = useState(false)
 
   useEffect(() => {
     supabase.from('events').select('id,title,date,venue').order('date').then(({ data }) => setEvents(data || []))
     supabase.from('crew_members').select('id,full_name,role').eq('active',true).order('full_name').then(({ data }) => setCrew(data || []))
+    supabase.from('general_schedules').select('id,title,linked_event_id').order('title', { ascending: true }).then(({ data }) => setAllGenScheds(data || []))
+    try {
+      const ev = new URLSearchParams(window.location.search).get('event')
+      if (ev) selectEvent(ev)
+    } catch (e) {}
   }, [])
 
   async function importFromExcel(excelRows, fileName) {
@@ -1038,7 +1046,7 @@ function ProductionSchedule({ profile }) {
 
   async function selectEvent(eventId) {
     setSelectedEvent(eventId)
-    setSchedule(null); setRows([])
+    setSchedule(null); setRows([]); setLinkedSchedule(null); setShowLinkPicker(false)
     if (!eventId) return
     setLoading(true)
     const { data: sch } = await supabase.from('schedules').select('*').eq('event_id', eventId).single()
@@ -1047,7 +1055,30 @@ function ProductionSchedule({ profile }) {
       const { data: r } = await supabase.from('schedule_rows').select('*').eq('schedule_id', sch.id).order('sort_order')
       setRows(r || [])
     }
+    const { data: linked } = await supabase.from('general_schedules').select('*').eq('linked_event_id', eventId).maybeSingle()
+    setLinkedSchedule(linked || null)
     setLoading(false)
+  }
+
+  async function linkSchedule(gsId) {
+    if (!selectedEvent || !gsId) return
+    await supabase.from('general_schedules').update({ linked_event_id: null }).eq('linked_event_id', selectedEvent)
+    const { data } = await supabase.from('general_schedules').update({ linked_event_id: selectedEvent }).eq('id', gsId).select().single()
+    setLinkedSchedule(data || null)
+    setShowLinkPicker(false)
+    setAllGenScheds(prev => prev.map(g => g.id === gsId ? { ...g, linked_event_id: selectedEvent } : (g.linked_event_id === selectedEvent ? { ...g, linked_event_id: null } : g)))
+  }
+
+  async function unlinkSchedule() {
+    if (!linkedSchedule) return
+    await supabase.from('general_schedules').update({ linked_event_id: null }).eq('id', linkedSchedule.id)
+    setAllGenScheds(prev => prev.map(g => g.id === linkedSchedule.id ? { ...g, linked_event_id: null } : g))
+    setLinkedSchedule(null)
+  }
+
+  function openLinkedSchedule() {
+    if (!linkedSchedule) return
+    window.location.href = '/dashboard/specs?tab=rundowns&schedule=' + linkedSchedule.id
   }
 
   async function createSchedule() {
@@ -1160,6 +1191,34 @@ function ProductionSchedule({ profile }) {
             {events.map(e => <option key={e.id} value={e.id}>{e.title} — {fmtDate(e.date)}</option>)}
           </select>
         </div>
+
+        {selectedEvent && (
+          <div className="bg-white border border-gray-100 rounded-xl p-3 mb-4 no-print flex items-center gap-2 flex-row-reverse flex-wrap">
+            {linkedSchedule ? (
+              <>
+                <button onClick={openLinkedSchedule}
+                  className="bg-[#E0197D] text-white text-[13px] px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1.5">
+                  <i className="ti ti-external-link" style={{fontSize:15}}/> פתח לוז: {linkedSchedule.title}
+                </button>
+                <button onClick={unlinkSchedule}
+                  className="text-[12px] text-gray-400 hover:text-red-500 flex items-center gap-1">
+                  <i className="ti ti-unlink" style={{fontSize:14}}/> נתק
+                </button>
+              </>
+            ) : showLinkPicker ? (
+              <select autoFocus defaultValue="" onChange={e => { if (e.target.value) linkSchedule(e.target.value) }}
+                className="text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right">
+                <option value="">בחר לוז לקישור...</option>
+                {allGenScheds.map(g => <option key={g.id} value={g.id}>{g.title}{g.linked_event_id && g.linked_event_id !== selectedEvent ? ' (מקושר לאירוע אחר)' : ''}</option>)}
+              </select>
+            ) : (
+              <button onClick={() => setShowLinkPicker(true)}
+                className="text-[13px] px-4 py-2 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1.5">
+                <i className="ti ti-link" style={{fontSize:15}}/> קשר לוז
+              </button>
+            )}
+          </div>
+        )}
 
         {importing && (
           <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-4 text-[13px] text-green-700 flex items-center gap-2 flex-row-reverse no-print">
@@ -1366,7 +1425,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V1
+// HAZIRA-GENSCHED-DAYS-V2
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
@@ -1393,6 +1452,17 @@ export function GeneralSchedulesMode() {
   const [dropIdx, setDropIdx] = useState(null)
 
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    try {
+      const sid = new URLSearchParams(window.location.search).get('schedule')
+      if (sid) {
+        setOpenId(sid)
+        loadRows(sid)
+        setTimeout(() => { const el = document.getElementById('gs-' + sid); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }) }, 700)
+      }
+    } catch (e) {}
+  }, [])
 
   async function load() {
     setLoading(true)
@@ -1683,7 +1753,7 @@ export function GeneralSchedulesMode() {
         const isOpen = openId === sch.id
         const schRows = rows[sch.id] || []
         return (
-          <div key={sch.id} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
+          <div key={sch.id} id={`gs-${sch.id}`} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 flex-row-reverse"
               onClick={() => toggleOpen(sch.id)}>
               <div className="flex-1 text-right">
@@ -1727,6 +1797,14 @@ export function GeneralSchedulesMode() {
             </div>
             {isOpen && (
               <div className="border-t border-gray-50">
+                {sch.linked_event_id && (
+                  <div className="px-4 pt-3 no-print">
+                    <button onClick={() => { window.location.href = '/dashboard/production?event=' + sch.linked_event_id }}
+                      className="text-[12px] px-3 py-1.5 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1.5">
+                      <i className="ti ti-arrow-back-up" style={{fontSize:14}}/> חזרה להפקה הטכנית
+                    </button>
+                  </div>
+                )}
                 <div className="px-4 py-3 border-b border-gray-50">
                   <div className="flex gap-2 mb-2">
                     <select defaultValue={sch.venue||''} onBlur={e => updateSchedule(sch.id, 'venue', e.target.value)}
