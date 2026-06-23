@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS   = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']
-// HAZIRA-CONSTRAINTS-DAY-V1
+// HAZIRA-CONSTRAINTS-DAY-V2
 
 // כינויים לתצוגה בתפריט (גובר על השם הפרטי האוטומטי)
 const NAME_OVERRIDES = {
@@ -679,7 +679,7 @@ export default function ConstraintsPage() {
       {/* Selected day panel */}
       {selectedDay && selectedData && (
         <div ref={detailRef} className="bg-white border border-gray-100 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3 mb-4">
             <button onClick={()=>setSelectedDay(null)}
               className="flex items-center gap-1 text-[13px] text-gray-600 hover:text-[#E0197D] border border-gray-200 hover:border-[#E0197D] rounded-lg px-3 py-1.5 transition-colors">
               <i className="ti ti-arrow-right" style={{fontSize:15}}/>
