@@ -38,7 +38,7 @@ export default function CalendarPage() {
   const [inqRows, setInqRows] = useState([])
   const [inqAdded, setInqAdded] = useState(new Set())
   const [inqBusy, setInqBusy] = useState(null)
-  // HAZIRA-GCAL-BTN4
+  // HAZIRA-GCAL-BTN5
   const [savedGoogle, setSavedGoogle] = useState(new Set())
   const [gBusy, setGBusy] = useState(null)
   const [gAllBusy, setGAllBusy] = useState(false)
@@ -671,7 +671,7 @@ export default function CalendarPage() {
                   <i className="ti ti-chevron-right" style={{fontSize:20}}/>
                 </button>
                 <span className="text-[16px] font-semibold text-gray-900 text-center min-w-[70px]">
-                  {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
+                  {HE_DAYS[new Date(parseInt(selectedDay.split('-')[0]), parseInt(selectedDay.split('-')[1])-1, parseInt(selectedDay.split('-')[2])).getDay()]} · {parseInt(selectedDay.split('-')[2])} {HE_MONTHS[parseInt(selectedDay.split('-')[1])-1]}
                 </span>
                 <button onClick={()=>shiftSelectedDay(1)} title="יום הבא" className="text-gray-400 hover:text-[#E0197D] p-1 rounded-lg hover:bg-gray-50">
                   <i className="ti ti-chevron-left" style={{fontSize:20}}/>
