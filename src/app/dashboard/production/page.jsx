@@ -1366,6 +1366,18 @@ function ProductionSchedule({ profile }) {
   )
 }
 
+// HAZIRA-GENSCHED-DAYS-V1
+function fmtDayHeader(ds) {
+  if (!ds) return ''
+  const parts = String(ds).split('-').map(Number)
+  const y = parts[0], m = parts[1], d = parts[2]
+  if (!y || !m || !d) return ''
+  const dt = new Date(y, m - 1, d)
+  const days = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']
+  const months = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
+  return 'יום ' + days[dt.getDay()] + ' · ' + d + ' ' + months[m - 1]
+}
+
 export function GeneralSchedulesMode() {
   const [schedules, setSchedules] = useState([])
   const [loading, setLoading] = useState(true)
@@ -1426,7 +1438,7 @@ export function GeneralSchedulesMode() {
     const { data: srcRows2 } = await supabase.from('general_schedule_rows').select('*').eq('schedule_id', sch.id).order('sort_order')
     const srcRows = srcRows2 || []
     if (srcRows.length > 0) {
-      await supabase.from('general_schedule_rows').insert(srcRows.map((r,i) => ({ schedule_id: newSch.id, time: r.time, what: r.what, who: r.who, notes: r.notes, sort_order: i })))
+      await supabase.from('general_schedule_rows').insert(srcRows.map((r,i) => ({ schedule_id: newSch.id, time: r.time, what: r.what, who: r.who, notes: r.notes, row_type: r.row_type || 'item', day_date: r.day_date || null, day_label: r.day_label || null, sort_order: i })))
     }
     setSchedules(prev => [newSch, ...prev])
     setRows(prev => ({ ...prev, [newSch.id]: srcRows.map((r,i) => ({ ...r, id: i, schedule_id: newSch.id })) }))
@@ -1436,6 +1448,16 @@ export function GeneralSchedulesMode() {
     const currentRows = rows[scheduleId] || []
     const { data } = await supabase.from('general_schedule_rows').insert({
       schedule_id: scheduleId, time: '', what: '', who: '', notes: '', sort_order: currentRows.length
+    }).select().single()
+    if (data) setRows(prev => ({ ...prev, [scheduleId]: [...(prev[scheduleId] || []), data] }))
+  }
+
+  async function addDay(scheduleId) {
+    const currentRows = rows[scheduleId] || []
+    const t = new Date()
+    const ds = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0')
+    const { data } = await supabase.from('general_schedule_rows').insert({
+      schedule_id: scheduleId, row_type: 'day', day_date: ds, day_label: '', time: '', what: '', who: '', notes: '', sort_order: currentRows.length
     }).select().single()
     if (data) setRows(prev => ({ ...prev, [scheduleId]: [...(prev[scheduleId] || []), data] }))
   }
@@ -1551,11 +1573,14 @@ export function GeneralSchedulesMode() {
       ws[ref] = { v: h, t: 's', s: { fill: { patternType: 'solid', fgColor: { rgb: 'CC1010' } }, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12, name: 'Calibri' }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2 }, border } }
     })
     schRows.forEach((row, ri) => {
+      const isDay = row.row_type === 'day'
       const isOdd = ri % 2 !== 0
-      const vals = [row.time || '', row.what || '', row.who || '', row.notes || '']
+      const vals = isDay
+        ? ['', fmtDayHeader(row.day_date) + (row.day_label ? ' · ' + row.day_label : ''), '', '']
+        : [row.time || '', row.what || '', row.who || '', row.notes || '']
       vals.forEach((v, ci) => {
         const ref = XLSX.utils.encode_cell({ r: ri + 5, c: ci })
-        ws[ref] = { v, t: 's', s: { fill: { patternType: 'solid', fgColor: { rgb: isOdd ? 'FFF0F0' : 'FFFFFF' } }, font: { sz: 12, name: 'Calibri' }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2, wrapText: true }, border } }
+        ws[ref] = { v, t: 's', s: { fill: { patternType: 'solid', fgColor: { rgb: isDay ? 'F8D7E8' : (isOdd ? 'FFF0F0' : 'FFFFFF') } }, font: { sz: 12, name: 'Calibri', bold: isDay }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2, wrapText: true }, border } }
       })
     })
     ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: schRows.length + 5, c: 3 } })
@@ -1601,7 +1626,10 @@ export function GeneralSchedulesMode() {
         <table>
           <thead><tr><th>שעה</th><th>מה</th><th>מי</th><th>הערות</th></tr></thead>
           <tbody>
-            ${schRows.map(r => `
+            ${schRows.map(r => r.row_type === 'day' ? `
+              <tr>
+                <td colspan="4" style="background:#FCE4F3;font-weight:bold;color:#A0106A">${fmtDayHeader(r.day_date)}${r.day_label ? ' · ' + r.day_label : ''}</td>
+              </tr>` : `
               <tr>
                 <td style="font-family:monospace;white-space:nowrap">${r.time || ''}</td>
                 <td>${r.what || ''}</td>
@@ -1741,6 +1769,35 @@ export function GeneralSchedulesMode() {
                   <tr><td colSpan={5} className="text-center text-[12px] text-gray-400 py-6">אין שורות — הוסף שורה או ייבא מאקסל</td></tr>
                 )}
                 {schRows.map((row, idx) => (
+                  row.row_type === 'day' ? (
+                  <tr key={row.id}
+                    onDragOver={e => { if (dragSch !== sch.id) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; const r = e.currentTarget.getBoundingClientRect(); const t = (e.clientY - r.top) > r.height / 2 ? idx + 1 : idx; if (dropIdx !== t) setDropIdx(t) }}
+                    onDrop={e => { e.preventDefault(); reorderRows(sch.id, dragIdx, dropIdx); setDragIdx(null); setDragSch(null); setDropIdx(null) }}
+                    className={`border-y border-[#E0197D] group bg-[#FCE4F3] ${dragSch===sch.id && dragIdx===idx ? 'opacity-40' : ''} ${dragSch===sch.id && dropIdx===idx && dragIdx!==idx ? '[&>td]:border-t-2 [&>td]:border-t-[#E0197D]' : ''}`}>
+                    <td colSpan={4} className="px-3 py-2">
+                      <div className="flex items-center gap-2 flex-row-reverse flex-wrap">
+                        <input type="date" value={row.day_date||''} onChange={e=>updateRow(sch.id,row.id,'day_date',e.target.value)}
+                          className="text-[12px] border border-[#E0197D]/40 rounded px-2 py-1 bg-white outline-none focus:border-[#E0197D]"/>
+                        <span className="text-[13px] font-bold text-[#A0106A] whitespace-nowrap">{fmtDayHeader(row.day_date)}</span>
+                        <input value={row.day_label||''} onChange={e=>updateRow(sch.id,row.id,'day_label',e.target.value)}
+                          placeholder="תווית (אופציונלי)"
+                          className="text-[12px] font-semibold text-[#A0106A] bg-transparent outline-none border-b border-transparent focus:border-[#E0197D] text-right flex-1 min-w-[120px]"/>
+                      </div>
+                    </td>
+                    <td style={{width:"36px"}} className="align-middle">
+                      <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span draggable onDragStart={e => { setDragSch(sch.id); setDragIdx(idx); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(row.id)) }}
+                          onDragEnd={() => { setDragIdx(null); setDragSch(null); setDropIdx(null) }}
+                          title="גרור לשינוי סדר" className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-600 p-0.5">
+                          <i className="ti ti-grip-vertical" style={{fontSize:11}}/>
+                        </span>
+                        <button onClick={() => deleteRow(sch.id, row.id)} className="text-gray-300 hover:text-red-500 p-0.5">
+                          <i className="ti ti-trash" style={{fontSize:10}}/>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  ) : (
                   <tr key={row.id}
                     onDragOver={e => { if (dragSch !== sch.id) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; const r = e.currentTarget.getBoundingClientRect(); const t = (e.clientY - r.top) > r.height / 2 ? idx + 1 : idx; if (dropIdx !== t) setDropIdx(t) }}
                     onDrop={e => { e.preventDefault(); reorderRows(sch.id, dragIdx, dropIdx); setDragIdx(null); setDragSch(null); setDropIdx(null) }}
@@ -1777,13 +1834,20 @@ export function GeneralSchedulesMode() {
                       </div>
                     </td>
                   </tr>
+                  )
                 ))}
                   </tbody>
                 </table></div>
-                <button onClick={() => addRow(sch.id)}
-                  className="w-full py-3 text-[12px] text-gray-400 hover:text-[#E0197D] hover:bg-[#FCE4F3] transition-colors flex items-center justify-center gap-1">
-                  <i className="ti ti-plus" style={{fontSize:12}}/> הוסף שורה
-                </button>
+                <div className="flex border-t border-gray-50">
+                  <button onClick={() => addRow(sch.id)}
+                    className="flex-1 py-3 text-[12px] text-gray-400 hover:text-[#E0197D] hover:bg-[#FCE4F3] transition-colors flex items-center justify-center gap-1">
+                    <i className="ti ti-plus" style={{fontSize:12}}/> הוסף שורה
+                  </button>
+                  <button onClick={() => addDay(sch.id)}
+                    className="flex-1 py-3 text-[12px] text-[#A0106A] hover:bg-[#FCE4F3] transition-colors flex items-center justify-center gap-1 border-r border-gray-50">
+                    <i className="ti ti-calendar-plus" style={{fontSize:12}}/> הוסף יום
+                  </button>
+                </div>
               </div>
             )}
           </div>
