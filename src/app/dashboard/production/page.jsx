@@ -1422,7 +1422,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V3
+// HAZIRA-GENSCHED-DAYS-V5
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
@@ -2005,6 +2005,34 @@ function ProductionTasks() {
     setTasks(prev => prev.filter(x => x.id !== t.id))
     if (editId === t.id) setEditId(null)
   }
+  async function toggleDone(t, val) {
+    setTasks(prev => prev.map(x => x.id === t.id ? { ...x, done: val } : x))
+    const { error } = await supabase.from('production_tasks').update({ done: val }).eq('id', t.id)
+    if (error) { setTasks(prev => prev.map(x => x.id === t.id ? { ...x, done: !val } : x)); alert('שגיאה: ' + error.message) }
+  }
+  async function toggleWord(t, idx) {
+    const cur = Array.isArray(t.done_words) ? t.done_words : []
+    const next = cur.includes(idx) ? cur.filter(x => x !== idx) : [...cur, idx]
+    setTasks(prev => prev.map(x => x.id === t.id ? { ...x, done_words: next } : x))
+    const { error } = await supabase.from('production_tasks').update({ done_words: next }).eq('id', t.id)
+    if (error) { setTasks(prev => prev.map(x => x.id === t.id ? { ...x, done_words: cur } : x)); alert('שגיאה: ' + error.message) }
+  }
+  function renderBody(t) {
+    const done = new Set(Array.isArray(t.done_words) ? t.done_words : [])
+    let wi = -1
+    return (t.body || '').split(/(\s+)/).map((part, i) => {
+      if (part === '' || /^\s+$/.test(part)) return <span key={i}>{part}</span>
+      wi += 1
+      const idx = wi
+      const isDone = done.has(idx)
+      return (
+        <span key={i} onClick={() => toggleWord(t, idx)}
+          className={`cursor-pointer rounded px-0.5 transition-colors ${isDone ? 'bg-[#FCE4F3] line-through text-[#A0106A]' : 'hover:bg-gray-100'}`}>
+          {part}
+        </span>
+      )
+    })
+  }
 
   return (
     <div dir="rtl">
@@ -2020,7 +2048,7 @@ function ProductionTasks() {
       ) : (
         <div className="flex flex-col gap-2">
           {tasks.map(t => (
-            <div key={t.id} className="border border-gray-200 rounded-xl p-3 bg-white">
+            <div key={t.id} className={`border rounded-xl p-3 bg-white transition-opacity ${t.done ? 'border-gray-200 opacity-60' : 'border-gray-200'}`}>
               {editId === t.id ? (
                 <div className="flex flex-col gap-2">
                   <input value={draft.topic} onChange={e => setDraft(d => ({ ...d, topic: e.target.value }))} placeholder="כותרת נושא"
@@ -2035,10 +2063,13 @@ function ProductionTasks() {
               ) : (
                 <div>
                   <div className="flex items-start gap-2">
+                    <input type="checkbox" checked={!!t.done} onChange={e => toggleDone(t, e.target.checked)}
+                      title={t.done ? 'בוטל סימון ביצוע' : 'סמן כבוצע'}
+                      className="mt-1 w-4 h-4 cursor-pointer flex-shrink-0" style={{ accentColor: '#E0197D' }} />
                     <div className="flex-1 min-w-0">
-                      <div className="text-[14px] font-bold text-gray-800">{t.topic || '(ללא נושא)'}</div>
+                      <div className={`text-[14px] font-bold ${t.done ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{t.topic || '(ללא נושא)'}</div>
                       <div className="text-[11px] text-gray-400 mt-0.5">{t.author ? `מאת ${t.author} · ` : ''}{fmtDT(t.created_at)}</div>
-                      {t.body && <div className="text-[13px] text-gray-600 whitespace-pre-wrap mt-1.5">{t.body}</div>}
+                      {t.body && <div className="text-[13px] text-gray-600 whitespace-pre-wrap mt-1.5 leading-7">{renderBody(t)}</div>}
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button onClick={() => startEdit(t)} title="עריכה" className="text-gray-400 hover:text-[#E0197D] p-1"><i className="ti ti-edit" style={{ fontSize: 16 }} /></button>
