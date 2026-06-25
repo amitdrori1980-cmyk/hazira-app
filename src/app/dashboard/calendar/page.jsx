@@ -39,6 +39,7 @@ export default function CalendarPage() {
   const [inqAdded, setInqAdded] = useState(new Set())
   const [inqBusy, setInqBusy] = useState(null)
   // HAZIRA-GCAL-BTN5
+  // HAZIRA-GCAL-AUTOSYNC-V1
   const [savedGoogle, setSavedGoogle] = useState(new Set())
   const [gBusy, setGBusy] = useState(null)
   const [gAllBusy, setGAllBusy] = useState(false)
@@ -448,6 +449,25 @@ export default function CalendarPage() {
     XLSX.writeFile(wb, `calendar_${prefix}_${venueSuffix}.xlsx`)
   }
 
+  async function gAutoSave(id) {
+    if (!id) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      await fetch('/api/google/save', { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify({ source_type: 'event', source_id: id }) })
+      setSavedGoogle(prev => { const n = new Set(prev); n.add(id); return n })
+    } catch (e) {}
+  }
+  async function gAutoRemove(id) {
+    if (!id) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      await fetch('/api/google/unsave', { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify({ source_type: 'event', source_id: id }) })
+      setSavedGoogle(prev => { const n = new Set(prev); n.delete(id); return n })
+    } catch (e) {}
+  }
+
   async function saveEventEdit() {
     if (!editingEvent) return
     setSavingEdit(true)
@@ -485,6 +505,7 @@ export default function CalendarPage() {
       }
     }
     setEvents(prev => prev.map(e => e.id === editingEvent ? { ...e, ...editForm } : e))
+    gAutoSave(editingEvent)
     setEditingEvent(null)
     setSavingEdit(false)
   }
@@ -694,7 +715,7 @@ export default function CalendarPage() {
               {selectedEvents.map(e => (
                 <div key={e.id} draggable={profile?.is_manager} onDragStart={ev=>{ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragEnd={()=>{setDragId(null);setDragOverId(null)}} onDragOver={ev=>{if(profile?.is_manager){ev.preventDefault();ev.dataTransfer.dropEffect='move';setDragOverId(e.id)}}} onDrop={()=>{if(profile?.is_manager)reorderDayEvents(e.id)}} className={`flex items-start gap-3 p-3 rounded-lg border-r-2 border-[#E0197D] flex-row-reverse transition-all duration-300 ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''} ${dragOverId===e.id&&dragId&&dragId!==e.id?'shadow-[0_-3px_0_0_#E0197D]':''} ${flashEv && (e.title||'').trim()===flashEv ? 'bg-[#FCE4F3] ring-2 ring-[#E0197D] shadow-md' : 'bg-gray-50'}`}>
                   {profile?.is_manager && (
-                    <button onClick={async()=>{if(!window.confirm('למחוק את "'+e.title+'"?'))return;await supabase.from('events').delete().eq('id',e.id);if(e.date&&e.title)await supabase.from('crew_constraints').delete().eq('date',e.date).eq('notes',e.title).eq('available',true).is('crew_member_id',null);setEvents(prev=>prev.filter(ev=>ev.id!==e.id))}}
+                    <button onClick={async()=>{if(!window.confirm('למחוק את "'+e.title+'"?'))return;await supabase.from('events').delete().eq('id',e.id);if(e.date&&e.title)await supabase.from('crew_constraints').delete().eq('date',e.date).eq('notes',e.title).eq('available',true).is('crew_member_id',null);gAutoRemove(e.id);setEvents(prev=>prev.filter(ev=>ev.id!==e.id))}}
                       className="text-gray-300 hover:text-red-500 p-1 flex-shrink-0">
                       <i className="ti ti-trash" style={{fontSize:13}}/>
                     </button>

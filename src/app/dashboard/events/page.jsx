@@ -2,6 +2,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+// HAZIRA-EVENTS-GSYNC-V1
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 
@@ -103,6 +104,23 @@ function EventsPageInner() {
     setOpenPanel(p => (p?.id===eventId && p?.type===type) ? null : {id:eventId,type})
   }
 
+  async function gAutoSave(id) {
+    if (!id) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      await fetch('/api/google/save', { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify({ source_type: 'event', source_id: id }) })
+    } catch (e) {}
+  }
+  async function gAutoRemove(id) {
+    if (!id) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      await fetch('/api/google/unsave', { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify({ source_type: 'event', source_id: id }) })
+    } catch (e) {}
+  }
+
   async function addEvent(e) {
     e.preventDefault()
     if(!form.title||!form.date) return
@@ -114,6 +132,7 @@ function EventsPageInner() {
     setEvents(prev=>[...prev,data].sort((a,b)=>a.date.localeCompare(b.date)))
     setEventCrew(prev=>({...prev,[data.id]:[]}))
     setEventEquip(prev=>({...prev,[data.id]:[]}))
+    gAutoSave(data.id)
     setForm(f=>({...f,title:'',date:'',end_date:'',time:'',description:'',crew_notes:'',depts:[]}))
     setAdding(false)
   }
@@ -123,15 +142,18 @@ function EventsPageInner() {
     const { error } = await supabase.from('events').update({ deleted_at: ts }).eq('id',id)
     if (error) { alert('שגיאה במחיקה: ' + error.message); return }
     setEvents(prev=>prev.map(e=>e.id===id?{...e,deleted_at:ts}:e))
+    gAutoRemove(id)
   }
 
   async function restoreEvent(id) {
     await supabase.from('events').update({ deleted_at: null }).eq('id',id)
     setEvents(prev=>prev.map(e=>e.id===id?{...e,deleted_at:null}:e))
+    gAutoSave(id)
   }
 
   async function purgeEvent(id) {
     await supabase.from('events').delete().eq('id',id)
+    gAutoRemove(id)
     setEvents(prev=>prev.filter(e=>e.id!==id))
   }
 
@@ -144,6 +166,7 @@ function EventsPageInner() {
     const { error } = await supabase.from('events').update(payload).eq('id',id)
     if(error){ alert('שגיאה בעדכון האירוע: '+error.message); return }
     setEvents(prev=>prev.map(e=>e.id===id?{...e,...payload}:e))
+    gAutoSave(id)
     setEditing(null)
   }
 
@@ -162,6 +185,7 @@ function EventsPageInner() {
     setEvents(prev => [...prev, data].sort((a,b) => a.date.localeCompare(b.date)))
     setEventCrew(prev => ({ ...prev, [data.id]: [] }))
     setEventEquip(prev => ({ ...prev, [data.id]: [] }))
+    gAutoSave(data.id)
     setDuplicating(null)
     setSavingDup(false)
   }
