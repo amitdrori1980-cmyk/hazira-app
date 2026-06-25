@@ -2,6 +2,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 // HAZIRA-MSG-PUSH-V1
+// HAZIRA-MSG-TEAM-V2
+const TEAM = ['עמית','לאה','עינת','מרקו','ניב','דונדו','איתן']
+const TEAM_TOKEN = { 'דונדו': 'דניאל' }
+function teamOptions(crew, people) {
+  const all = []
+  ;(crew || []).forEach(c => { if (c.user_id) all.push({ user_id: c.user_id, full_name: c.full_name }) })
+  ;(people || []).forEach(p => { if (p.id) all.push({ user_id: p.id, full_name: p.full_name }) })
+  const byName = {}
+  all.forEach(r => { const words = (r.full_name || '').trim().split(' ').filter(Boolean); const k = TEAM.find(t => words.includes(TEAM_TOKEN[t] || t)); if (k && !byName[k]) byName[k] = { ...r, teamKey: k } })
+  return TEAM.map(n => byName[n]).filter(Boolean)
+}
 
 const PRI_COLOR = {
   'דחוף': 'bg-[#FAECE7] text-[#4A1B0C]',
@@ -105,9 +116,9 @@ export default function MessagesPage() {
     } else if (form.target_type === 'dept') {
       payload.to_dept = form.to_dept || depts[0]
     } else if (form.target_type === 'person') {
-      payload.to_crew_id = form.to_crew_id
-      const member = crew.find(c => c.id === form.to_crew_id)
-      if (member?.user_id) payload.to_user = member.user_id
+      payload.to_user = form.to_crew_id
+      const member = crew.find(c => c.user_id === form.to_crew_id)
+      if (member?.id) payload.to_crew_id = member.id
     }
     await supabase.from('messages').insert(payload)
     if (payload.to_user) {
@@ -257,16 +268,7 @@ export default function MessagesPage() {
               <select value={dateCheckForm.to_crew_id} onChange={e=>setDateCheckForm(p=>({...p,to_crew_id:e.target.value}))}
                 required className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]">
                 <option value="">בחר עובד...</option>
-                {(() => {
-                  const DC_TEAM = ['עמית','עינת','לאה','נועה','דונדו','מרקו','איתן','ניב']
-                  const DC_TOKEN = { 'דונדו': 'גמליאלי' }
-                  const all = []
-                  crew.forEach(c => { if (c.user_id) all.push({ user_id: c.user_id, full_name: c.full_name }) })
-                  people.forEach(p => { if (p.id) all.push({ user_id: p.id, full_name: p.full_name }) })
-                  const byName = {}
-                  all.forEach(r => { const words = (r.full_name||'').trim().split(' ').filter(Boolean); const k = DC_TEAM.find(t => words.includes(DC_TOKEN[t] || t)); if (k && !byName[k]) byName[k] = { ...r, teamKey: k } })
-                  return DC_TEAM.map(n => byName[n]).filter(Boolean).map(r => <option key={r.user_id} value={r.user_id}>{r.full_name}{(r.teamKey && DC_TOKEN[r.teamKey]) ? ` (${r.teamKey})` : ''}</option>)
-                })()}
+                {teamOptions(crew, people).map(r => <option key={r.user_id} value={r.user_id}>{r.full_name}</option>)}
               </select>
               <input value={eventSearch} onChange={e=>setEventSearch(e.target.value)} placeholder="חיפוש אירוע..." className="text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]"/>
               <div className="max-h-44 overflow-y-auto border border-gray-200 rounded-xl bg-gray-50">
@@ -321,7 +323,7 @@ export default function MessagesPage() {
               <select value={form.to_crew_id} onChange={e=>setForm(f=>({...f,to_crew_id:e.target.value}))}
                 className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
                 <option value="">בחר איש צוות...</option>
-                {crew.map(c=><option key={c.id} value={c.id}>{c.full_name}{c.role?` — ${c.role}`:''}</option>)}
+                {teamOptions(crew, people).map(r=><option key={r.user_id} value={r.user_id}>{r.full_name}</option>)}
               </select>
             )}
             <div className="flex gap-2">
