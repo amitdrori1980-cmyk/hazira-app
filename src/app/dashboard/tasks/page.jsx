@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-TASKS-REBUILD-V5
+// HAZIRA-TASKS-REBUILD-V6
 
 const TEAM = ['עמית','לאה','עינת','מרקו','ניב','דונדו','איתן','נועה']
 const TEAM_TOKEN = { 'דונדו': 'דניאל', 'נועה': 'גמליאל' }
@@ -32,7 +32,6 @@ export default function TasksPage() {
   const [draft, setDraft] = useState({ title: '', body: '', visible_to: [] })
   const [comments, setComments] = useState({})
   const [commentText, setCommentText] = useState({})
-  const [openComments, setOpenComments] = useState({})
   const [busy, setBusy] = useState(false)
 
   useEffect(() => { load() }, [])
@@ -49,6 +48,13 @@ export default function TasksPage() {
     setCrew(crewData || [])
     const { data } = await supabase.from('tasks').select('*').order('created_at', { ascending: false })
     setTasks(data || [])
+    const ids = (data || []).map(t => t.id)
+    if (ids.length) {
+      const { data: cs } = await supabase.from('task_comments').select('*').in('task_id', ids).order('created_at')
+      const cmap = {}
+      ;(cs || []).forEach(c => { (cmap[c.task_id] = cmap[c.task_id] || []).push(c) })
+      setComments(cmap)
+    }
     setLoading(false)
   }
 
@@ -116,10 +122,6 @@ export default function TasksPage() {
     })
   }
 
-  async function loadComments(taskId) {
-    const { data } = await supabase.from('task_comments').select('*').eq('task_id', taskId).order('created_at')
-    setComments(prev => ({ ...prev, [taskId]: data || [] }))
-  }
   async function addComment(taskId) {
     const text = (commentText[taskId] || '').trim()
     if (!text) return
@@ -130,10 +132,6 @@ export default function TasksPage() {
       setComments(prev => ({ ...prev, [taskId]: [...(prev[taskId] || []), data] }))
       setCommentText(prev => ({ ...prev, [taskId]: '' }))
     }
-  }
-  function toggleComments(taskId) {
-    setOpenComments(prev => ({ ...prev, [taskId]: !prev[taskId] }))
-    if (!comments[taskId]) loadComments(taskId)
   }
 
   function audienceLabel(t) {
@@ -226,23 +224,20 @@ export default function TasksPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-2 pr-6">
-                  <button onClick={() => toggleComments(t.id)} className="text-[12px] text-gray-400 hover:text-[#E0197D] flex items-center gap-1">
-                    <i className="ti ti-message" style={{ fontSize: 13 }} /> תגובות{comments[t.id]?.length ? ` (${comments[t.id].length})` : ''}
-                  </button>
-                  {openComments[t.id] && (
-                    <div className="mt-2 border-t border-gray-100 pt-2">
+                <div className="mt-3 bg-gray-50 border border-gray-100 rounded-lg p-2.5">
+                  {(comments[t.id] || []).length > 0 && (
+                    <div className="mb-2">
                       {(comments[t.id] || []).map(c => (
                         <div key={c.id} className="text-[12px] text-gray-600 mb-1"><span className="font-medium text-gray-800">{c.author_name}: </span>{c.content}</div>
                       ))}
-                      <div className="flex gap-1.5 mt-1">
-                        <input value={commentText[t.id] || ''} onChange={e => setCommentText(prev => ({ ...prev, [t.id]: e.target.value }))}
-                          onKeyDown={e => e.key === 'Enter' && addComment(t.id)}
-                          placeholder="הוסף תגובה..." className="flex-1 text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 outline-none focus:border-[#E0197D] focus:bg-white text-right" />
-                        <button onClick={() => addComment(t.id)} className="text-[13px] px-4 py-2 bg-[#E0197D] text-white rounded-lg hover:bg-[#A0106A]">שלח</button>
-                      </div>
                     </div>
                   )}
+                  <div className="flex gap-1.5">
+                    <input value={commentText[t.id] || ''} onChange={e => setCommentText(prev => ({ ...prev, [t.id]: e.target.value }))}
+                      onKeyDown={e => e.key === 'Enter' && addComment(t.id)}
+                      placeholder="הוסף תגובה..." className="flex-1 text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#E0197D] text-right" />
+                    <button onClick={() => addComment(t.id)} className="text-[13px] px-4 py-2 bg-[#E0197D] text-white rounded-lg hover:bg-[#A0106A]">שלח</button>
+                  </div>
                 </div>
               </div>
             )}
