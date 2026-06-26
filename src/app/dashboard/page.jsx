@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-OVERVIEW-WEEK-V5
+// HAZIRA-OVERVIEW-WEEK-V6
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
@@ -126,7 +126,7 @@ function WeekDashboard() {
 
               <textarea value={noteDraft[ds] ?? ''} onChange={e => setNoteDraft(prev => ({ ...prev, [ds]: e.target.value }))} onBlur={() => saveNote(ds)}
                 placeholder="משימות / הערות ליום זה..." rows={2}
-                className="w-full text-[12px] px-2 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#E0197D] text-right resize-y" />
+                className="w-full text-[12px] px-2 py-1.5 border border-[#F3C9E2] rounded-lg bg-white outline-none focus:border-[#E0197D] text-right resize-y" />
             </div>
           )
         })
