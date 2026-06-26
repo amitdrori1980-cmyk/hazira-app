@@ -2,8 +2,10 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+// HAZIRA-OVERVIEW-WEEK-V1
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
+const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
 const TYPE_LABEL = { rehearsal:'חזרה', show:'הצגה', crew:'צוות', technical:'טכני' }
 const TYPE_COLOR = { rehearsal:'bg-[#FCE4F3] text-[#A0106A]', show:'bg-[#E1F5EE] text-[#085041]', crew:'bg-[#FAEEDA] text-[#633806]', technical:'bg-[#FAECE7] text-[#4A1B0C]' }
 const PRI_COLOR  = { 'דחוף':'bg-[#FAECE7] text-[#4A1B0C]', 'גבוהה':'bg-[#FAEEDA] text-[#633806]', 'רגיל':'bg-[#E3F0FF] text-[#1A4A8A]', 'היום':'bg-[#FAECE7] text-[#4A1B0C]', 'מחר':'bg-[#FCE4F3] text-[#A0106A]', 'השבוע':'bg-[#FAEEDA] text-[#633806]' }
@@ -29,6 +31,109 @@ function Card({ title, icon, href, children }) {
   )
 }
 
+function WeekDashboard() {
+  const router = useRouter()
+  const [days, setDays] = useState([])
+  const [events, setEvents] = useState([])
+  const [cons, setCons] = useState([])
+  const [notes, setNotes] = useState({})
+  const [noteDraft, setNoteDraft] = useState({})
+  const [loading, setLoading] = useState(true)
+
+  function localDs(d) {
+    const p = n => String(n).padStart(2, '0')
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
+  }
+
+  useEffect(() => {
+    async function load() {
+      const today = new Date()
+      const ds = []
+      for (let i = 0; i < 7; i++) { const d = new Date(today); d.setDate(today.getDate() + i); ds.push(localDs(d)) }
+      setDays(ds)
+      const start = ds[0], end = ds[6]
+      const [{ data: e }, { data: c }, { data: n }] = await Promise.all([
+        supabase.from('events').select('id,title,date,time,type,venue').gte('date', start).lte('date', end).order('date').order('time'),
+        supabase.from('crew_constraints').select('*').gte('date', start).lte('date', end),
+        supabase.from('day_notes').select('date,body').gte('date', start).lte('date', end),
+      ])
+      setEvents(e || [])
+      setCons(c || [])
+      const nm = {}
+      ;(n || []).forEach(r => { nm[r.date] = r.body || '' })
+      setNotes(nm); setNoteDraft(nm)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  async function saveNote(ds) {
+    const body = noteDraft[ds] ?? ''
+    if (body === (notes[ds] ?? '')) return
+    await supabase.from('day_notes').upsert({ date: ds, body, updated_at: new Date().toISOString() }, { onConflict: 'date' })
+    setNotes(prev => ({ ...prev, [ds]: body }))
+  }
+
+  return (
+    <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
+      <div className="flex items-center gap-2 mb-3">
+        <i className="ti ti-calendar-week text-[#E0197D]" style={{ fontSize: 16 }} />
+        <span className="text-[14px] font-bold text-gray-800">השבוע הקרוב</span>
+      </div>
+      {loading ? (
+        <div className="text-center text-sm text-gray-400 py-4">טוען...</div>
+      ) : (
+        days.map((ds, idx) => {
+          const dEvents = events.filter(e => e.date === ds)
+          const dCons = cons.filter(c => c.date === ds)
+          const away = dCons.filter(c => !c.available)
+          const here = dCons.filter(c => c.available)
+          const [y, m, d] = ds.split('-').map(Number)
+          const dayName = HE_DAYS_FULL[new Date(ds + 'T00:00:00').getDay()]
+          return (
+            <div key={ds} className="border border-gray-100 rounded-xl p-3 mb-2 last:mb-0 bg-gray-50">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[13px] font-bold text-gray-800">{dayName} · {d} {HE_MONTHS[m - 1]}</span>
+                {idx === 0 && <span className="text-[10px] bg-[#FCE4F3] text-[#A0106A] px-2 py-0.5 rounded-full">היום</span>}
+              </div>
+
+              {dEvents.length > 0 ? (
+                <div className="mb-2 flex flex-col gap-1">
+                  {dEvents.map(e => (
+                    <div key={e.id} onClick={() => router.push('/dashboard/calendar')}
+                      className="flex items-center gap-2 flex-row-reverse text-right cursor-pointer hover:bg-white rounded-lg px-1 py-0.5">
+                      <span className="text-[11px] text-gray-400 w-10 flex-shrink-0 text-left">{e.time ? e.time.slice(0, 5) : ''}</span>
+                      <span className="flex-1 text-[13px] text-gray-800 min-w-0">{e.title}{e.venue ? ` · ${e.venue}` : ''}</span>
+                      <Badge text={TYPE_LABEL[e.type] || e.type} color={TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-[12px] text-gray-300 mb-2 text-right">אין אירועים</div>
+              )}
+
+              {(away.length > 0 || here.length > 0) && (
+                <div className="flex flex-wrap gap-1.5 mb-2 justify-end">
+                  {away.map(c => (
+                    <span key={c.id} className="text-[11px] px-2 py-0.5 rounded-full bg-[#FAECE7] text-[#4A1B0C]">✗ {c.crew_name}{c.hours ? ` (${c.hours})` : ''}</span>
+                  ))}
+                  {here.map(c => (
+                    <span key={c.id} className="text-[11px] px-2 py-0.5 rounded-full bg-[#E1F5EE] text-[#085041]">✓ {c.crew_name}{c.hours ? ` (${c.hours})` : ''}</span>
+                  ))}
+                </div>
+              )}
+
+              <textarea value={noteDraft[ds] ?? ''} onChange={e => setNoteDraft(prev => ({ ...prev, [ds]: e.target.value }))} onBlur={() => saveNote(ds)}
+                placeholder="משימות / הערות ליום זה..." rows={2}
+                className="w-full text-[12px] px-2 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#E0197D] text-right resize-y" />
+            </div>
+          )
+        })
+      )}
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const [profile, setProfile]   = useState(null)
@@ -43,76 +148,27 @@ export default function DashboardPage() {
   const [searching, setSearching]   = useState(false)
 
   useEffect(() => {
-    const pollMessages = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      const mq = supabase.from('messages').select('*, sender:sender_id(full_name)').order('created_at', { ascending: false }).limit(3)
-      if (p?.role_type !== 'admin') mq.or(`to_user.eq.${user.id},to_dept.eq.all`)
-      const { data: m } = await mq
-      setMessages(m || [])
-    }
-    const interval = setInterval(pollMessages, 10000)
-    return () => clearInterval(interval)
-  }, [])
-
-  useEffect(() => {
-    const msgHandler = () => {
-      supabase.auth.getUser().then(async ({ data: { user } }) => {
-        if (!user) return
-        const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-        const mq = supabase.from('messages').select('*, sender:sender_id(full_name)').order('created_at', { ascending: false }).limit(3)
-        if (!p?.is_manager) mq.or(`to_user.eq.${user.id},to_dept.eq.${p?.dept},to_dept.eq.all`)
-        const { data: m } = await mq
-        setMessages(m || [])
-      })
-    }
-    window.addEventListener('new-message', msgHandler)
-    return () => window.removeEventListener('new-message', msgHandler)
-  }, [])
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('dashboard-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
-        supabase.auth.getUser().then(async ({ data: { user } }) => {
-          if (!user) return
-          const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-          const mq = supabase.from('messages').select('*, sender:sender_id(full_name)').order('created_at', { ascending: false }).limit(3)
-          if (!p?.is_manager) mq.or(`to_user.eq.${user.id},to_dept.eq.${p?.dept},to_dept.eq.all`)
-          const { data: m } = await mq
-          setMessages(m || [])
-        })
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [])
-
-  useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
+      if (!user) { router.push('/login'); return }
       const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfile(p)
 
-      // Tasks — מנהל רואה הכל, משתמש רגיל רואה משימות שלו או של המחלקה
       const tq = supabase.from('tasks').select('*').eq('done', false).order('created_at')
       if (!p?.is_manager) tq.or(`assignee_id.eq.${user.id},dept.eq.${p?.dept}`)
       const { data: t } = await tq
       setTasks(t || [])
 
-      // Events — כולם רואים את כל האירועים
       const today = new Date().toISOString().slice(0, 10)
       const { data: e } = await supabase.from('events').select('*').gte('date', today).order('date').limit(5)
       setEvents(e || [])
 
-      // Messages — לפי הרשאות
       const mq = supabase.from('messages').select('*, sender:sender_id(full_name)').order('created_at', { ascending: false }).limit(3)
-      if (p?.role_type !== 'admin') mq.or(`to_user.eq.${user.id},to_dept.eq.all`)
+      if (!p?.is_manager) mq.or(`to_user.eq.${user.id},to_dept.eq.${p?.dept},to_dept.eq.all`)
       const { data: m } = await mq
       setMessages(m || [])
 
-      // Constraints this week
       const weekStart = new Date()
       weekStart.setDate(weekStart.getDate() - weekStart.getDay())
       const weekEnd = new Date(weekStart)
@@ -185,7 +241,6 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-2xl">
-      {/* Search bar */}
       <div className="flex items-center gap-3 bg-white border-2 border-gray-200 rounded-xl px-4 py-2.5 mb-4 focus-within:border-[#E0197D] transition-colors">
         <i className="ti ti-search text-gray-400" style={{fontSize:16}}/>
         <input
@@ -202,7 +257,6 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Search results */}
       {query && (
         <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
           {searching ? (
@@ -260,19 +314,20 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Stats */}
       {!query && (
         <>
-          <div className="flex gap-2 mb-4">
+          <WeekDashboard />
+
+          <div className="grid grid-cols-3 gap-3 mb-4">
             {[
               { label: 'משימות פתוחות', value: tasks.length,    href: '/dashboard/tasks' },
               { label: 'אירועים קרובים', value: events.length,  href: '/dashboard/calendar' },
               { label: 'הודעות',         value: messages.length, href: '/dashboard/messages' },
             ].map(s => (
               <div key={s.label} onClick={() => router.push(s.href)}
-                className="flex-1 min-w-0 bg-white border border-gray-100 rounded-xl p-2 cursor-pointer hover:border-[#E0197D] hover:shadow-sm transition-all overflow-hidden"
+                className="bg-white border border-gray-100 rounded-xl p-3 cursor-pointer hover:border-[#E0197D] hover:shadow-sm transition-all"
                 style={{ borderTop: '2px solid #E0197D' }}>
-                <div className="text-[10px] text-gray-400 mb-1 truncate">{s.label}</div>
+                <div className="text-[11px] text-gray-400 mb-1">{s.label}</div>
                 <div className="text-xl font-medium text-[#E0197D]">{s.value}</div>
               </div>
             ))}
@@ -317,25 +372,21 @@ export default function DashboardPage() {
 
           {constraints.length > 0 && (
             <Card title="אילוצים השבוע" icon="ti-ban" href="/dashboard/constraints">
-              {(() => {
+              {constraints.map(c => {
                 const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
-                const byDay = {}
-                constraints.forEach(c => {
-                  if (!c.date) return
-                  if (!c.available) return
-                  const d = new Date(c.date)
-                  const key = c.date
-                  const label = HE_DAYS_FULL[d.getDay()] + ' ' + c.date.slice(5).replace('-','/')
-                  if (!byDay[key]) byDay[key] = { label, names: [] }
-                  byDay[key].names.push(c.crew_name)
-                })
-                return Object.entries(byDay).sort(([a],[b]) => a.localeCompare(b)).map(([key, { label, names }]) => (
-                  <div key={key} className="py-2 border-b border-gray-50 last:border-0 text-right">
-                    <div className="text-[11px] text-gray-400 mb-0.5">{label}</div>
-                    <div className="text-[13px] text-gray-800 font-medium">{names.join(', ')}</div>
+                const dayName = c.date ? HE_DAYS_FULL[new Date(c.date).getDay()] : ''
+                return (
+                  <div key={c.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse group">
+                    <span className="flex-1 text-[13px] text-right font-medium">{c.crew_name}</span>
+                    <span className="text-[11px] text-gray-400">{dayName} {c.date?.slice(5).replace('-','/')}</span>
+                    {c.hours && <span className="text-[11px] text-gray-400">{c.hours}</span>}
+                    <button onClick={e=>{e.stopPropagation();router.push('/dashboard/constraints')}}
+                      className="text-gray-300 hover:text-[#6366f1] p-1 md:opacity-0 md:group-hover:opacity-100 transition-all flex-shrink-0">
+                      <i className="ti ti-pencil" style={{fontSize:13}}/>
+                    </button>
                   </div>
-                ))
-              })()}
+                )
+              })}
             </Card>
           )}
         </>
