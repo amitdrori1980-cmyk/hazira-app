@@ -1,326 +1,251 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+// HAZIRA-TASKS-REBUILD-V1
 
-const PRIORITIES = ['דחוף','היום','מחר','השבוע','גבוהה','רגיל']
-const PRI_COLOR = {
-  'דחוף':   'bg-[#FAECE7] text-[#4A1B0C]',
-  'גבוהה':  'bg-[#FAEEDA] text-[#633806]',
-  'רגיל':   'bg-[#E3F0FF] text-[#1A4A8A]',
-  'היום':   'bg-[#FAECE7] text-[#4A1B0C]',
-  'מחר':    'bg-[#FCE4F3] text-[#A0106A]',
-  'השבוע':  'bg-[#FAEEDA] text-[#633806]',
+const TEAM = ['עמית','לאה','עינת','מרקו','ניב','דונדו','איתן']
+const TEAM_TOKEN = { 'דונדו': 'דניאל' }
+function teamOptions(crew, people) {
+  const all = []
+  ;(crew || []).forEach(c => { if (c.user_id) all.push({ user_id: c.user_id, full_name: c.full_name }) })
+  ;(people || []).forEach(p => { if (p.id) all.push({ user_id: p.id, full_name: p.full_name }) })
+  const byName = {}
+  all.forEach(r => { const words = (r.full_name || '').trim().split(' ').filter(Boolean); const k = TEAM.find(t => words.includes(TEAM_TOKEN[t] || t)); if (k && !byName[k]) byName[k] = { ...r, teamKey: k } })
+  return TEAM.map(n => byName[n]).filter(Boolean)
+}
+function fmtDT(s) {
+  if (!s) return ''
+  const d = new Date(s)
+  const p = n => String(n).padStart(2, '0')
+  return p(d.getDate()) + '/' + p(d.getMonth() + 1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes())
 }
 
 export default function TasksPage() {
-  const [tasks, setTasks]       = useState([])
-  const [crew, setCrew]         = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [newTask, setNewTask]   = useState('')
-  const [newPri, setNewPri]     = useState('רגיל')
-  const [newCrew, setNewCrew]   = useState('')
-  const [adding, setAdding]     = useState(false)
-  const [editing, setEditing]   = useState(null)
-  const [editVal, setEditVal]   = useState({})
-  const [uid, setUid]           = useState(null)
-  const [dept, setDept]         = useState(null)
+  const [tasks, setTasks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [uid, setUid] = useState(null)
+  const [me, setMe] = useState('')
   const [isManager, setIsManager] = useState(false)
-  const [comments, setComments]       = useState({})
+  const [people, setPeople] = useState([])
+  const [crew, setCrew] = useState([])
+  const [editId, setEditId] = useState(null)
+  const [draft, setDraft] = useState({ title: '', body: '', visible_to: [] })
+  const [audMode, setAudMode] = useState('all')
+  const [comments, setComments] = useState({})
   const [commentText, setCommentText] = useState({})
   const [openComments, setOpenComments] = useState({})
-  const [authorName, setAuthorName]   = useState('')
-  const [depts, setDepts]         = useState([])
-  const [newDept, setNewDept]     = useState('')
+  const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    loadTasks()
-    const sub = supabase.channel('tasks-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => loadTasks())
-      .subscribe()
-    return () => supabase.removeChannel(sub)
-  }, [])
+  useEffect(() => { load() }, [])
 
-  async function loadTasks() {
+  async function load() {
     const { data: { user } } = await supabase.auth.getUser()
     setUid(user.id)
     const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-    setDept(p?.dept)
+    setMe(p?.full_name || '')
     setIsManager(p?.is_manager || false)
-    setAuthorName(p?.full_name || '')
-
-    const q = supabase
-      .from('tasks')
-      .select('*, crew:crew_member_id(full_name)')
-      .order('created_at', { ascending: false })
-    if (!p?.is_manager) {
-      q.or(`assignee_id.eq.${user.id},crew_member_id.is.null,and(crew_member_id.not.is.null,dept.eq.${p?.dept})`)
-    }
-    const { data } = await q
-    setTasks(data || [])
-
-    const { data: crewData } = await supabase
-      .from('crew_members')
-      .select('id, full_name, role')
-      .eq('active', true)
-      .order('full_name')
+    const { data: ppl } = await supabase.from('profiles').select('id, full_name')
+    setPeople(ppl || [])
+    const { data: crewData } = await supabase.from('crew_members').select('id, full_name, role').eq('active', true).order('full_name')
     setCrew(crewData || [])
-    const { data: deptsData } = await supabase.from('departments').select('name').order('name')
-    setDepts((deptsData||[]).map(d=>d.name))
+    const { data } = await supabase.from('tasks').select('*').order('created_at', { ascending: false })
+    setTasks(data || [])
     setLoading(false)
   }
 
-  async function toggleDone(task) {
-    await supabase.from('tasks').update({ done: !task.done }).eq('id', task.id)
-    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, done: !t.done } : t))
-  }
-
-  async function addTask(e) {
-    e.preventDefault()
-    if (!newTask.trim()) return
-    setAdding(true)
+  async function addTask() {
     const { data, error } = await supabase.from('tasks').insert({
-      title: newTask.trim(),
-      priority: newPri,
-      done: false,
-      assignee_id: uid,
-      dept,
-      crew_member_id: newCrew || null,
-      dept: newDept || dept,
-      created_by: uid,
-      created_by_name: authorName,
-    }).select('*, crew:crew_member_id(full_name)').single()
-    if (!error) setTasks(prev => [data, ...prev])
-    setNewTask(''); setNewCrew(''); setNewDept(''); setAdding(false)
+      title: '', body: '', done: false, visible_to: [],
+      priority: 'רגיל', assignee_id: uid,
+      created_by: uid, created_by_name: me,
+    }).select('*').single()
+    if (error) { alert('שגיאה: ' + error.message); return }
+    setTasks(prev => [data, ...prev])
+    startEdit(data)
   }
 
-  async function exportExcel() {
-    const XLSX = await import('xlsx-js-style')
-    const hS = { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 }, fill: { fgColor: { rgb: 'E0197D' } }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2 } }
-    const cS = { alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2, wrapText: true }, border: { bottom: { style: 'thin', color: { rgb: 'EEEEEE' } } } }
-    const aS = { fill: { fgColor: { rgb: 'FCE4F3' } }, alignment: { horizontal: 'right', vertical: 'center', readingOrder: 2, wrapText: true }, border: { bottom: { style: 'thin', color: { rgb: 'EEEEEE' } } } }
-    const wsData = [['כותרת','עדיפות','אחראי','מחלקה','סטטוס'].map(h => ({ v: h, s: hS }))]
-    tasks.forEach((t, i) => {
-      const s = i % 2 === 0 ? cS : aS
-      wsData.push([{ v: t.title||'', s }, { v: t.priority||'', s }, { v: t.crew?.full_name||'', s }, { v: t.dept||'', s }, { v: t.done?'הושלם':'פתוח', s }])
+  function startEdit(t) {
+    setEditId(t.id)
+    const vis = Array.isArray(t.visible_to) ? t.visible_to : []
+    setDraft({ title: t.title || '', body: t.body || '', visible_to: vis })
+    setAudMode(vis.length > 0 ? 'some' : 'all')
+  }
+
+  async function saveEdit(t) {
+    setBusy(true)
+    const vis = audMode === 'some' ? (draft.visible_to || []) : []
+    const payload = { title: draft.title, body: draft.body, visible_to: vis }
+    const { error } = await supabase.from('tasks').update(payload).eq('id', t.id)
+    setBusy(false)
+    if (error) { alert('שגיאה: ' + error.message); return }
+    setTasks(prev => prev.map(x => x.id === t.id ? { ...x, ...payload } : x))
+    setEditId(null)
+  }
+
+  async function deleteTask(t) {
+    await supabase.from('tasks').delete().eq('id', t.id)
+    setTasks(prev => prev.filter(x => x.id !== t.id))
+    if (editId === t.id) setEditId(null)
+  }
+
+  async function toggleDone(t, val) {
+    setTasks(prev => prev.map(x => x.id === t.id ? { ...x, done: val } : x))
+    const { error } = await supabase.from('tasks').update({ done: val }).eq('id', t.id)
+    if (error) setTasks(prev => prev.map(x => x.id === t.id ? { ...x, done: !val } : x))
+  }
+
+  async function toggleWord(t, idx) {
+    const cur = Array.isArray(t.done_words) ? t.done_words : []
+    const next = cur.includes(idx) ? cur.filter(x => x !== idx) : [...cur, idx]
+    setTasks(prev => prev.map(x => x.id === t.id ? { ...x, done_words: next } : x))
+    const { error } = await supabase.from('tasks').update({ done_words: next }).eq('id', t.id)
+    if (error) setTasks(prev => prev.map(x => x.id === t.id ? { ...x, done_words: cur } : x))
+  }
+  function renderBody(t) {
+    const done = new Set(Array.isArray(t.done_words) ? t.done_words : [])
+    let wi = -1
+    return (t.body || '').split(/(\s+)/).map((part, i) => {
+      if (part === '' || /^\s+$/.test(part)) return <span key={i}>{part}</span>
+      wi += 1
+      const idx = wi
+      const isDone = done.has(idx)
+      return (
+        <span key={i} onClick={() => toggleWord(t, idx)}
+          className={`cursor-pointer rounded px-0.5 transition-colors ${isDone ? 'bg-[#FCE4F3] line-through text-[#A0106A]' : 'hover:bg-gray-100'}`}>
+          {part}
+        </span>
+      )
     })
-    const ws = XLSX.utils.aoa_to_sheet(wsData)
-    ws['!cols'] = [{ wch: 35 }, { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 10 }]
-    ws['!rows'] = [{ hpt: 22 }, ...tasks.map(() => ({ hpt: 18 }))]
-    const wb = XLSX.utils.book_new()
-    wb.Workbook = { Views: [{ RTL: true }] }
-    XLSX.utils.book_append_sheet(wb, ws, 'משימות')
-    XLSX.writeFile(wb, 'tasks.xlsx')
-  }
-
-  async function deleteTask(id) {
-    await supabase.from('tasks').delete().eq('id', id)
-    setTasks(prev => prev.filter(t => t.id !== id))
-  }
-
-  function startEdit(task) {
-    setEditing(task.id)
-    setEditVal({ title: task.title, priority: task.priority, crew_member_id: task.crew_member_id || '', dept: task.dept || '' })
-  }
-
-  async function saveEdit(id) {
-    const payload = { ...editVal, crew_member_id: editVal.crew_member_id || null }
-    await supabase.from('tasks').update(payload).eq('id', id)
-    const crewMember = crew.find(c => c.id === editVal.crew_member_id)
-    setTasks(prev => prev.map(t => t.id === id
-      ? { ...t, ...payload, crew: crewMember ? { full_name: crewMember.full_name } : null }
-      : t
-    ))
-    setEditing(null)
   }
 
   async function loadComments(taskId) {
     const { data } = await supabase.from('task_comments').select('*').eq('task_id', taskId).order('created_at')
     setComments(prev => ({ ...prev, [taskId]: data || [] }))
   }
-
   async function addComment(taskId) {
-    const text = commentText[taskId]?.trim()
+    const text = (commentText[taskId] || '').trim()
     if (!text) return
     const { data } = await supabase.from('task_comments').insert({
-      task_id: taskId, user_id: uid, author_name: authorName || 'משתמש', content: text
+      task_id: taskId, user_id: uid, author_name: me || 'משתמש', content: text
     }).select().single()
     if (data) {
       setComments(prev => ({ ...prev, [taskId]: [...(prev[taskId] || []), data] }))
       setCommentText(prev => ({ ...prev, [taskId]: '' }))
     }
   }
-
   function toggleComments(taskId) {
     setOpenComments(prev => ({ ...prev, [taskId]: !prev[taskId] }))
     if (!comments[taskId]) loadComments(taskId)
   }
 
-  const open = tasks.filter(t => !t.done)
-  const done = tasks.filter(t => t.done)
+  function audienceLabel(t) {
+    const aud = Array.isArray(t.visible_to) ? t.visible_to : []
+    if (aud.length === 0) return 'כולם'
+    const names = aud.map(id => (people.find(p => p.id === id)?.full_name || '')).filter(Boolean)
+    return names.length ? names.join(', ') : (aud.length + ' אנשים')
+  }
+
+  const teamOpts = teamOptions(crew, people).filter(r => r.user_id !== uid)
+  const visibleTasks = tasks.filter(t => {
+    if (t.created_by === uid) return true
+    const aud = Array.isArray(t.visible_to) ? t.visible_to : []
+    if (aud.length === 0) return true
+    return aud.includes(uid)
+  })
 
   return (
     <div className="max-w-xl">
-      <div className="flex justify-end mb-2">
-        <button onClick={exportExcel} className="text-[12px] border border-green-600 text-green-600 px-3 py-1.5 rounded-lg hover:bg-green-50 flex items-center gap-1">
-          <i className="ti ti-table-export" style={{fontSize:13}}/> ייצוא
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-[13px] text-gray-500">{visibleTasks.length} משימות</span>
+        <button onClick={addTask} className="bg-[#E0197D] hover:bg-[#A0106A] text-white text-[13px] px-4 py-2 rounded-lg flex items-center gap-1.5">
+          <i className="ti ti-plus" style={{ fontSize: 15 }} /> הוסף משימה
         </button>
-      </div>
-      {/* Add */}
-      <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
-        <form onSubmit={addTask} className="flex flex-col gap-2">
-          <input value={newTask} onChange={e => setNewTask(e.target.value)}
-            placeholder="משימה חדשה..."
-            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
-          <div className="flex gap-2 flex-row-reverse">
-            <select value={newPri} onChange={e => setNewPri(e.target.value)}
-              className="text-sm px-2 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
-              {PRIORITIES.map(p => <option key={p}>{p}</option>)}
-            </select>
-            <select value={newDept} onChange={e => setNewDept(e.target.value)}
-              className="text-sm px-2 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
-              <option value="">כל המחלקות</option>
-              {depts.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-            <select value={newCrew} onChange={e => setNewCrew(e.target.value)}
-              className="flex-1 text-sm px-2 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
-              <option value="">שייך לאיש צוות...</option>
-              {crew.map(c => (
-                <option key={c.id} value={c.id}>{c.full_name}{c.role ? ` — ${c.role}` : ''}</option>
-              ))}
-            </select>
-            <button type="submit" disabled={adding}
-              className="bg-[#E0197D] hover:bg-[#A0106A] text-white text-sm px-4 py-2 rounded-lg transition-colors disabled:opacity-50">
-              <i className="ti ti-plus"/>
-            </button>
-          </div>
-        </form>
       </div>
 
       {loading ? (
         <div className="text-center text-sm text-gray-400 py-8">טוען...</div>
+      ) : visibleTasks.length === 0 ? (
+        <div className="text-center text-sm text-gray-400 py-8">אין משימות עדיין</div>
       ) : (
-        <>
-          {/* Open tasks */}
-          <div className="bg-white border border-gray-100 rounded-xl p-4 mb-3">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[13px] font-medium text-gray-800">משימות פתוחות</span>
-              <span className="text-[11px] bg-[#FCE4F3] text-[#A0106A] px-2 py-0.5 rounded-full">{open.length}</span>
-            </div>
-            {open.length === 0 && <p className="text-[13px] text-gray-400 text-center py-3">כל המשימות הושלמו!</p>}
-            {open.map(t => (<React.Fragment key={t.id}>
-              <div className="border-b border-gray-50 last:border-0">
-                {editing === t.id ? (
-                  <div className="py-2 flex flex-col gap-2">
-                    <input value={editVal.title} onChange={e => setEditVal(v=>({...v,title:e.target.value}))}
-                      className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
-                    <div className="flex gap-2">
-                      <select value={editVal.priority} onChange={e => setEditVal(v=>({...v,priority:e.target.value}))}
-                        className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
-                        {PRIORITIES.map(p => <option key={p}>{p}</option>)}
-                      </select>
-                      <select value={editVal.dept} onChange={e => setEditVal(v=>({...v,dept:e.target.value}))}
-                        className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
-                        <option value="">כל המחלקות</option>
-                        {depts.map(d => <option key={d} value={d}>{d}</option>)}
-                      </select>
-                      <select value={editVal.crew_member_id} onChange={e => setEditVal(v=>({...v,crew_member_id:e.target.value}))}
-                        className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
-                        <option value="">ללא שיוך</option>
-                        {crew.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
-                      </select>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => saveEdit(t.id)} className="flex-1 bg-[#E0197D] text-white text-sm py-1.5 rounded-lg">שמור</button>
-                      <button onClick={() => setEditing(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm py-1.5 rounded-lg">ביטול</button>
-                    </div>
+        visibleTasks.map(t => (
+          <div key={t.id} className={`border border-gray-200 rounded-xl p-3 bg-white mb-2 transition-opacity ${t.done ? 'opacity-60' : ''}`}>
+            {editId === t.id ? (
+              <div className="flex flex-col gap-2">
+                <input value={draft.title} onChange={e => setDraft(d => ({ ...d, title: e.target.value }))} placeholder="כותרת נושא"
+                  className="text-[14px] font-medium px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+                <textarea value={draft.body} onChange={e => setDraft(d => ({ ...d, body: e.target.value }))} placeholder="טקסט חופשי..." rows={4}
+                  className="text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y" />
+                <div className="flex flex-col gap-2 border border-gray-100 rounded-lg p-2 bg-gray-50">
+                  <div className="flex items-center gap-2 flex-row-reverse flex-wrap">
+                    <span className="text-[12px] text-gray-500">מי רואה:</span>
+                    <button onClick={() => setAudMode('all')} className={`text-[12px] px-3 py-1 rounded-lg border ${audMode === 'all' ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500'}`}>כולם</button>
+                    <button onClick={() => setAudMode('some')} className={`text-[12px] px-3 py-1 rounded-lg border ${audMode === 'some' ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500'}`}>אנשי צוות ספציפיים</button>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-2.5 py-2 flex-row-reverse group">
-                    <input type="checkbox" checked={false} onChange={() => toggleDone(t)}
-                      className="w-4 h-4 flex-shrink-0" style={{accentColor:'#E0197D'}}/>
-                    <div className="flex-1 text-right min-w-0">
-                      <div className="text-[13px]">{t.title}</div>
-                      {!t.crew_member_id && (
-                        t.dept
-                          ? <span className="text-[11px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">📂 {t.dept}</span>
-                          : <span className="text-[11px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">🌐 כולם</span>
-                      )}
-                      {t.created_by_name && <span className="text-[11px] text-gray-300">מ: {t.created_by_name}</span>}
-                      {t.crew?.full_name && (
-                        <div className="text-[11px] text-gray-400 flex items-center gap-1 justify-end">
-                          <span>{t.crew.full_name}</span>
-                          <i className="ti ti-user" style={{fontSize:10}}/>
-                        </div>
-                      )}
+                  {audMode === 'some' && (
+                    <div className="flex flex-wrap gap-1.5 justify-end">
+                      {teamOpts.map(r => {
+                        const on = (draft.visible_to || []).includes(r.user_id)
+                        return (
+                          <button key={r.user_id}
+                            onClick={() => setDraft(d => { const cur = d.visible_to || []; return { ...d, visible_to: on ? cur.filter(x => x !== r.user_id) : [...cur, r.user_id] } })}
+                            className={`text-[12px] px-2.5 py-1 rounded-full border ${on ? 'bg-[#FCE4F3] text-[#A0106A] border-[#E0197D]' : 'border-gray-200 text-gray-500'}`}>
+                            {r.full_name}
+                          </button>
+                        )
+                      })}
+                      {teamOpts.length === 0 && <span className="text-[11px] text-gray-400">אין אנשי צוות זמינים</span>}
                     </div>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${PRI_COLOR[t.priority]||'bg-gray-100 text-gray-600'}`}>
-                      {t.priority}
-                    </span>
-                    <button onClick={() => startEdit(t)}
-                      className="text-gray-200 hover:text-[#E0197D] opacity-0 group-hover:opacity-100 transition-all">
-                      <i className="ti ti-pencil" style={{fontSize:13}}/>
-                    </button>
-                    {(isManager || t.created_by === uid) && (
-                      <button onClick={() => { if(window.confirm('למחוק משימה זו?')) deleteTask(t.id) }}
-                        className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                        <i className="ti ti-trash" style={{fontSize:13}}/>
-                      </button>
-                    )}
-                    <button onClick={() => toggleComments(t.id)}
-                      className="text-gray-200 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all">
-                      <i className="ti ti-message" style={{fontSize:13}}/>
-                      {comments[t.id]?.length > 0 && <span className="text-[10px] ml-0.5">{comments[t.id].length}</span>}
-                    </button>
-                  </div>
-                )}
-              </div>
-              {openComments[t.id] ? (
-                <div className="mt-2 pr-7 border-t border-gray-100 pt-2">
-                  {(comments[t.id] || []).map(c => (
-                    <div key={c.id} className="text-[12px] text-gray-600 mb-1">
-                      <span className="font-medium text-gray-800">{c.author_name}: </span>{c.content}
-                    </div>
-                  ))}
-                  <div className="flex gap-1 mt-1">
-                    <input value={commentText[t.id]||''} onChange={e=>setCommentText(prev=>({...prev,[t.id]:e.target.value}))}
-                      onKeyDown={e=>e.key==='Enter'&&addComment(t.id)}
-                      placeholder="הוסף תגובה..." className="flex-1 text-[12px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D]"/>
-                    <button onClick={()=>addComment(t.id)} className="text-[12px] px-2 py-1 bg-[#E0197D] text-white rounded-lg">שלח</button>
-                  </div>
-                </div>
-              ) : null}
-            </React.Fragment>
-            ))}
-          </div>
-
-          {/* Done tasks */}
-          {done.length > 0 && (
-            <div className="bg-white border border-gray-100 rounded-xl p-4">
-              <div className="text-[13px] font-medium text-gray-400 mb-3">הושלמו ({done.length})</div>
-              {done.map(t => (
-                <div key={t.id} className="flex items-center gap-2.5 py-2 border-b border-gray-50 last:border-0 flex-row-reverse group">
-                  <input type="checkbox" checked={true} onChange={() => toggleDone(t)}
-                    className="w-4 h-4 flex-shrink-0" style={{accentColor:'#E0197D'}}/>
-                  <div className="flex-1 text-right">
-                    <div className="text-[13px] line-through text-gray-400">{t.title}</div>
-                    {t.crew?.full_name && (
-                      <div className="text-[11px] text-gray-300 flex items-center gap-1 justify-end">
-                        <span>{t.crew.full_name}</span>
-                        <i className="ti ti-user" style={{fontSize:10}}/>
-                      </div>
-                    )}
-                  </div>
-                  {(isManager || t.created_by === uid) && (
-                    <button onClick={() => { if(window.confirm('למחוק משימה זו?')) deleteTask(t.id) }}
-                      className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                      <i className="ti ti-trash" style={{fontSize:13}}/>
-                    </button>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </>
+                <div className="flex gap-2">
+                  <button onClick={() => saveEdit(t)} disabled={busy} className="bg-[#E0197D] text-white text-[12px] px-3 py-1.5 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">{busy ? 'שומר...' : 'שמור'}</button>
+                  <button onClick={() => { setEditId(null); if (!t.title && !t.body) deleteTask(t) }} className="text-[12px] text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200">ביטול</button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-start gap-2">
+                  <input type="checkbox" checked={!!t.done} onChange={e => toggleDone(t, e.target.checked)}
+                    className="mt-1 w-4 h-4 cursor-pointer flex-shrink-0" style={{ accentColor: '#E0197D' }} />
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-[14px] font-bold ${t.done ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{t.title || '(ללא נושא)'}</div>
+                    <div className="text-[11px] text-gray-400 mt-0.5">{t.created_by_name ? `מאת ${t.created_by_name} · ` : ''}{fmtDT(t.created_at)}</div>
+                    {t.body && <div className="text-[13px] text-gray-600 whitespace-pre-wrap mt-1.5 leading-7">{renderBody(t)}</div>}
+                    <div className="mt-1.5">
+                      <span className="text-[11px] text-gray-400 inline-flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-full px-2 py-0.5">
+                        <i className="ti ti-eye" style={{ fontSize: 11 }} /> {audienceLabel(t)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button onClick={() => startEdit(t)} className="text-black hover:text-[#E0197D] p-1"><i className="ti ti-pencil" style={{ fontSize: 13 }} /></button>
+                    {(isManager || t.created_by === uid) && (
+                      <button onClick={() => { if (window.confirm('למחוק משימה זו?')) deleteTask(t) }} className="text-black hover:text-red-500 p-1"><i className="ti ti-trash" style={{ fontSize: 13 }} /></button>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-2 pr-6">
+                  <button onClick={() => toggleComments(t.id)} className="text-[12px] text-gray-400 hover:text-[#E0197D] flex items-center gap-1">
+                    <i className="ti ti-message" style={{ fontSize: 13 }} /> תגובות{comments[t.id]?.length ? ` (${comments[t.id].length})` : ''}
+                  </button>
+                  {openComments[t.id] && (
+                    <div className="mt-2 border-t border-gray-100 pt-2">
+                      {(comments[t.id] || []).map(c => (
+                        <div key={c.id} className="text-[12px] text-gray-600 mb-1"><span className="font-medium text-gray-800">{c.author_name}: </span>{c.content}</div>
+                      ))}
+                      <div className="flex gap-1 mt-1">
+                        <input value={commentText[t.id] || ''} onChange={e => setCommentText(prev => ({ ...prev, [t.id]: e.target.value }))}
+                          onKeyDown={e => e.key === 'Enter' && addComment(t.id)}
+                          placeholder="הוסף תגובה..." className="flex-1 text-[12px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D]" />
+                        <button onClick={() => addComment(t.id)} className="text-[12px] px-2 py-1 bg-[#E0197D] text-white rounded-lg">שלח</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ))
       )}
     </div>
   )
