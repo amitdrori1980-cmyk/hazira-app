@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-TASKS-REBUILD-V4
+// HAZIRA-TASKS-REBUILD-V5
 
 const TEAM = ['עמית','לאה','עינת','מרקו','ניב','דונדו','איתן','נועה']
 const TEAM_TOKEN = { 'דונדו': 'דניאל', 'נועה': 'גמליאל' }
@@ -167,7 +167,7 @@ export default function TasksPage() {
         <div className="text-center text-sm text-gray-400 py-8">אין משימות עדיין</div>
       ) : (
         sortedTasks.map(t => (
-          <div key={t.id} className={`border border-gray-200 rounded-xl p-3 bg-white mb-2 transition-opacity ${t.done ? 'opacity-60' : ''}`}>
+          <div key={t.id} className={`border border-gray-100 rounded-xl p-3.5 bg-white mb-2 shadow-sm hover:shadow-md transition-all ${t.done ? 'opacity-60' : ''}`}>
             {editId === t.id ? (
               <div className="flex flex-col gap-2">
                 <input value={draft.title} onChange={e => setDraft(d => ({ ...d, title: e.target.value }))} placeholder="כותרת נושא"
@@ -235,11 +235,11 @@ export default function TasksPage() {
                       {(comments[t.id] || []).map(c => (
                         <div key={c.id} className="text-[12px] text-gray-600 mb-1"><span className="font-medium text-gray-800">{c.author_name}: </span>{c.content}</div>
                       ))}
-                      <div className="flex gap-1 mt-1">
+                      <div className="flex gap-1.5 mt-1">
                         <input value={commentText[t.id] || ''} onChange={e => setCommentText(prev => ({ ...prev, [t.id]: e.target.value }))}
                           onKeyDown={e => e.key === 'Enter' && addComment(t.id)}
-                          placeholder="הוסף תגובה..." className="flex-1 text-[12px] px-2 py-1 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D]" />
-                        <button onClick={() => addComment(t.id)} className="text-[12px] px-2 py-1 bg-[#E0197D] text-white rounded-lg">שלח</button>
+                          placeholder="הוסף תגובה..." className="flex-1 text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 outline-none focus:border-[#E0197D] focus:bg-white text-right" />
+                        <button onClick={() => addComment(t.id)} className="text-[13px] px-4 py-2 bg-[#E0197D] text-white rounded-lg hover:bg-[#A0106A]">שלח</button>
                       </div>
                     </div>
                   )}
