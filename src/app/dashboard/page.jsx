@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-OVERVIEW-WEEK-V1
+// HAZIRA-OVERVIEW-WEEK-V2
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
@@ -113,13 +113,13 @@ function WeekDashboard() {
               )}
 
               {(away.length > 0 || here.length > 0) && (
-                <div className="flex flex-wrap gap-1.5 mb-2 justify-end">
-                  {away.map(c => (
-                    <span key={c.id} className="text-[11px] px-2 py-0.5 rounded-full bg-[#FAECE7] text-[#4A1B0C]">✗ {c.crew_name}{c.hours ? ` (${c.hours})` : ''}</span>
-                  ))}
-                  {here.map(c => (
-                    <span key={c.id} className="text-[11px] px-2 py-0.5 rounded-full bg-[#E1F5EE] text-[#085041]">✓ {c.crew_name}{c.hours ? ` (${c.hours})` : ''}</span>
-                  ))}
+                <div className="mb-2 text-right space-y-0.5">
+                  {away.length > 0 && (
+                    <div className="text-[12px]"><span className="text-[#C0392B] font-medium">לא נמצאים: </span><span className="text-gray-600">{away.map(c => c.crew_name + (c.hours ? ` (${c.hours})` : '')).join(', ')}</span></div>
+                  )}
+                  {here.length > 0 && (
+                    <div className="text-[12px]"><span className="text-[#085041] font-medium">נמצאים: </span><span className="text-gray-600">{here.map(c => c.crew_name + (c.hours ? ` (${c.hours})` : '')).join(', ')}</span></div>
+                  )}
                 </div>
               )}
 
@@ -367,26 +367,6 @@ export default function DashboardPage() {
                   <div className="text-[13px] text-gray-800 text-right">{m.body}</div>
                 </div>
               ))}
-            </Card>
-          )}
-
-          {constraints.length > 0 && (
-            <Card title="אילוצים השבוע" icon="ti-ban" href="/dashboard/constraints">
-              {constraints.map(c => {
-                const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
-                const dayName = c.date ? HE_DAYS_FULL[new Date(c.date).getDay()] : ''
-                return (
-                  <div key={c.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse group">
-                    <span className="flex-1 text-[13px] text-right font-medium">{c.crew_name}</span>
-                    <span className="text-[11px] text-gray-400">{dayName} {c.date?.slice(5).replace('-','/')}</span>
-                    {c.hours && <span className="text-[11px] text-gray-400">{c.hours}</span>}
-                    <button onClick={e=>{e.stopPropagation();router.push('/dashboard/constraints')}}
-                      className="text-gray-300 hover:text-[#6366f1] p-1 md:opacity-0 md:group-hover:opacity-100 transition-all flex-shrink-0">
-                      <i className="ti ti-pencil" style={{fontSize:13}}/>
-                    </button>
-                  </div>
-                )
-              })}
             </Card>
           )}
         </>
