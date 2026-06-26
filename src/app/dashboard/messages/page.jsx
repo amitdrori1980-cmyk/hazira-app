@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 // HAZIRA-MSG-PUSH-V1
-// HAZIRA-MSG-TEAM-V2
-const TEAM = ['עמית','לאה','עינת','מרקו','ניב','דונדו','איתן']
-const TEAM_TOKEN = { 'דונדו': 'דניאל' }
+// HAZIRA-MSG-TEAM-V3
+const TEAM = ['עמית','לאה','עינת','מרקו','ניב','דונדו','איתן','נועה']
+const TEAM_TOKEN = { 'דונדו': 'דניאל', 'נועה': 'גמליאל' }
 function teamOptions(crew, people) {
   const all = []
   ;(crew || []).forEach(c => { if (c.user_id) all.push({ user_id: c.user_id, full_name: c.full_name }) })
