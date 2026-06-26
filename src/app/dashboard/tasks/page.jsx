@@ -1,10 +1,10 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-TASKS-REBUILD-V1
+// HAZIRA-TASKS-REBUILD-V3
 
-const TEAM = ['עמית','לאה','עינת','מרקו','ניב','דונדו','איתן']
-const TEAM_TOKEN = { 'דונדו': 'דניאל' }
+const TEAM = ['עמית','לאה','עינת','מרקו','ניב','דונדו','איתן','נועה']
+const TEAM_TOKEN = { 'דונדו': 'דניאל', 'נועה': 'גמליאל' }
 function teamOptions(crew, people) {
   const all = []
   ;(crew || []).forEach(c => { if (c.user_id) all.push({ user_id: c.user_id, full_name: c.full_name }) })
@@ -30,7 +30,6 @@ export default function TasksPage() {
   const [crew, setCrew] = useState([])
   const [editId, setEditId] = useState(null)
   const [draft, setDraft] = useState({ title: '', body: '', visible_to: [] })
-  const [audMode, setAudMode] = useState('all')
   const [comments, setComments] = useState({})
   const [commentText, setCommentText] = useState({})
   const [openComments, setOpenComments] = useState({})
@@ -68,12 +67,11 @@ export default function TasksPage() {
     setEditId(t.id)
     const vis = Array.isArray(t.visible_to) ? t.visible_to : []
     setDraft({ title: t.title || '', body: t.body || '', visible_to: vis })
-    setAudMode(vis.length > 0 ? 'some' : 'all')
   }
 
   async function saveEdit(t) {
     setBusy(true)
-    const vis = audMode === 'some' ? (draft.visible_to || []) : []
+    const vis = draft.visible_to || []
     const payload = { title: draft.title, body: draft.body, visible_to: vis }
     const { error } = await supabase.from('tasks').update(payload).eq('id', t.id)
     setBusy(false)
@@ -176,24 +174,27 @@ export default function TasksPage() {
                 <textarea value={draft.body} onChange={e => setDraft(d => ({ ...d, body: e.target.value }))} placeholder="טקסט חופשי..." rows={4}
                   className="text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y" />
                 <div className="flex flex-col gap-2 border border-gray-100 rounded-lg p-2 bg-gray-50">
-                  <div className="flex items-center gap-2 flex-row-reverse flex-wrap">
-                    <span className="text-[12px] text-gray-500">מי רואה:</span>
-                    <button onClick={() => setAudMode('all')} className={`text-[12px] px-3 py-1 rounded-lg border ${audMode === 'all' ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500'}`}>כולם</button>
-                    <button onClick={() => setAudMode('some')} className={`text-[12px] px-3 py-1 rounded-lg border ${audMode === 'some' ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500'}`}>אנשי צוות ספציפיים</button>
+                  <div className="flex items-center gap-2 flex-row-reverse">
+                    <span className="text-[12px] text-gray-500 flex-shrink-0">מי רואה:</span>
+                    <select value="" onChange={e => { const id = e.target.value; if (id) setDraft(d => ({ ...d, visible_to: (d.visible_to || []).includes(id) ? d.visible_to : [...(d.visible_to || []), id] })) }}
+                      className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#E0197D] text-right">
+                      <option value="">בחר איש צוות...</option>
+                      {teamOpts.map(r => <option key={r.user_id} value={r.user_id}>{r.full_name}</option>)}
+                    </select>
                   </div>
-                  {audMode === 'some' && (
+                  {(draft.visible_to || []).length === 0 ? (
+                    <span className="text-[11px] text-gray-400 text-right">לא נבחר אף אחד — כולם רואים את המשימה</span>
+                  ) : (
                     <div className="flex flex-wrap gap-1.5 justify-end">
-                      {teamOpts.map(r => {
-                        const on = (draft.visible_to || []).includes(r.user_id)
+                      {(draft.visible_to || []).map(id => {
+                        const nm = people.find(p => p.id === id)?.full_name || (teamOpts.find(r => r.user_id === id) || {}).full_name || ''
                         return (
-                          <button key={r.user_id}
-                            onClick={() => setDraft(d => { const cur = d.visible_to || []; return { ...d, visible_to: on ? cur.filter(x => x !== r.user_id) : [...cur, r.user_id] } })}
-                            className={`text-[12px] px-2.5 py-1 rounded-full border ${on ? 'bg-[#FCE4F3] text-[#A0106A] border-[#E0197D]' : 'border-gray-200 text-gray-500'}`}>
-                            {r.full_name}
-                          </button>
+                          <span key={id} className="text-[12px] px-2.5 py-1 rounded-full border bg-[#FCE4F3] text-[#A0106A] border-[#E0197D] inline-flex items-center gap-1">
+                            {nm}
+                            <button onClick={() => setDraft(d => ({ ...d, visible_to: (d.visible_to || []).filter(x => x !== id) }))} className="hover:text-red-500"><i className="ti ti-x" style={{ fontSize: 11 }} /></button>
+                          </span>
                         )
                       })}
-                      {teamOpts.length === 0 && <span className="text-[11px] text-gray-400">אין אנשי צוות זמינים</span>}
                     </div>
                   )}
                 </div>
