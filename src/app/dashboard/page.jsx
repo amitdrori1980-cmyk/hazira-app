@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-OVERVIEW-WEEK-V4
+// HAZIRA-OVERVIEW-WEEK-V5
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
@@ -91,7 +91,7 @@ function WeekDashboard() {
           const [y, m, d] = ds.split('-').map(Number)
           const dayName = HE_DAYS_FULL[new Date(ds + 'T00:00:00').getDay()]
           return (
-            <div key={ds} className="border border-gray-100 rounded-xl p-3 mb-2 last:mb-0 bg-gray-50">
+            <div key={ds} className="border border-[#F3C9E2] rounded-xl p-3 mb-2 last:mb-0 bg-gray-50">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[13px] font-bold text-gray-800">{dayName} · {d} {HE_MONTHS[m - 1]}</span>
                 {idx === 0 && <span className="text-[10px] bg-[#FCE4F3] text-[#A0106A] px-2 py-0.5 rounded-full">היום</span>}
