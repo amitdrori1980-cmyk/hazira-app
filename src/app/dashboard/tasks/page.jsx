@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-TASKS-REBUILD-V6
+// HAZIRA-TASKS-REBUILD-V7
 
 const TEAM = ['עמית','לאה','עינת','מרקו','ניב','דונדו','איתן','נועה']
 const TEAM_TOKEN = { 'דונדו': 'דניאל', 'נועה': 'גמליאל' }
@@ -224,7 +224,7 @@ export default function TasksPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 bg-gray-50 border border-gray-100 rounded-lg p-2.5">
+                <div className="mt-3">
                   {(comments[t.id] || []).length > 0 && (
                     <div className="mb-2">
                       {(comments[t.id] || []).map(c => (
@@ -235,7 +235,7 @@ export default function TasksPage() {
                   <div className="flex gap-1.5">
                     <input value={commentText[t.id] || ''} onChange={e => setCommentText(prev => ({ ...prev, [t.id]: e.target.value }))}
                       onKeyDown={e => e.key === 'Enter' && addComment(t.id)}
-                      placeholder="הוסף תגובה..." className="flex-1 text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#E0197D] text-right" />
+                      placeholder="הוסף תגובה..." className="flex-1 text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 outline-none focus:border-[#E0197D] text-right" />
                     <button onClick={() => addComment(t.id)} className="text-[13px] px-4 py-2 bg-[#E0197D] text-white rounded-lg hover:bg-[#A0106A]">שלח</button>
                   </div>
                 </div>
