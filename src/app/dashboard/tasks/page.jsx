@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-TASKS-REBUILD-V3
+// HAZIRA-TASKS-REBUILD-V4
 
 const TEAM = ['עמית','לאה','עינת','מרקו','ניב','דונדו','איתן','נועה']
 const TEAM_TOKEN = { 'דונדו': 'דניאל', 'נועה': 'גמליאל' }
@@ -150,9 +150,10 @@ export default function TasksPage() {
     if (aud.length === 0) return true
     return aud.includes(uid)
   })
+  const sortedTasks = [...visibleTasks].sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0))
 
   return (
-    <div className="max-w-xl">
+    <div className="w-full">
       <div className="flex items-center justify-between mb-4">
         <span className="text-[13px] text-gray-500">{visibleTasks.length} משימות</span>
         <button onClick={addTask} className="bg-[#E0197D] hover:bg-[#A0106A] text-white text-[13px] px-4 py-2 rounded-lg flex items-center gap-1.5">
@@ -165,7 +166,7 @@ export default function TasksPage() {
       ) : visibleTasks.length === 0 ? (
         <div className="text-center text-sm text-gray-400 py-8">אין משימות עדיין</div>
       ) : (
-        visibleTasks.map(t => (
+        sortedTasks.map(t => (
           <div key={t.id} className={`border border-gray-200 rounded-xl p-3 bg-white mb-2 transition-opacity ${t.done ? 'opacity-60' : ''}`}>
             {editId === t.id ? (
               <div className="flex flex-col gap-2">
