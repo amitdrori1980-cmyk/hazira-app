@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 // HAZIRA-MSG-PUSH-V1
 // HAZIRA-MSG-TEAM-V3
+// HAZIRA-MSG-SCHED-V1
 const TEAM = ['עמית','לאה','עינת','מרקו','ניב','דונדו','איתן','נועה']
 const TEAM_TOKEN = { 'דונדו': 'דניאל', 'נועה': 'גמליאל' }
 function teamOptions(crew, people) {
@@ -30,7 +31,7 @@ export default function MessagesPage() {
   const [people, setPeople]     = useState([])
   const [loading, setLoading]   = useState(true)
   const [sending, setSending]   = useState(false)
-  const [form, setForm] = useState({ body:'', target_type:'all', to_dept:'', to_crew_id:'', priority:'רגיל' })
+  const [form, setForm] = useState({ body:'', target_type:'all', to_dept:'', to_crew_id:'', priority:'רגיל', scheduleOn:false, scheduledAt:'' })
   const [showDateCheck, setShowDateCheck] = useState(false)
   const [dateCheckForm, setDateCheckForm] = useState({ to_crew_id:'', event_id:'', notes:'' })
   const [eventSearch, setEventSearch] = useState('')
@@ -57,6 +58,16 @@ export default function MessagesPage() {
     const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
     setProfile({ ...p, uid: user.id })
 
+    // שחרור הודעות מתוזמנות שהגיע זמנן
+    try {
+      const nowISO = new Date().toISOString()
+      const { data: due } = await supabase.from('messages').select('id,to_user').eq('released', false).lte('scheduled_at', nowISO)
+      for (const dm of (due || [])) {
+        await supabase.from('messages').update({ released: true, created_at: nowISO }).eq('id', dm.id)
+        if (dm.to_user) { try { await pushNotify(dm.to_user, 'הודעה חדשה') } catch (e) {} }
+      }
+    } catch (e) {}
+
     const [{ data: ds }, { data: cr }, { data: pe }] = await Promise.all([
       supabase.from('departments').select('name').order('name'),
       supabase.from('crew_members').select('id,full_name,role,dept,user_id').eq('active',true).order('full_name'),
@@ -74,9 +85,10 @@ export default function MessagesPage() {
       q.or(`to_user.eq.${user.id},to_dept.eq.all,sender_id.eq.${user.id}`)
     }
     const { data: msgs } = await q
-    setMessages(msgs || [])
+    const visibleMsgs = (msgs || []).filter(m => m.released !== false || m.sender_id === user.id)
+    setMessages(visibleMsgs)
     // סמן הודעות שהתקבלו כנקראות
-    const unreadIds = (msgs || []).filter(m => !m.read && m.sender_id !== user.id).map(m => m.id)
+    const unreadIds = visibleMsgs.filter(m => !m.read && m.sender_id !== user.id).map(m => m.id)
     if (unreadIds.length > 0) {
       await supabase.from('messages').update({ read: true }).in('id', unreadIds)
     }
@@ -104,13 +116,23 @@ export default function MessagesPage() {
   async function sendMessage(e) {
     e.preventDefault()
     if (!form.body.trim()) return
+    let scheduledISO = null
+    if (form.scheduleOn) {
+      if (!form.scheduledAt) { alert('בחר תאריך ושעה לתזמון'); return }
+      const dt = new Date(form.scheduledAt)
+      if (isNaN(dt.getTime())) { alert('תאריך/שעה לא תקינים'); return }
+      if (dt.getTime() <= Date.now()) { alert('זמן התזמון חייב להיות בעתיד'); return }
+      scheduledISO = dt.toISOString()
+    }
     setSending(true)
     const payload = {
       body: form.body.trim(),
       sender_id: profile.uid,
       priority: form.priority,
       read: false,
+      released: scheduledISO ? false : true,
     }
+    if (scheduledISO) payload.scheduled_at = scheduledISO
     if (form.target_type === 'all') {
       payload.to_dept = 'all'
     } else if (form.target_type === 'dept') {
@@ -121,10 +143,10 @@ export default function MessagesPage() {
       if (member?.id) payload.to_crew_id = member.id
     }
     await supabase.from('messages').insert(payload)
-    if (payload.to_user) {
+    if (!scheduledISO && payload.to_user) {
       await pushNotify(payload.to_user, 'הודעה חדשה מ' + (profile.full_name || ''))
     }
-    setForm({ body:'', target_type:'all', to_dept:'', to_crew_id:'', priority:'רגיל' })
+    setForm({ body:'', target_type:'all', to_dept:'', to_crew_id:'', priority:'רגיל', scheduleOn:false, scheduledAt:'' })
     await load()
     setSending(false)
   }
@@ -326,6 +348,16 @@ export default function MessagesPage() {
                 {teamOptions(crew, people).map(r=><option key={r.user_id} value={r.user_id}>{r.full_name}</option>)}
               </select>
             )}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button type="button" onClick={()=>setForm(f=>({...f,scheduleOn:!f.scheduleOn}))}
+                className={`text-[12px] px-3 py-1.5 rounded-full border transition-colors flex items-center gap-1 ${form.scheduleOn?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+                <i className="ti ti-clock"/> תזמון
+              </button>
+              {form.scheduleOn && (
+                <input type="datetime-local" value={form.scheduledAt} onChange={e=>setForm(f=>({...f,scheduledAt:e.target.value}))}
+                  className="text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
+              )}
+            </div>
             <div className="flex gap-2">
               <select value={form.priority} onChange={e=>setForm(f=>({...f,priority:e.target.value}))}
                 className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
@@ -337,7 +369,7 @@ export default function MessagesPage() {
               </button>
               <button type="submit" disabled={sending}
                 className="flex-1 bg-[#E0197D] hover:bg-[#A0106A] text-white text-sm px-4 py-2 rounded-lg disabled:opacity-50 flex items-center justify-center gap-1">
-                <i className="ti ti-send"/> שלח
+                <i className={`ti ${form.scheduleOn ? 'ti-clock' : 'ti-send'}`}/> {form.scheduleOn ? 'תזמן' : 'שלח'}
               </button>
             </div>
           </form>
@@ -415,6 +447,11 @@ export default function MessagesPage() {
                   <span className="text-[11px] text-gray-400">{getTargetLabel(m)}</span>
                 </div>
               </div>
+              {m.released === false && (
+                <div className="text-[11px] text-[#A0106A] bg-[#FCE4F3] rounded-md px-2 py-0.5 inline-flex items-center gap-1 mb-1.5">
+                  <i className="ti ti-clock" style={{fontSize:12}}/> מתוזמן ל-{new Date(m.scheduled_at).toLocaleString('he-IL', {day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}
+                </div>
+              )}
               <div className="text-[13px] text-gray-800 text-right mb-2">{m.body}</div>
               <div className="flex items-center justify-between">
                 <button onClick={() => toggleReplies(m.id)}
