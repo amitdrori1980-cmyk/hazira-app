@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-OVERVIEW-WEEK-V2
+// HAZIRA-OVERVIEW-WEEK-V3
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
@@ -101,9 +101,9 @@ function WeekDashboard() {
                 <div className="mb-2 flex flex-col gap-1">
                   {dEvents.map(e => (
                     <div key={e.id} onClick={() => router.push('/dashboard/calendar')}
-                      className="flex items-center gap-2 flex-row-reverse text-right cursor-pointer hover:bg-white rounded-lg px-1 py-0.5">
-                      <span className="text-[11px] text-gray-400 w-10 flex-shrink-0 text-left">{e.time ? e.time.slice(0, 5) : ''}</span>
-                      <span className="flex-1 text-[13px] text-gray-800 min-w-0">{e.title}{e.venue ? ` · ${e.venue}` : ''}</span>
+                      className="flex items-center gap-2 flex-row-reverse justify-start text-right cursor-pointer hover:bg-white rounded-lg px-1 py-0.5">
+                      {e.time && <span className="text-[11px] text-gray-400 flex-shrink-0">{e.time.slice(0, 5)}</span>}
+                      <span className="text-[13px] text-gray-800">{e.title}{e.venue ? ` · ${e.venue}` : ''}</span>
                       <Badge text={TYPE_LABEL[e.type] || e.type} color={TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'} />
                     </div>
                   ))}
