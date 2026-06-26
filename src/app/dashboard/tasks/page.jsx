@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-TASKS-REBUILD-V7
+// HAZIRA-TASKS-REBUILD-V8
 
 const TEAM = ['עמית','לאה','עינת','מרקו','ניב','דונדו','איתן','נועה']
 const TEAM_TOKEN = { 'דונדו': 'דניאל', 'נועה': 'גמליאל' }
@@ -236,7 +236,7 @@ export default function TasksPage() {
                     <input value={commentText[t.id] || ''} onChange={e => setCommentText(prev => ({ ...prev, [t.id]: e.target.value }))}
                       onKeyDown={e => e.key === 'Enter' && addComment(t.id)}
                       placeholder="הוסף תגובה..." className="flex-1 text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 outline-none focus:border-[#E0197D] text-right" />
-                    <button onClick={() => addComment(t.id)} className="text-[13px] px-4 py-2 bg-[#E0197D] text-white rounded-lg hover:bg-[#A0106A]">שלח</button>
+                    <button onClick={() => addComment(t.id)} className="text-[13px] px-4 py-2 bg-white border border-[#E0197D] text-[#E0197D] rounded-lg hover:bg-[#FCE4F3]">שלח</button>
                   </div>
                 </div>
               </div>
