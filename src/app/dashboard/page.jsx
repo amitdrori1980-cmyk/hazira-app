@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-OVERVIEW-WEEK-V6
+// HAZIRA-OVERVIEW-WEEK-V7
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
@@ -319,21 +319,6 @@ export default function DashboardPage() {
         <>
           <WeekDashboard />
 
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            {[
-              { label: 'משימות פתוחות', value: tasks.length,    href: '/dashboard/tasks' },
-              { label: 'אירועים קרובים', value: events.length,  href: '/dashboard/calendar' },
-              { label: 'הודעות',         value: messages.length, href: '/dashboard/messages' },
-            ].map(s => (
-              <div key={s.label} onClick={() => router.push(s.href)}
-                className="bg-white border border-gray-100 rounded-xl p-3 cursor-pointer hover:border-[#E0197D] hover:shadow-sm transition-all"
-                style={{ borderTop: '2px solid #E0197D' }}>
-                <div className="text-[11px] text-gray-400 mb-1">{s.label}</div>
-                <div className="text-xl font-medium text-[#E0197D]">{s.value}</div>
-              </div>
-            ))}
-          </div>
-
           {urgent.length > 0 && (
             <Card title="דורש טיפול עכשיו" icon="ti-alert-triangle" href="/dashboard/tasks">
               {urgent.map(t => (
@@ -342,21 +327,6 @@ export default function DashboardPage() {
                   <Badge text={t.priority} color={PRI_COLOR[t.priority] || 'bg-gray-100 text-gray-600'} />
                 </div>
               ))}
-            </Card>
-          )}
-
-          {events.length > 0 && (
-            <Card title="האירועים הקרובים" icon="ti-calendar-event" href="/dashboard/calendar">
-              {events.map(e => {
-                const [y,m,d] = e.date.split('-').map(Number)
-                return (
-                  <div key={e.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
-                    <span className="text-[12px] text-gray-400 w-24 text-right">{d} {HE_MONTHS[m-1]}, {e.time?.slice(0,5)}</span>
-                    <span className="flex-1 text-[13px] text-right">{e.title}</span>
-                    <Badge text={TYPE_LABEL[e.type] || e.type} color={TYPE_COLOR[e.type] || 'bg-gray-100 text-gray-600'} />
-                  </div>
-                )
-              })}
             </Card>
           )}
 
