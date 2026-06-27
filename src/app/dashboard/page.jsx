@@ -1,8 +1,8 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-OVERVIEW-WEEK-V7
+// HAZIRA-OVERVIEW-WEEK-V10
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
@@ -39,10 +39,23 @@ function WeekDashboard() {
   const [notes, setNotes] = useState({})
   const [noteDraft, setNoteDraft] = useState({})
   const [loading, setLoading] = useState(true)
+  const editingRef = useRef(null)
 
   function localDs(d) {
     const p = n => String(n).padStart(2, '0')
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
+  }
+
+  async function loadNotes(start, end) {
+    const { data: n } = await supabase.from('day_notes').select('date,body').gte('date', start).lte('date', end)
+    const nm = {}
+    ;(n || []).forEach(r => { nm[r.date] = r.body || '' })
+    setNotes(nm)
+    setNoteDraft(prev => {
+      const next = { ...prev }
+      Object.keys(nm).forEach(d => { if (editingRef.current !== d) next[d] = nm[d] })
+      return next
+    })
   }
 
   useEffect(() => {
@@ -67,7 +80,24 @@ function WeekDashboard() {
     load()
   }, [])
 
+  useEffect(() => {
+    if (!days.length) return
+    const start = days[0], end = days[6]
+    const channel = supabase.channel('day_notes_live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'day_notes' }, payload => {
+        const row = payload.new || payload.old
+        if (!row || !row.date || row.date < start || row.date > end) return
+        const body = payload.new ? (payload.new.body || '') : ''
+        setNotes(prev => ({ ...prev, [row.date]: body }))
+        if (editingRef.current !== row.date) setNoteDraft(prev => ({ ...prev, [row.date]: body }))
+      })
+      .subscribe()
+    const poll = setInterval(() => { loadNotes(start, end) }, 5000)
+    return () => { supabase.removeChannel(channel); clearInterval(poll) }
+  }, [days])
+
   async function saveNote(ds) {
+    editingRef.current = null
     const body = noteDraft[ds] ?? ''
     if (body === (notes[ds] ?? '')) return
     await supabase.from('day_notes').upsert({ date: ds, body, updated_at: new Date().toISOString() }, { onConflict: 'date' })
@@ -100,7 +130,7 @@ function WeekDashboard() {
               {dEvents.length > 0 ? (
                 <div className="mb-2 flex flex-col gap-1">
                   {dEvents.map(e => (
-                    <div key={e.id} dir="rtl" onClick={() => router.push('/dashboard/calendar')}
+                    <div key={e.id} dir="rtl" onClick={() => router.push(`/dashboard/calendar?focus=${e.date}&ev=${encodeURIComponent(e.title || '')}`)}
                       className="flex items-center gap-2 text-right cursor-pointer hover:bg-white rounded-lg px-1 py-0.5">
                       <span className="text-[13px] text-gray-800 font-medium">{e.title}</span>
                       {e.venue && <span className="text-[12px] text-gray-500">{e.venue}</span>}
@@ -124,7 +154,7 @@ function WeekDashboard() {
                 </div>
               )}
 
-              <textarea value={noteDraft[ds] ?? ''} onChange={e => setNoteDraft(prev => ({ ...prev, [ds]: e.target.value }))} onBlur={() => saveNote(ds)}
+              <textarea value={noteDraft[ds] ?? ''} onFocus={() => { editingRef.current = ds }} onChange={e => setNoteDraft(prev => ({ ...prev, [ds]: e.target.value }))} onBlur={() => saveNote(ds)}
                 placeholder="משימות / הערות ליום זה..." rows={2}
                 className="w-full text-[12px] px-2 py-1.5 border border-[#F3C9E2] rounded-lg bg-white outline-none focus:border-[#E0197D] text-right resize-y" />
             </div>
