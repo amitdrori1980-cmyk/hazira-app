@@ -25,7 +25,7 @@ const DAYS   = ['ראשון','שני','שלישי','רביעי','חמישי','ש
 const VENUES = ['אולם 1','אולם 2','אולם 3','אולם 4','אולם 5','תיאטרון הבית','דירה']
 const SLOTS  = 10
 function emptySlots() {
-  return Array.from({length: SLOTS}, (_, i) => ({ slot: i, name: '', status: 'white' }))
+  return Array.from({length: SLOTS}, (_, i) => ({ slot: i, name: '', status: 'white', note: '' }))
 }
 
 function ProductionInquiries() {
@@ -142,7 +142,7 @@ function ProductionInquiries() {
       evs.forEach(e => { map[e.id] = emptySlots() })
       ;(ppl || []).forEach(p => {
         if (map[p.production_event_id] && p.slot < SLOTS) {
-          map[p.production_event_id][p.slot] = { slot: p.slot, name: p.name || '', status: p.status || 'white' }
+          map[p.production_event_id][p.slot] = { slot: p.slot, name: p.name || '', status: p.status || 'white', note: p.note || '' }
         }
       })
       setSlots(map)
@@ -575,23 +575,34 @@ function ProductionInquiries() {
   async function applyReviewResponses() {
     if (!reviewLink) return
     setReviewBusy(true)
-    const { data: resp } = await supabase.from('review_responses').select('*').eq('token', reviewLink.token)
-    const items = reviewLink.items || []
+    const { data: resp, error: rerr } = await supabase.from('review_responses').select('*').eq('token', reviewLink.token)
+    if (rerr) { setReviewBusy(false); alert('שגיאה בטעינת תגובות: ' + rerr.message); return }
+    let items = reviewLink.items || []
+    if (typeof items === 'string') { try { items = JSON.parse(items) } catch (e) { items = [] } }
+    let applied = 0
+    let firstErr = null
     for (const r of (resp || [])) {
       const it = items[r.item_index]
       if (!it) continue
       const status = r.decision === 'approve' ? 'yellow' : r.decision === 'reject' ? 'red' : null
       if (!status) continue
-      await supabase.from('production_people').upsert({ production_event_id: it.eid, slot: it.slot, name: it.name, status }, { onConflict: 'production_event_id,slot' })
+      const payload = { production_event_id: it.eid, slot: it.slot, name: it.name, status }
+      if (r.note && r.note.trim()) payload.note = r.note.trim()
+      const { error } = await supabase.from('production_people').upsert(payload, { onConflict: 'production_event_id,slot' })
+      if (error) { if (!firstErr) firstErr = error.message; continue }
+      applied++
       setSlots(prev => {
         const arr = [...(prev[it.eid] || [])]
-        if (arr[it.slot]) arr[it.slot] = { ...arr[it.slot], status }
+        if (arr[it.slot]) arr[it.slot] = { ...arr[it.slot], status, ...(payload.note != null ? { note: payload.note } : {}) }
         return { ...prev, [it.eid]: arr }
       })
     }
     await supabase.from('review_links').update({ applied: true }).eq('token', reviewLink.token)
     setReviewBusy(false)
-    alert('הסטטוסים נשמרו חזרה לאירועים')
+    if (firstErr) { alert('נשמרו ' + applied + ' פעולות. שגיאה: ' + firstErr); return }
+    if (applied === 0) { alert('לא נמצאו תגובות לשמירה. ודא שאיש הצוות סימן אישור/לא יכול, ושלחצת "רענן תגובות".'); return }
+    alert('נשמרו ' + applied + ' סטטוסים חזרה לאירועים')
+    closeReview()
   }
 
   function closeReview() {
@@ -663,6 +674,10 @@ function ProductionInquiries() {
                             <input value={slot.name} onChange={e => updateSlotName(ev.id, idx, e.target.value)}
                               onBlur={() => saveSlotName(ev.id, idx)} placeholder="+ שם"
                               className="bg-transparent outline-none text-[12px] text-right w-14 focus:w-28 transition-all text-black placeholder:text-gray-500"/>
+                            {slot.note && slot.note.trim() && (
+                              <button onClick={(e)=>{e.stopPropagation(); alert('הערה מ' + (slot.name||'') + ':\n\n' + slot.note)}} title={slot.note}
+                                className="text-[#E0197D] hover:text-[#A0106A] flex-shrink-0"><i className="ti ti-message-2" style={{fontSize:13}}/></button>
+                            )}
                           </div>
                         )
                       })}
@@ -1568,7 +1583,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V8
+// HAZIRA-GENSCHED-DAYS-V10
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
