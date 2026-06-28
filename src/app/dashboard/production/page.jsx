@@ -58,6 +58,7 @@ function ProductionInquiries() {
   const [reviewLink, setReviewLink] = useState(null)
   const [reviewResponses, setReviewResponses] = useState([])
   const [reviewBusy, setReviewBusy] = useState(false)
+  const [reviewLinksList, setReviewLinksList] = useState([])
   const [notesDraft, setNotesDraft] = useState({})
   const dragId = useRef(null)
   const [draggingId, setDraggingId] = useState(null)
@@ -551,6 +552,22 @@ function ProductionInquiries() {
     return Object.keys(counts).sort().map(name => ({ name, count: counts[name] }))
   }
 
+  async function loadReviewLinksList() {
+    const { data } = await supabase.from('review_links').select('person_name').order('created_at', { ascending: false })
+    setReviewLinksList(data || [])
+  }
+
+  function reviewablePeople() {
+    const byName = {}
+    greenPeople().forEach(g => { byName[g.name] = { name: g.name, count: g.count, hasLink: false } })
+    ;(reviewLinksList || []).forEach(l => {
+      if (!l.person_name) return
+      if (!byName[l.person_name]) byName[l.person_name] = { name: l.person_name, count: 0, hasLink: true }
+      else byName[l.person_name].hasLink = true
+    })
+    return Object.values(byName).sort((a, b) => a.name.localeCompare(b.name))
+  }
+
   async function buildNewLink(name) {
     const items = greenItems().filter(i => i.name === name)
     if (!items.length) { alert('אין פעולות בירוק לאיש הצוות הזה'); return null }
@@ -568,17 +585,23 @@ function ProductionInquiries() {
     setReviewBusy(true)
     const { data: existing } = await supabase.from('review_links').select('*').eq('person_name', name).order('created_at', { ascending: false }).limit(1)
     let lk = existing && existing[0]
-    const liveItems = greenItems().filter(i => i.name === name)
+    const liveGreen = greenItems().filter(i => i.name === name)
     if (!lk) {
-      if (!liveItems.length) { setReviewBusy(false); alert('אין פעולות בירוק לאיש הצוות הזה'); return }
+      if (!liveGreen.length) { setReviewBusy(false); alert('אין פעולות בירוק לאיש הצוות הזה'); return }
       lk = await buildNewLink(name)
       if (!lk) { setReviewBusy(false); return }
-    } else {
-      await supabase.from('review_links').update({ items: liveItems }).eq('token', lk.token)
-      lk = { ...lk, items: liveItems }
+      setReviewLink(lk); setReviewResponses([]); setReviewBusy(false); return
     }
-    setReviewLink(lk)
     const { data: rs } = await supabase.from('review_responses').select('*').eq('token', lk.token)
+    const respondedKeys = new Set((rs || []).filter(r => r.decision).map(r => r.item_key).filter(Boolean))
+    const oldItems = Array.isArray(lk.items) ? lk.items : []
+    const keptResponded = oldItems.filter(it => respondedKeys.has(it.eid + ':' + it.slot))
+    const seen = new Set()
+    const merged = []
+    ;[...liveGreen, ...keptResponded].forEach(it => { const k = it.eid + ':' + it.slot; if (!seen.has(k)) { seen.add(k); merged.push(it) } })
+    await supabase.from('review_links').update({ items: merged }).eq('token', lk.token)
+    lk = { ...lk, items: merged }
+    setReviewLink(lk)
     setReviewResponses(rs || [])
     setReviewBusy(false)
   }
@@ -814,7 +837,7 @@ function ProductionInquiries() {
               className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
               <i className="ti ti-checkbox"/> בחר לייצוא
             </button>
-            <button onClick={() => { setReviewOpen(true); setReviewPerson(''); setReviewLink(null); setReviewResponses([]) }}
+            <button onClick={() => { setReviewOpen(true); setReviewPerson(''); setReviewLink(null); setReviewResponses([]); loadReviewLinksList() }}
               className="bg-white border border-[#14b8a6] text-[#0f766e] text-sm px-4 py-2 rounded-lg hover:bg-[#ccfbf1] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
               <i className="ti ti-clipboard-check"/> שלח לבדיקה
             </button>
@@ -844,14 +867,14 @@ function ProductionInquiries() {
             {!reviewLink ? (
               <div>
                 <div className="text-[13px] text-gray-500 mb-2 text-right">בחר איש צוות — ייאספו כל הפעולות שמסומנות אצלו בירוק (מוכן לבדיקה):</div>
-                {greenPeople().length === 0 ? (
+                {reviewablePeople().length === 0 ? (
                   <div className="text-[13px] text-gray-400 text-center py-6">אין כרגע פעולות מסומנות בירוק</div>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {greenPeople().map(p => (
+                    {reviewablePeople().map(p => (
                       <button key={p.name} disabled={reviewBusy} onClick={() => openReviewForPerson(p.name)}
                         className="flex items-center justify-between border border-gray-200 rounded-xl px-4 py-3 hover:border-[#14b8a6] hover:bg-[#f0fdfa] text-right disabled:opacity-50">
-                        <span className="text-[12px] text-gray-400">{p.count} פעולות</span>
+                        <span className="text-[12px] text-gray-400">{p.count > 0 ? p.count + ' פעולות בירוק' : (p.hasLink ? 'לינק קיים' : '')}</span>
                         <span className="text-[14px] font-medium text-gray-800">{p.name}</span>
                       </button>
                     ))}
@@ -1614,7 +1637,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V13
+// HAZIRA-GENSCHED-DAYS-V14
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
