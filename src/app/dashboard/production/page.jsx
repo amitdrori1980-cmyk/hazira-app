@@ -593,12 +593,17 @@ function ProductionInquiries() {
       setReviewLink(lk); setReviewResponses([]); setReviewBusy(false); return
     }
     const { data: rs } = await supabase.from('review_responses').select('*').eq('token', lk.token)
-    const respondedKeys = new Set((rs || []).filter(r => r.decision).map(r => r.item_key).filter(Boolean))
-    const oldItems = Array.isArray(lk.items) ? lk.items : []
-    const keptResponded = oldItems.filter(it => respondedKeys.has(it.eid + ':' + it.slot))
+    const respondedKeys = (rs || []).filter(r => r.decision && r.item_key).map(r => r.item_key)
     const seen = new Set()
     const merged = []
-    ;[...liveGreen, ...keptResponded].forEach(it => { const k = it.eid + ':' + it.slot; if (!seen.has(k)) { seen.add(k); merged.push(it) } })
+    const pushKey = (k, obj) => { if (seen.has(k)) return; seen.add(k); merged.push(obj) }
+    liveGreen.forEach(i => pushKey(i.eid + ':' + i.slot, i))
+    respondedKeys.forEach(k => {
+      const parts = k.split(':'); const eid = parts[0]; const slot = parseInt(parts[1], 10)
+      const ev = (events || []).find(e => e.id === eid)
+      const nm = (slots[eid] && slots[eid][slot] && slots[eid][slot].name) || name
+      pushKey(k, { eid, slot, name: nm, event_name: ev ? (ev.event_name || '') : '', date: ev ? (ev.date || '') : '', venue: ev ? (ev.venue || '') : '' })
+    })
     await supabase.from('review_links').update({ items: merged }).eq('token', lk.token)
     lk = { ...lk, items: merged }
     setReviewLink(lk)
@@ -1637,7 +1642,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V14
+// HAZIRA-GENSCHED-DAYS-V15
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
