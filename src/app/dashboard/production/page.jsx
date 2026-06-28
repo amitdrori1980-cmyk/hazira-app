@@ -53,6 +53,11 @@ function ProductionInquiries() {
   const [prodSearch, setProdSearch] = useState('')
   const [openMonths, setOpenMonths] = useState({})
   const [collapsedMonths, setCollapsedMonths] = useState({})
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [reviewPerson, setReviewPerson] = useState('')
+  const [reviewLink, setReviewLink] = useState(null)
+  const [reviewResponses, setReviewResponses] = useState([])
+  const [reviewBusy, setReviewBusy] = useState(false)
   const [notesDraft, setNotesDraft] = useState({})
   const dragId = useRef(null)
   const [draggingId, setDraggingId] = useState(null)
@@ -526,6 +531,73 @@ function ProductionInquiries() {
   function toggleSelect(id) {
     setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
+  function greenItems() {
+    const items = []
+    ;(events || []).forEach(ev => {
+      if (ev.deleted_at) return
+      const arr = slots[ev.id] || []
+      arr.forEach(s => {
+        if (s.status === 'green' && s.name && s.name.trim()) {
+          items.push({ eid: ev.id, slot: s.slot, name: s.name.trim(), event_name: ev.event_name || '', date: ev.date || '', venue: ev.venue || '' })
+        }
+      })
+    })
+    return items
+  }
+
+  function greenPeople() {
+    const counts = {}
+    greenItems().forEach(i => { counts[i.name] = (counts[i.name] || 0) + 1 })
+    return Object.keys(counts).sort().map(name => ({ name, count: counts[name] }))
+  }
+
+  async function createReviewLink(name) {
+    if (!name) return
+    const items = greenItems().filter(i => i.name === name)
+    if (!items.length) { alert('אין פעולות בירוק לאיש הצוות הזה'); return }
+    setReviewBusy(true)
+    let uid = null
+    try { const { data } = await supabase.auth.getUser(); uid = data?.user?.id || null } catch (e) {}
+    const token = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2))
+    const { data, error } = await supabase.from('review_links').insert({ token, person_name: name, created_by: uid, items }).select().single()
+    setReviewBusy(false)
+    if (error) { alert('שגיאה: ' + error.message); return }
+    setReviewLink(data)
+    setReviewResponses([])
+  }
+
+  async function loadReviewResponses() {
+    if (!reviewLink) return
+    const { data } = await supabase.from('review_responses').select('*').eq('token', reviewLink.token)
+    setReviewResponses(data || [])
+  }
+
+  async function applyReviewResponses() {
+    if (!reviewLink) return
+    setReviewBusy(true)
+    const { data: resp } = await supabase.from('review_responses').select('*').eq('token', reviewLink.token)
+    const items = reviewLink.items || []
+    for (const r of (resp || [])) {
+      const it = items[r.item_index]
+      if (!it) continue
+      const status = r.decision === 'approve' ? 'yellow' : r.decision === 'reject' ? 'red' : null
+      if (!status) continue
+      await supabase.from('production_people').upsert({ production_event_id: it.eid, slot: it.slot, name: it.name, status }, { onConflict: 'production_event_id,slot' })
+      setSlots(prev => {
+        const arr = [...(prev[it.eid] || [])]
+        if (arr[it.slot]) arr[it.slot] = { ...arr[it.slot], status }
+        return { ...prev, [it.eid]: arr }
+      })
+    }
+    await supabase.from('review_links').update({ applied: true }).eq('token', reviewLink.token)
+    setReviewBusy(false)
+    alert('הסטטוסים נשמרו חזרה לאירועים')
+  }
+
+  function closeReview() {
+    setReviewOpen(false); setReviewPerson(''); setReviewLink(null); setReviewResponses([])
+  }
+
   function exportSelectedPdf() {
     if (!selectedIds.size) return
     setPrintMode('selected')
@@ -699,6 +771,10 @@ function ProductionInquiries() {
               className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
               <i className="ti ti-checkbox"/> בחר לייצוא
             </button>
+            <button onClick={() => { setReviewOpen(true); setReviewPerson(''); setReviewLink(null); setReviewResponses([]) }}
+              className="bg-white border border-[#14b8a6] text-[#0f766e] text-sm px-4 py-2 rounded-lg hover:bg-[#ccfbf1] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
+              <i className="ti ti-clipboard-check"/> שלח לבדיקה
+            </button>
           </>
         )}
         <button onClick={syncAll} disabled={bulkBusy || (activeEvents.length===0 && liveEvents.length===0)}
@@ -714,6 +790,76 @@ function ProductionInquiries() {
           <i className="ti ti-plus"/> אירוע חדש
         </button>
       </div>
+      {reviewOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center overflow-y-auto py-8 px-3 no-print" onClick={closeReview}>
+          <div className="bg-white rounded-2xl p-5 w-full max-w-lg my-auto" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={closeReview} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{fontSize:18}}/></button>
+              <div className="text-[15px] font-bold text-gray-800 text-right">שליחה לבדיקה</div>
+            </div>
+
+            {!reviewLink ? (
+              <div>
+                <div className="text-[13px] text-gray-500 mb-2 text-right">בחר איש צוות — ייאספו כל הפעולות שמסומנות אצלו בירוק (מוכן לבדיקה):</div>
+                {greenPeople().length === 0 ? (
+                  <div className="text-[13px] text-gray-400 text-center py-6">אין כרגע פעולות מסומנות בירוק</div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {greenPeople().map(p => (
+                      <button key={p.name} disabled={reviewBusy} onClick={() => { setReviewPerson(p.name); createReviewLink(p.name) }}
+                        className="flex items-center justify-between border border-gray-200 rounded-xl px-4 py-3 hover:border-[#14b8a6] hover:bg-[#f0fdfa] text-right disabled:opacity-50">
+                        <span className="text-[12px] text-gray-400">{p.count} פעולות</span>
+                        <span className="text-[14px] font-medium text-gray-800">{p.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div>
+                <div className="text-[14px] font-bold text-gray-800 text-right mb-1">{reviewLink.person_name}</div>
+                <div className="text-[12px] text-gray-500 text-right mb-3">{(reviewLink.items||[]).length} פעולות לבדיקה</div>
+
+                <div className="text-[12px] text-gray-500 text-right mb-1">לינק לשליחה:</div>
+                <div className="flex items-center gap-2 mb-4">
+                  <button onClick={() => { try { navigator.clipboard.writeText((typeof window!=='undefined'?window.location.origin:'') + '/review/' + reviewLink.token); alert('הלינק הועתק') } catch(e){} }}
+                    className="bg-[#14b8a6] text-white text-[12px] px-3 py-2 rounded-lg hover:bg-[#0f766e] flex-shrink-0">העתק</button>
+                  <input readOnly value={(typeof window!=='undefined'?window.location.origin:'') + '/review/' + reviewLink.token}
+                    className="flex-1 text-[12px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none text-left" dir="ltr"/>
+                </div>
+
+                <div className="flex items-center justify-between mb-2">
+                  <button onClick={loadReviewResponses} className="text-[12px] text-[#14b8a6] hover:underline flex items-center gap-1"><i className="ti ti-refresh" style={{fontSize:13}}/> רענן תגובות</button>
+                  <div className="text-[12px] font-medium text-gray-700">תגובות שהתקבלו</div>
+                </div>
+                <div className="border border-gray-100 rounded-xl divide-y divide-gray-50 mb-4 max-h-60 overflow-y-auto">
+                  {(reviewLink.items||[]).map((it, idx) => {
+                    const r = reviewResponses.find(x => x.item_index === idx)
+                    const decLabel = r?.decision === 'approve' ? 'אישר' : r?.decision === 'reject' ? 'לא יכול' : 'ממתין'
+                    const decColor = r?.decision === 'approve' ? 'text-yellow-700 bg-yellow-100' : r?.decision === 'reject' ? 'text-red-700 bg-red-100' : 'text-gray-400 bg-gray-100'
+                    return (
+                      <div key={idx} className="p-2.5 text-right">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`text-[11px] px-2 py-0.5 rounded-full ${decColor}`}>{decLabel}</span>
+                          <span className="text-[13px] text-gray-800 flex-1">{it.event_name}{it.date ? ` · ${fmtDate(it.date)}` : ''}{it.venue ? ` · ${it.venue}` : ''}</span>
+                        </div>
+                        {r?.note && <div className="text-[12px] text-gray-500 mt-1">הערה: {r.note}</div>}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <button onClick={applyReviewResponses} disabled={reviewBusy}
+                  className="w-full bg-[#E0197D] text-white text-[13px] px-4 py-2.5 rounded-lg hover:bg-[#A0106A] disabled:opacity-50 flex items-center justify-center gap-1">
+                  <i className="ti ti-device-floppy"/> {reviewBusy ? 'שומר...' : 'שמור סטטוסים חזרה לאירועים'}
+                </button>
+                <div className="text-[11px] text-gray-400 text-center mt-2">אישר → צהוב · לא יכול → אדום</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {showImport && (
         <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
@@ -1422,7 +1568,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V5
+// HAZIRA-GENSCHED-DAYS-V8
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
