@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-REVIEW-PUBLIC-V1
+// HAZIRA-REVIEW-PUBLIC-V2
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -28,12 +28,23 @@ export default function ReviewPage() {
       setLink(l)
       const { data: rs } = await supabase.from('review_responses').select('*').eq('token', token)
       const map = {}
-      ;(rs || []).forEach(r => { map[r.item_index] = { decision: r.decision || '', note: r.note || '' } })
+      const its = l.items || []
+      ;(rs || []).forEach(r => {
+        let idx = -1
+        if (r.item_key) idx = its.findIndex(x => (x.eid + ':' + x.slot) === r.item_key)
+        if (idx < 0 && r.item_index != null) idx = r.item_index
+        if (idx >= 0) map[idx] = { decision: r.decision || '', note: r.note || '' }
+      })
       setResponses(map)
       setLoading(false)
     }
     load()
   }, [token])
+
+  function itemKey(idx) {
+    const it = (link?.items || [])[idx]
+    return it ? (it.eid + ':' + it.slot) : ('idx:' + idx)
+  }
 
   async function setDecision(idx, decision) {
     const cur = responses[idx] || { decision: '', note: '' }
@@ -41,8 +52,8 @@ export default function ReviewPage() {
     setResponses(prev => ({ ...prev, [idx]: next }))
     setSavingIdx(idx)
     await supabase.from('review_responses').upsert(
-      { token, item_index: idx, decision, note: next.note || '', updated_at: new Date().toISOString() },
-      { onConflict: 'token,item_index' }
+      { token, item_key: itemKey(idx), item_index: idx, decision, note: next.note || '', updated_at: new Date().toISOString() },
+      { onConflict: 'token,item_key' }
     )
     setSavingIdx(null)
   }
@@ -50,8 +61,8 @@ export default function ReviewPage() {
   async function saveNote(idx) {
     const cur = responses[idx] || { decision: '', note: '' }
     await supabase.from('review_responses').upsert(
-      { token, item_index: idx, decision: cur.decision || '', note: cur.note || '', updated_at: new Date().toISOString() },
-      { onConflict: 'token,item_index' }
+      { token, item_key: itemKey(idx), item_index: idx, decision: cur.decision || '', note: cur.note || '', updated_at: new Date().toISOString() },
+      { onConflict: 'token,item_key' }
     )
   }
 

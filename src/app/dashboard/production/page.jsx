@@ -568,7 +568,15 @@ function ProductionInquiries() {
     setReviewBusy(true)
     const { data: existing } = await supabase.from('review_links').select('*').eq('person_name', name).order('created_at', { ascending: false }).limit(1)
     let lk = existing && existing[0]
-    if (!lk) { lk = await buildNewLink(name); if (!lk) { setReviewBusy(false); return } }
+    const liveItems = greenItems().filter(i => i.name === name)
+    if (!lk) {
+      if (!liveItems.length) { setReviewBusy(false); alert('אין פעולות בירוק לאיש הצוות הזה'); return }
+      lk = await buildNewLink(name)
+      if (!lk) { setReviewBusy(false); return }
+    } else {
+      await supabase.from('review_links').update({ items: liveItems }).eq('token', lk.token)
+      lk = { ...lk, items: liveItems }
+    }
     setReviewLink(lk)
     const { data: rs } = await supabase.from('review_responses').select('*').eq('token', lk.token)
     setReviewResponses(rs || [])
@@ -600,7 +608,9 @@ function ProductionInquiries() {
     let applied = 0
     let firstErr = null
     for (const r of (resp || [])) {
-      const it = items[r.item_index]
+      let it = null
+      if (r.item_key) it = items.find(x => (x.eid + ':' + x.slot) === r.item_key)
+      if (!it && r.item_index != null) it = items[r.item_index]
       if (!it) continue
       const status = r.decision === 'approve' ? 'yellow' : r.decision === 'reject' ? 'red' : null
       if (!status) continue
@@ -870,7 +880,7 @@ function ProductionInquiries() {
                 </div>
                 <div className="border border-gray-100 rounded-xl divide-y divide-gray-50 mb-4 max-h-60 overflow-y-auto">
                   {(reviewLink.items||[]).map((it, idx) => {
-                    const r = reviewResponses.find(x => x.item_index === idx)
+                    const r = reviewResponses.find(x => x.item_key === (it.eid + ':' + it.slot)) || reviewResponses.find(x => x.item_index === idx)
                     const decLabel = r?.decision === 'approve' ? 'אישר' : r?.decision === 'reject' ? 'לא יכול' : 'ממתין'
                     const decColor = r?.decision === 'approve' ? 'text-yellow-700 bg-yellow-100' : r?.decision === 'reject' ? 'text-red-700 bg-red-100' : 'text-gray-400 bg-gray-100'
                     return (
@@ -1604,7 +1614,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V12
+// HAZIRA-GENSCHED-DAYS-V13
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
