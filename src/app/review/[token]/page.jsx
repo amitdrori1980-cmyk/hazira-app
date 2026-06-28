@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-REVIEW-PUBLIC-V2
+// HAZIRA-REVIEW-PUBLIC-V3
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -51,19 +51,21 @@ export default function ReviewPage() {
     const next = { ...cur, decision }
     setResponses(prev => ({ ...prev, [idx]: next }))
     setSavingIdx(idx)
-    await supabase.from('review_responses').upsert(
-      { token, item_key: itemKey(idx), item_index: idx, decision, note: next.note || '', updated_at: new Date().toISOString() },
+    const { error } = await supabase.from('review_responses').upsert(
+      { token, item_key: itemKey(idx), decision, note: next.note || '', updated_at: new Date().toISOString() },
       { onConflict: 'token,item_key' }
     )
     setSavingIdx(null)
+    if (error) alert('שגיאה בשמירה: ' + error.message)
   }
 
   async function saveNote(idx) {
     const cur = responses[idx] || { decision: '', note: '' }
-    await supabase.from('review_responses').upsert(
-      { token, item_key: itemKey(idx), item_index: idx, decision: cur.decision || '', note: cur.note || '', updated_at: new Date().toISOString() },
+    const { error } = await supabase.from('review_responses').upsert(
+      { token, item_key: itemKey(idx), decision: cur.decision || '', note: cur.note || '', updated_at: new Date().toISOString() },
       { onConflict: 'token,item_key' }
     )
+    if (error) alert('שגיאה בשמירת ההערה: ' + error.message)
   }
 
   if (loading) return <div style={{ fontFamily: 'Calibri, sans-serif' }} className="min-h-screen flex items-center justify-center text-gray-400">טוען...</div>
