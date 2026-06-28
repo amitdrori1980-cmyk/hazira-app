@@ -449,13 +449,13 @@ function ProductionInquiries() {
   async function updateSlotStatus(eventId, slotIdx, status) {
     setSlots(prev => {
       const updated = [...(prev[eventId] || emptySlots())]
-      updated[slotIdx] = { ...updated[slotIdx], status }
+      updated[slotIdx] = { ...updated[slotIdx], status, note: '' }
       return { ...prev, [eventId]: updated }
     })
     setStatusPicker(null)
     await supabase.from('production_people').upsert({
       production_event_id: eventId, slot: slotIdx,
-      name: (slots[eventId]||emptySlots())[slotIdx].name, status,
+      name: (slots[eventId]||emptySlots())[slotIdx].name, status, note: '',
     }, { onConflict: 'production_event_id,slot' })
   }
 
@@ -1583,7 +1583,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V10
+// HAZIRA-GENSCHED-DAYS-V11
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
