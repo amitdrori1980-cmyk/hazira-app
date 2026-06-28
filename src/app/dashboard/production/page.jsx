@@ -551,19 +551,37 @@ function ProductionInquiries() {
     return Object.keys(counts).sort().map(name => ({ name, count: counts[name] }))
   }
 
-  async function createReviewLink(name) {
-    if (!name) return
+  async function buildNewLink(name) {
     const items = greenItems().filter(i => i.name === name)
-    if (!items.length) { alert('אין פעולות בירוק לאיש הצוות הזה'); return }
-    setReviewBusy(true)
+    if (!items.length) { alert('אין פעולות בירוק לאיש הצוות הזה'); return null }
     let uid = null
     try { const { data } = await supabase.auth.getUser(); uid = data?.user?.id || null } catch (e) {}
     const token = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2))
     const { data, error } = await supabase.from('review_links').insert({ token, person_name: name, created_by: uid, items }).select().single()
+    if (error) { alert('שגיאה: ' + error.message); return null }
+    return data
+  }
+
+  async function openReviewForPerson(name) {
+    if (!name) return
+    setReviewPerson(name)
+    setReviewBusy(true)
+    const { data: existing } = await supabase.from('review_links').select('*').eq('person_name', name).order('created_at', { ascending: false }).limit(1)
+    let lk = existing && existing[0]
+    if (!lk) { lk = await buildNewLink(name); if (!lk) { setReviewBusy(false); return } }
+    setReviewLink(lk)
+    const { data: rs } = await supabase.from('review_responses').select('*').eq('token', lk.token)
+    setReviewResponses(rs || [])
     setReviewBusy(false)
-    if (error) { alert('שגיאה: ' + error.message); return }
-    setReviewLink(data)
-    setReviewResponses([])
+  }
+
+  async function forceNewReviewLink() {
+    if (!reviewPerson) return
+    if (!window.confirm('ליצור לינק חדש? הלינק הקודם והתגובות בו לא יוצגו יותר כאן.')) return
+    setReviewBusy(true)
+    const lk = await buildNewLink(reviewPerson)
+    if (lk) { setReviewLink(lk); setReviewResponses([]) }
+    setReviewBusy(false)
   }
 
   async function loadReviewResponses() {
@@ -821,7 +839,7 @@ function ProductionInquiries() {
                 ) : (
                   <div className="flex flex-col gap-2">
                     {greenPeople().map(p => (
-                      <button key={p.name} disabled={reviewBusy} onClick={() => { setReviewPerson(p.name); createReviewLink(p.name) }}
+                      <button key={p.name} disabled={reviewBusy} onClick={() => openReviewForPerson(p.name)}
                         className="flex items-center justify-between border border-gray-200 rounded-xl px-4 py-3 hover:border-[#14b8a6] hover:bg-[#f0fdfa] text-right disabled:opacity-50">
                         <span className="text-[12px] text-gray-400">{p.count} פעולות</span>
                         <span className="text-[14px] font-medium text-gray-800">{p.name}</span>
@@ -844,7 +862,10 @@ function ProductionInquiries() {
                 </div>
 
                 <div className="flex items-center justify-between mb-2">
-                  <button onClick={loadReviewResponses} className="text-[12px] text-[#14b8a6] hover:underline flex items-center gap-1"><i className="ti ti-refresh" style={{fontSize:13}}/> רענן תגובות</button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={loadReviewResponses} className="text-[12px] text-[#14b8a6] hover:underline flex items-center gap-1"><i className="ti ti-refresh" style={{fontSize:13}}/> רענן תגובות</button>
+                    <button onClick={forceNewReviewLink} className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1"><i className="ti ti-plus" style={{fontSize:13}}/> לינק חדש</button>
+                  </div>
                   <div className="text-[12px] font-medium text-gray-700">תגובות שהתקבלו</div>
                 </div>
                 <div className="border border-gray-100 rounded-xl divide-y divide-gray-50 mb-4 max-h-60 overflow-y-auto">
@@ -1583,7 +1604,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V11
+// HAZIRA-GENSCHED-DAYS-V12
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
