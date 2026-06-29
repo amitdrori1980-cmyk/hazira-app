@@ -1642,7 +1642,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V15
+// HAZIRA-GENSCHED-DAYS-V16
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
@@ -2323,6 +2323,7 @@ function ProductionTasks() {
 export default function ProductionPage() {
   const [profile, setProfile] = useState(null)
   const [tab, setTab] = useState(null)
+  const [showTop, setShowTop] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -2331,6 +2332,13 @@ export default function ProductionPage() {
       setProfile(p)
       setTab('inquiries')
     })
+  }, [])
+
+  useEffect(() => {
+    const onScroll = () => setShowTop(window.scrollY > 300)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   if (!tab) return null
@@ -2351,6 +2359,12 @@ export default function ProductionPage() {
         ))}
       </div>
       {tab === 'tasks' ? <ProductionTasks /> : <ProductionInquiries />}
+      {showTop && (
+        <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} title="חזרה לראש העמוד"
+          className="fixed bottom-6 left-6 z-40 w-11 h-11 rounded-full bg-[#E0197D] text-white shadow-lg hover:bg-[#A0106A] flex items-center justify-center no-print">
+          <i className="ti ti-arrow-up" style={{ fontSize: 20 }} />
+        </button>
+      )}
     </div>
   )
 }
