@@ -1645,7 +1645,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V24
+// HAZIRA-GENSCHED-DAYS-V25
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
@@ -1977,7 +1977,7 @@ export function GeneralSchedulesMode() {
     return txt.trim()
   }
 
-  async function sharePdf(sch) {
+  async function buildRundownPdfUrl(sch) {
     const schRows = await rundownRows(sch)
     const cell = 'padding:7px 12px;border-bottom:1px solid #eee;text-align:right'
     const rowsHtml = schRows.map(r => r.row_type === 'day'
@@ -2018,20 +2018,27 @@ export function GeneralSchedulesMode() {
       const blob = pdf.output('blob')
       const path = `rundowns/${sch.id}.pdf`
       const up = await supabase.storage.from('venues').upload(path, blob, { upsert: true, contentType: 'application/pdf' })
-      if (up.error) { alert('שגיאה בהעלאת הקובץ: ' + up.error.message); return }
+      if (up.error) { alert('שגיאה בהעלאת הקובץ: ' + up.error.message); return null }
       const { data: pub } = supabase.storage.from('venues').getPublicUrl(path)
-      const url = pub.publicUrl + '?t=' + Date.now()
-      window.open('https://wa.me/?text=' + encodeURIComponent('לוז: ' + sch.title + '\n' + url), '_blank')
+      return pub.publicUrl + '?t=' + Date.now()
     } catch (e) {
       alert('שגיאה ביצירת ה-PDF: ' + (e && e.message ? e.message : e))
+      return null
     } finally {
       document.body.removeChild(container)
     }
   }
 
+  async function sharePdf(sch) {
+    const url = await buildRundownPdfUrl(sch)
+    if (!url) return
+    window.open('https://wa.me/?text=' + encodeURIComponent('לוז: ' + sch.title + '\n' + url), '_blank')
+  }
+
   async function sendEmail(sch) {
-    const schRows = await rundownRows(sch)
-    window.location.href = 'mailto:?subject=' + encodeURIComponent('לוז: ' + sch.title) + '&body=' + encodeURIComponent(rundownText(sch, schRows))
+    const url = await buildRundownPdfUrl(sch)
+    if (!url) return
+    window.location.href = 'mailto:?subject=' + encodeURIComponent('לוז: ' + sch.title) + '&body=' + encodeURIComponent('לוז: ' + sch.title + '\n' + url)
   }
 
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
