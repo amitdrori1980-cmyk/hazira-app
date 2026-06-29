@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import * as XLSX from 'xlsx'
+// HAZIRA-RUNDOWN-SHARE-V1
 
 export default function RundownsPage() {
   const [templates, setTemplates] = useState([])
@@ -89,6 +90,27 @@ export default function RundownsPage() {
     XLSX.writeFile(wb, (t.name || 'לוז') + '.xlsx')
   }
 
+  function rundownText(t) {
+    const lines = [t.name || 'לוז', '']
+    ;(t.rows || []).forEach(r => {
+      const parts = []
+      if (r.time) parts.push(r.time)
+      if (r.what) parts.push(r.what)
+      if (r.who) parts.push('(' + r.who + ')')
+      if (r.notes) parts.push('— ' + r.notes)
+      if (parts.length) lines.push(parts.join(' '))
+    })
+    return lines.join('\n')
+  }
+
+  function sendWhatsapp(t) {
+    window.open('https://wa.me/?text=' + encodeURIComponent(rundownText(t)), '_blank')
+  }
+
+  function sendEmail(t) {
+    window.location.href = 'mailto:?subject=' + encodeURIComponent(t.name || 'לוז') + '&body=' + encodeURIComponent(rundownText(t))
+  }
+
   function exportPdf(t) {
     const rows = (t.rows || []).map(r =>
       `<tr><td>${r.time||''}</td><td>${r.what||''}</td><td>${r.who||''}</td><td>${r.notes||''}</td></tr>`
@@ -170,7 +192,13 @@ export default function RundownsPage() {
                 <div className="text-[14px] font-medium text-gray-800">{t.name}</div>
                 <div className="text-[12px] text-gray-400 mt-0.5">{t.rows?.length || 0} שורות</div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <button onClick={()=>sendWhatsapp(t)} className="text-gray-400 hover:text-green-600 p-1.5 border border-gray-200 rounded-lg" title="שלח בוואטסאפ">
+                  <i className="ti ti-brand-whatsapp" style={{fontSize:14}}/>
+                </button>
+                <button onClick={()=>sendEmail(t)} className="text-gray-400 hover:text-[#E0197D] p-1.5 border border-gray-200 rounded-lg" title="שלח במייל">
+                  <i className="ti ti-mail" style={{fontSize:14}}/>
+                </button>
                 <button onClick={()=>exportXlsx(t)} className="text-[11px] text-gray-500 hover:text-green-600 px-2 py-1 border border-gray-200 rounded-lg" title="ייצוא Excel">
                   XLS
                 </button>
