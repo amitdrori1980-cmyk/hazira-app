@@ -1645,7 +1645,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V21
+// HAZIRA-GENSCHED-DAYS-V22
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
@@ -1986,7 +1986,7 @@ export function GeneralSchedulesMode() {
     ).join('')
     const th = 'background:#E0197D;color:#fff;padding:8px 12px;text-align:right'
     const container = document.createElement('div')
-    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:760px;background:#fff;padding:24px;font-family:Arial,sans-serif;direction:rtl'
+    container.style.cssText = 'position:fixed;left:-10000px;top:0;width:760px;background:#fff;padding:24px;font-family:Arial,sans-serif;direction:rtl'
     container.innerHTML = `
       <h2 style="color:#CC1010;margin:0 0 4px">${sch.title}</h2>
       <div style="color:#666;font-size:13px;margin-bottom:16px">${sch.venue?sch.venue+' · ':''}${sch.participants?'משתתפים: '+sch.participants:''}</div>
@@ -1996,12 +1996,26 @@ export function GeneralSchedulesMode() {
       </table>`
     document.body.appendChild(container)
     try {
+      const html2canvas = (await import('html2canvas')).default
       const { jsPDF } = await import('jspdf')
-      const doc = new jsPDF('p', 'pt', 'a4')
-      await new Promise((resolve) => {
-        doc.html(container, { callback: () => resolve(), x: 20, y: 20, width: 555, windowWidth: 760, autoPaging: 'text' })
-      })
-      const blob = doc.output('blob')
+      const canvas = await html2canvas(container, { scale: 2, backgroundColor: '#ffffff' })
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF('p', 'pt', 'a4')
+      const pageW = pdf.internal.pageSize.getWidth()
+      const pageH = pdf.internal.pageSize.getHeight()
+      const imgW = pageW
+      const imgH = canvas.height * imgW / canvas.width
+      let heightLeft = imgH
+      let position = 0
+      pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
+      heightLeft -= pageH
+      while (heightLeft > 0) {
+        position -= pageH
+        pdf.addPage()
+        pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
+        heightLeft -= pageH
+      }
+      const blob = pdf.output('blob')
       const file = new File([blob], `לוז_${sch.title}.pdf`, { type: 'application/pdf' })
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: 'לוז: ' + sch.title })
