@@ -1645,7 +1645,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V19
+// HAZIRA-GENSCHED-DAYS-V20
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
@@ -1943,6 +1943,50 @@ export function GeneralSchedulesMode() {
     win.document.close()
   }
 
+  async function rundownRows(sch) {
+    let schRows = rows[sch.id]
+    if (!schRows) {
+      const { data } = await supabase
+        .from('general_schedule_rows')
+        .select('*')
+        .eq('schedule_id', sch.id)
+        .order('sort_order')
+      schRows = data || []
+    }
+    return schRows
+  }
+
+  function rundownText(sch, schRows) {
+    let txt = 'לוז: ' + sch.title + '\n'
+    if (sch.venue) txt += sch.venue + '\n'
+    if (sch.participants) txt += 'משתתפים: ' + sch.participants + '\n'
+    txt += '\n'
+    schRows.forEach(r => {
+      if (r.row_type === 'day') {
+        txt += '\n*' + fmtDayHeader(r.day_date) + (r.day_label ? ' · ' + r.day_label : '') + '*\n'
+      } else {
+        const parts = []
+        if (r.time) parts.push(r.time)
+        if (r.what) parts.push(r.what)
+        if (r.who) parts.push('(' + r.who + ')')
+        let line = parts.join(' · ')
+        if (r.notes) line += ' — ' + r.notes
+        txt += line + '\n'
+      }
+    })
+    return txt.trim()
+  }
+
+  async function sendWhatsapp(sch) {
+    const schRows = await rundownRows(sch)
+    window.open('https://wa.me/?text=' + encodeURIComponent(rundownText(sch, schRows)), '_blank')
+  }
+
+  async function sendEmail(sch) {
+    const schRows = await rundownRows(sch)
+    window.location.href = 'mailto:?subject=' + encodeURIComponent('לוז: ' + sch.title) + '&body=' + encodeURIComponent(rundownText(sch, schRows))
+  }
+
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
 
   return (
@@ -2007,6 +2051,14 @@ export function GeneralSchedulesMode() {
                 <button onClick={e => { e.stopPropagation(); exportPdf(sch) }}
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="ייצוא PDF">
                   <i className="ti ti-file-type-pdf" style={{fontSize:13}}/>
+                </button>
+                <button onClick={e => { e.stopPropagation(); sendWhatsapp(sch) }}
+                  className="text-gray-300 hover:text-green-600 p-1" title="שלח בוואטסאפ">
+                  <i className="ti ti-brand-whatsapp" style={{fontSize:13}}/>
+                </button>
+                <button onClick={e => { e.stopPropagation(); sendEmail(sch) }}
+                  className="text-gray-300 hover:text-[#E0197D] p-1" title="שלח במייל">
+                  <i className="ti ti-mail" style={{fontSize:13}}/>
                 </button>
                 <button onClick={e => { e.stopPropagation(); document.getElementById(`xl-${sch.id}`).click() }}
                   className="text-gray-300 hover:text-green-600 p-1" title="ייבא מאקסל">
