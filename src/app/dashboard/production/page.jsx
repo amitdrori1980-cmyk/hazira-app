@@ -895,6 +895,8 @@ function ProductionInquiries() {
                 <div className="flex items-center gap-2 mb-4">
                   <button onClick={() => { try { navigator.clipboard.writeText((typeof window!=='undefined'?window.location.origin:'') + '/review/' + reviewLink.token); alert('הלינק הועתק') } catch(e){} }}
                     className="bg-[#14b8a6] text-white text-[12px] px-3 py-2 rounded-lg hover:bg-[#0f766e] flex-shrink-0">העתק</button>
+                  <button onClick={() => { if (typeof window!=='undefined') window.open(window.location.origin + '/review/' + reviewLink.token, '_blank') }}
+                    className="bg-white border border-[#14b8a6] text-[#0f766e] text-[12px] px-3 py-2 rounded-lg hover:bg-[#ccfbf1] flex-shrink-0 flex items-center gap-1"><i className="ti ti-external-link" style={{fontSize:13}}/> פתח</button>
                   <input readOnly value={(typeof window!=='undefined'?window.location.origin:'') + '/review/' + reviewLink.token}
                     className="flex-1 text-[12px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none text-left" dir="ltr"/>
                 </div>
@@ -1643,7 +1645,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V18
+// HAZIRA-GENSCHED-DAYS-V19
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
