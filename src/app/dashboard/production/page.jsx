@@ -538,7 +538,7 @@ function ProductionInquiries() {
       if (ev.deleted_at) return
       const arr = slots[ev.id] || []
       arr.forEach(s => {
-        if (s.status === 'green' && s.name && s.name.trim()) {
+        if ((s.status === 'green' || s.status === 'teal') && s.name && s.name.trim()) {
           items.push({ eid: ev.id, slot: s.slot, name: s.name.trim(), event_name: ev.event_name || '', date: ev.date || '', venue: ev.venue || '' })
         }
       })
@@ -871,15 +871,15 @@ function ProductionInquiries() {
 
             {!reviewLink ? (
               <div>
-                <div className="text-[13px] text-gray-500 mb-2 text-right">בחר איש צוות — ייאספו כל הפעולות שמסומנות אצלו בירוק (מוכן לבדיקה):</div>
+                <div className="text-[13px] text-gray-500 mb-2 text-right">בחר איש צוות — ייאספו כל הפעולות שמסומנות אצלו בירוק או טורקיז:</div>
                 {reviewablePeople().length === 0 ? (
-                  <div className="text-[13px] text-gray-400 text-center py-6">אין כרגע פעולות מסומנות בירוק</div>
+                  <div className="text-[13px] text-gray-400 text-center py-6">אין כרגע פעולות לבדיקה</div>
                 ) : (
                   <div className="flex flex-col gap-2">
                     {reviewablePeople().map(p => (
                       <button key={p.name} disabled={reviewBusy} onClick={() => openReviewForPerson(p.name)}
                         className="flex items-center justify-between border border-gray-200 rounded-xl px-4 py-3 hover:border-[#14b8a6] hover:bg-[#f0fdfa] text-right disabled:opacity-50">
-                        <span className="text-[12px] text-gray-400">{p.count > 0 ? p.count + ' פעולות בירוק' : (p.hasLink ? 'לינק קיים' : '')}</span>
+                        <span className="text-[12px] text-gray-400">{p.count > 0 ? p.count + ' פעולות לבדיקה' : (p.hasLink ? 'לינק קיים' : '')}</span>
                         <span className="text-[14px] font-medium text-gray-800">{p.name}</span>
                       </button>
                     ))}
@@ -918,6 +918,7 @@ function ProductionInquiries() {
                           <span className="text-[13px] text-gray-800 flex-1">{it.event_name}{it.date ? ` · ${fmtDate(it.date)}` : ''}{it.venue ? ` · ${it.venue}` : ''}</span>
                         </div>
                         {r?.note && <div className="text-[12px] text-gray-500 mt-1">הערה: {r.note}</div>}
+                        {r?.updated_at && r?.decision && <div className="text-[11px] text-gray-400 mt-0.5">עודכן: {new Date(r.updated_at).toLocaleString('he-IL', {day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})}</div>}
                       </div>
                     )
                   })}
@@ -1642,7 +1643,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V17
+// HAZIRA-GENSCHED-DAYS-V18
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)

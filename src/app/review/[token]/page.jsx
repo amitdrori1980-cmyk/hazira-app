@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-REVIEW-PUBLIC-V3
+// HAZIRA-REVIEW-PUBLIC-V4
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -33,7 +33,7 @@ export default function ReviewPage() {
         let idx = -1
         if (r.item_key) idx = its.findIndex(x => (x.eid + ':' + x.slot) === r.item_key)
         if (idx < 0 && r.item_index != null) idx = r.item_index
-        if (idx >= 0) map[idx] = { decision: r.decision || '', note: r.note || '' }
+        if (idx >= 0) map[idx] = { decision: r.decision || '', note: r.note || '', updated_at: r.updated_at || null }
       })
       setResponses(map)
       setLoading(false)
@@ -48,23 +48,37 @@ export default function ReviewPage() {
 
   async function setDecision(idx, decision) {
     const cur = responses[idx] || { decision: '', note: '' }
-    const next = { ...cur, decision }
+    const nowIso = new Date().toISOString()
+    const next = { ...cur, decision, updated_at: nowIso }
     setResponses(prev => ({ ...prev, [idx]: next }))
     setSavingIdx(idx)
     const { error } = await supabase.from('review_responses').upsert(
-      { token, item_key: itemKey(idx), decision, note: next.note || '', updated_at: new Date().toISOString() },
+      { token, item_key: itemKey(idx), decision, note: next.note || '', updated_at: nowIso },
       { onConflict: 'token,item_key' }
     )
     setSavingIdx(null)
     if (error) alert('שגיאה בשמירה: ' + error.message)
   }
 
-  async function saveNote(idx) {
+  async function clearDecision(idx) {
     const cur = responses[idx] || { decision: '', note: '' }
+    const nowIso = new Date().toISOString()
+    setResponses(prev => ({ ...prev, [idx]: { ...cur, decision: '', updated_at: nowIso } }))
     const { error } = await supabase.from('review_responses').upsert(
-      { token, item_key: itemKey(idx), decision: cur.decision || '', note: cur.note || '', updated_at: new Date().toISOString() },
+      { token, item_key: itemKey(idx), decision: '', note: cur.note || '', updated_at: nowIso },
       { onConflict: 'token,item_key' }
     )
+    if (error) alert('שגיאה: ' + error.message)
+  }
+
+  async function saveNote(idx) {
+    const cur = responses[idx] || { decision: '', note: '' }
+    const nowIso = new Date().toISOString()
+    const { error } = await supabase.from('review_responses').upsert(
+      { token, item_key: itemKey(idx), decision: cur.decision || '', note: cur.note || '', updated_at: nowIso },
+      { onConflict: 'token,item_key' }
+    )
+    setResponses(prev => ({ ...prev, [idx]: { ...(prev[idx] || { decision: '' }), updated_at: nowIso } }))
     if (error) alert('שגיאה בשמירת ההערה: ' + error.message)
   }
 
@@ -100,7 +114,7 @@ export default function ReviewPage() {
                 <div className="text-[12px] text-gray-500 text-right mb-3">
                   {it.date ? fmtDate(it.date) : ''}{it.venue ? ` · ${it.venue}` : ''}
                 </div>
-                <div className="flex gap-2 mb-3">
+                <div className="flex gap-2 mb-2">
                   <button onClick={() => setDecision(idx, 'approve')}
                     className={`flex-1 text-[14px] py-2.5 rounded-xl border font-medium transition-colors ${r.decision === 'approve' ? 'bg-yellow-400 border-yellow-400 text-yellow-950' : 'bg-white border-gray-200 text-gray-500 hover:border-yellow-400'}`}>
                     <i className="ti ti-check"/> מאשר
@@ -110,6 +124,11 @@ export default function ReviewPage() {
                     <i className="ti ti-x"/> לא יכול
                   </button>
                 </div>
+                {r.decision && (
+                  <button onClick={() => clearDecision(idx)} className="text-[12px] text-gray-400 hover:text-gray-600 mb-2 flex items-center gap-1">
+                    <i className="ti ti-eraser" style={{fontSize:13}}/> נקה בחירה
+                  </button>
+                )}
                 <textarea
                   value={r.note}
                   onChange={e => setResponses(prev => ({ ...prev, [idx]: { ...(prev[idx] || { decision: '' }), note: e.target.value } }))}
@@ -119,6 +138,9 @@ export default function ReviewPage() {
                   className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y"
                 />
                 {savingIdx === idx && <div className="text-[11px] text-gray-400 mt-1 text-left">נשמר…</div>}
+                {r.updated_at && (
+                  <div className="text-[11px] text-gray-400 mt-1 text-left">עודכן: {new Date(r.updated_at).toLocaleString('he-IL', {day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+                )}
               </div>
             )
           })}
