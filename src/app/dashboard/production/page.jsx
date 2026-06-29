@@ -1645,7 +1645,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V22
+// HAZIRA-GENSCHED-DAYS-V24
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
@@ -2016,18 +2016,14 @@ export function GeneralSchedulesMode() {
         heightLeft -= pageH
       }
       const blob = pdf.output('blob')
-      const file = new File([blob], `לוז_${sch.title}.pdf`, { type: 'application/pdf' })
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'לוז: ' + sch.title })
-      } else {
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url; a.download = file.name; a.click()
-        URL.revokeObjectURL(url)
-        alert('הדפדפן לא תומך בשיתוף קובץ ישירות. ה-PDF הורד — אפשר לצרף אותו ידנית בוואטסאפ.')
-      }
+      const path = `rundowns/${sch.id}.pdf`
+      const up = await supabase.storage.from('venues').upload(path, blob, { upsert: true, contentType: 'application/pdf' })
+      if (up.error) { alert('שגיאה בהעלאת הקובץ: ' + up.error.message); return }
+      const { data: pub } = supabase.storage.from('venues').getPublicUrl(path)
+      const url = pub.publicUrl + '?t=' + Date.now()
+      window.open('https://wa.me/?text=' + encodeURIComponent('לוז: ' + sch.title + '\n' + url), '_blank')
     } catch (e) {
-      window.open('https://wa.me/?text=' + encodeURIComponent(rundownText(sch, schRows)), '_blank')
+      alert('שגיאה ביצירת ה-PDF: ' + (e && e.message ? e.message : e))
     } finally {
       document.body.removeChild(container)
     }
