@@ -1645,7 +1645,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V20
+// HAZIRA-GENSCHED-DAYS-V21
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
@@ -1977,9 +1977,46 @@ export function GeneralSchedulesMode() {
     return txt.trim()
   }
 
-  async function sendWhatsapp(sch) {
+  async function sharePdf(sch) {
     const schRows = await rundownRows(sch)
-    window.open('https://wa.me/?text=' + encodeURIComponent(rundownText(sch, schRows)), '_blank')
+    const cell = 'padding:7px 12px;border-bottom:1px solid #eee;text-align:right'
+    const rowsHtml = schRows.map(r => r.row_type === 'day'
+      ? `<tr><td colspan="4" style="background:#FCE4F3;font-weight:bold;color:#A0106A;${cell}">${fmtDayHeader(r.day_date)}${r.day_label ? ' · ' + r.day_label : ''}</td></tr>`
+      : `<tr><td style="font-family:monospace;white-space:nowrap;${cell}">${r.time||''}</td><td style="${cell}">${r.what||''}</td><td style="${cell}">${r.who||''}</td><td style="color:#888;${cell}">${r.notes||''}</td></tr>`
+    ).join('')
+    const th = 'background:#E0197D;color:#fff;padding:8px 12px;text-align:right'
+    const container = document.createElement('div')
+    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:760px;background:#fff;padding:24px;font-family:Arial,sans-serif;direction:rtl'
+    container.innerHTML = `
+      <h2 style="color:#CC1010;margin:0 0 4px">${sch.title}</h2>
+      <div style="color:#666;font-size:13px;margin-bottom:16px">${sch.venue?sch.venue+' · ':''}${sch.participants?'משתתפים: '+sch.participants:''}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr><th style="${th}">שעה</th><th style="${th}">מה</th><th style="${th}">מי</th><th style="${th}">הערות</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>`
+    document.body.appendChild(container)
+    try {
+      const { jsPDF } = await import('jspdf')
+      const doc = new jsPDF('p', 'pt', 'a4')
+      await new Promise((resolve) => {
+        doc.html(container, { callback: () => resolve(), x: 20, y: 20, width: 555, windowWidth: 760, autoPaging: 'text' })
+      })
+      const blob = doc.output('blob')
+      const file = new File([blob], `לוז_${sch.title}.pdf`, { type: 'application/pdf' })
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'לוז: ' + sch.title })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url; a.download = file.name; a.click()
+        URL.revokeObjectURL(url)
+        alert('הדפדפן לא תומך בשיתוף קובץ ישירות. ה-PDF הורד — אפשר לצרף אותו ידנית בוואטסאפ.')
+      }
+    } catch (e) {
+      window.open('https://wa.me/?text=' + encodeURIComponent(rundownText(sch, schRows)), '_blank')
+    } finally {
+      document.body.removeChild(container)
+    }
   }
 
   async function sendEmail(sch) {
@@ -2052,8 +2089,8 @@ export function GeneralSchedulesMode() {
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="ייצוא PDF">
                   <i className="ti ti-file-type-pdf" style={{fontSize:13}}/>
                 </button>
-                <button onClick={e => { e.stopPropagation(); sendWhatsapp(sch) }}
-                  className="text-gray-300 hover:text-green-600 p-1" title="שלח בוואטסאפ">
+                <button onClick={e => { e.stopPropagation(); sharePdf(sch) }}
+                  className="text-gray-300 hover:text-green-600 p-1" title="שלח PDF בוואטסאפ">
                   <i className="ti ti-brand-whatsapp" style={{fontSize:13}}/>
                 </button>
                 <button onClick={e => { e.stopPropagation(); sendEmail(sch) }}
