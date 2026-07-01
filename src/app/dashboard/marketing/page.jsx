@@ -359,7 +359,7 @@ function MarketingTasks() {
 
 // ===================== דשבורד — הודעות =====================
 function Campaign() {
-  // HAZIRA-MKT-CAMPAIGN-EDIT-V1
+  // HAZIRA-MKT-CAMPAIGN-EDIT-V2
   const [campaigns, setCampaigns] = useState([])
   const [actions, setActions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -1072,7 +1072,22 @@ function Gantts() {
     const c = cell(ev.id, action.key)
     return c.custom_date || planDate(ev.date, action.offset)
   }
-  function visibleActions(ev) { return PLAN_ACTIONS.filter(a => !cell(ev.id, a.key).deleted) }
+  function customActions(ev) {
+    const out = []
+    const prefix = `${ev.id}::custom_`
+    for (const k in plan) {
+      if (k.startsWith(prefix) && !plan[k].deleted) {
+        const key = k.split('::')[1]
+        out.push({ key, label: plan[k].custom_label || 'פעולה חדשה', offset: 0, custom: true })
+      }
+    }
+    return out
+  }
+  function visibleActions(ev) { return [...PLAN_ACTIONS.filter(a => !cell(ev.id, a.key).deleted), ...customActions(ev)] }
+  async function addManualRow(ev) {
+    const key = `custom_${Date.now()}`
+    await persist(ev.id, key, { custom_date: ev.date, custom_label: 'פעולה חדשה' })
+  }
   function progress(ev) {
     const vis = visibleActions(ev)
     let d = 0
@@ -1176,6 +1191,10 @@ function Gantts() {
                 </div>
               )
             })}
+            <button onClick={() => addManualRow(ev)}
+              className="w-full py-2.5 text-[12px] text-[#E0197D] hover:bg-[#FCE4F3] transition-colors flex items-center justify-center gap-1 border-t border-gray-200">
+              <i className="ti ti-plus" style={{ fontSize: 13 }} /> הוסף שורה
+            </button>
           </div>
         )}
       </div>
