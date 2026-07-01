@@ -359,6 +359,7 @@ function MarketingTasks() {
 
 // ===================== דשבורד — הודעות =====================
 function Campaign() {
+  // HAZIRA-MKT-CAMPAIGN-EDIT-V1
   const [campaigns, setCampaigns] = useState([])
   const [actions, setActions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -367,6 +368,8 @@ function Campaign() {
   const [sel, setSel] = useState({})
   const [viewMode, setViewMode] = useState({})
   const [busy, setBusy] = useState(false)
+  const [editId, setEditId] = useState(null)
+  const [editForm, setEditForm] = useState({ title: '', start: '', end: '' })
 
   useEffect(() => { load() }, [])
   async function load() {
@@ -396,6 +399,19 @@ function Campaign() {
     await supabase.from('marketing_campaigns').delete().eq('id', id)
     setCampaigns(prev => prev.filter(c => c.id !== id))
     setActions(prev => prev.filter(a => a.campaign_id !== id))
+  }
+  function startEdit(c) {
+    setEditId(c.id)
+    setEditForm({ title: c.title, start: c.start_date, end: c.end_date })
+  }
+  async function saveEdit(id) {
+    if (!editForm.title.trim() || !editForm.start || !editForm.end) { alert('יש למלא כותרת, תאריך התחלה ותאריך סיום'); return }
+    if (editForm.end < editForm.start) { alert('תאריך הסיום מוקדם מתאריך ההתחלה'); return }
+    const patch = { title: editForm.title.trim(), start_date: editForm.start, end_date: editForm.end }
+    const { error } = await supabase.from('marketing_campaigns').update(patch).eq('id', id)
+    if (error) { alert('שגיאה: ' + error.message); return }
+    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c))
+    setEditId(null)
   }
   async function addAction(campaignId, date) {
     const { data, error } = await supabase.from('marketing_campaign_actions').insert({ campaign_id: campaignId, date, label: '', free_text: '', done: false }).select().single()
@@ -463,6 +479,25 @@ function Campaign() {
         const doneCount = cActions.filter(a => a.done).length
         return (
           <div key={c.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+            {editId === c.id ? (
+              <div className="px-4 py-3 flex flex-col gap-2 bg-gray-50">
+                <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="כותרת הקמפיין"
+                  className="text-[14px] font-bold px-3 py-2 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#E0197D] text-right" />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <label className="text-[12px] text-gray-500">התחלה</label>
+                  <input type="date" value={editForm.start} onChange={e => setEditForm(f => ({ ...f, start: e.target.value }))}
+                    className="text-[12px] px-2 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#E0197D]" />
+                  <label className="text-[12px] text-gray-500">סיום</label>
+                  <input type="date" value={editForm.end} onChange={e => setEditForm(f => ({ ...f, end: e.target.value }))}
+                    className="text-[12px] px-2 py-1.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#E0197D]" />
+                </div>
+                <div className="flex items-center gap-2 justify-end">
+                  <button onClick={() => setEditId(null)} className="text-[13px] px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100">ביטול</button>
+                  <button onClick={() => saveEdit(c.id)} className="text-[13px] px-4 py-1.5 rounded-lg bg-[#E0197D] text-white hover:bg-[#A0106A]">שמור</button>
+                </div>
+              </div>
+            ) : (
             <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
               <button onClick={() => setOpen(o => ({ ...o, [c.id]: !o[c.id] }))} className="flex items-center gap-2 flex-1 text-right">
                 <i className={`ti ti-chevron-${isOpen ? 'down' : 'left'} text-gray-400`} style={{ fontSize: 16 }} />
@@ -471,8 +506,10 @@ function Campaign() {
                   <div className="text-[12px] text-gray-400">{fmtDate(c.start_date)} – {fmtDate(c.end_date)} · {doneCount}/{cActions.length} בוצעו</div>
                 </div>
               </button>
+              <button onClick={() => startEdit(c)} className="text-gray-300 hover:text-[#E0197D] p-1"><i className="ti ti-pencil" style={{ fontSize: 15 }} /></button>
               <button onClick={() => deleteCampaign(c.id)} className="text-gray-300 hover:text-red-500 p-1"><i className="ti ti-trash" style={{ fontSize: 15 }} /></button>
             </div>
+            )}
             {isOpen && (() => {
               const selDate = sel[c.id] || c.start_date
               const mode = viewMode[c.id] || 'month'
