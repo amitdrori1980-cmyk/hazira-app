@@ -1645,7 +1645,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V28
+// HAZIRA-GENSCHED-DAYS-V29
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
@@ -1979,41 +1979,44 @@ export function GeneralSchedulesMode() {
 
   async function buildRundownPdfUrl(sch) {
     const schRows = await rundownRows(sch)
-    const cell = 'padding:7px 12px;border-bottom:1px solid #eee;text-align:right'
-    const rowsHtml = schRows.map(r => r.row_type === 'day'
-      ? `<tr><td colspan="4" style="background:#FCE4F3;font-weight:bold;color:#A0106A;${cell}">${fmtDayHeader(r.day_date)}${r.day_label ? ' · ' + r.day_label : ''}</td></tr>`
-      : `<tr><td style="font-family:monospace;white-space:nowrap;${cell}">${r.time||''}</td><td style="${cell}">${r.what||''}</td><td style="${cell}">${r.who||''}</td><td style="color:#888;${cell}">${r.notes||''}</td></tr>`
-    ).join('')
-    const th = 'background:#E0197D;color:#fff;padding:8px 12px;text-align:right'
-    const container = document.createElement('div')
-    container.style.cssText = 'position:fixed;left:-10000px;top:0;width:760px;background:#fff;padding:24px;font-family:Arial,sans-serif;direction:rtl'
-    container.innerHTML = `
-      <h2 style="color:#CC1010;margin:0 0 4px">${sch.title}</h2>
-      <div style="color:#666;font-size:13px;margin-bottom:16px">${sch.venue?sch.venue+' · ':''}${sch.participants?'משתתפים: '+sch.participants:''}</div>
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead><tr><th style="${th}">שעה</th><th style="${th}">מה</th><th style="${th}">מי</th><th style="${th}">הערות</th></tr></thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>`
-    document.body.appendChild(container)
+    const host = document.createElement('div')
+    host.style.cssText = 'position:fixed;left:-10000px;top:0;width:760px;background:#fff;font-family:Arial,sans-serif;direction:rtl'
+    document.body.appendChild(host)
+    const gcols = 'grid-template-columns:90px 1.4fr 120px 1.4fr'
+    const mk = (html) => { const d = document.createElement('div'); d.style.width = '760px'; d.style.background = '#fff'; d.innerHTML = html; host.appendChild(d); return d.firstElementChild }
+    const headerEl = mk(`<div style="padding:24px 24px 8px">
+      <h2 style="color:#CC1010;margin:0 0 4px;font-size:20px">${sch.title}</h2>
+      <div style="color:#666;font-size:13px">${sch.venue?sch.venue+' · ':''}${sch.participants?'משתתפים: '+sch.participants:''}</div></div>`)
+    const th = 'padding:8px 12px;text-align:right;font-size:13px;font-weight:bold;color:#fff;background:#E0197D'
+    const colEl = mk(`<div style="display:grid;${gcols};padding:0 24px"><div style="${th}">שעה</div><div style="${th}">מה</div><div style="${th}">מי</div><div style="${th}">הערות</div></div>`)
+    const cellB = 'padding:7px 12px;border-bottom:1px solid #eee;text-align:right;font-size:13px'
+    const rowEls = schRows.map(r => r.row_type === 'day'
+      ? mk(`<div style="padding:0 24px"><div style="background:#FCE4F3;font-weight:bold;color:#A0106A;${cellB}">${fmtDayHeader(r.day_date)}${r.day_label ? ' · ' + r.day_label : ''}</div></div>`)
+      : mk(`<div style="display:grid;${gcols};padding:0 24px"><div style="font-family:monospace;white-space:nowrap;${cellB}">${r.time||''}</div><div style="${cellB}">${r.what||''}</div><div style="${cellB}">${r.who||''}</div><div style="color:#888;${cellB}">${r.notes||''}</div></div>`)
+    )
     try {
       const html2canvas = (await import('html2canvas')).default
       const { jsPDF } = await import('jspdf')
-      const canvas = await html2canvas(container, { scale: 2, backgroundColor: '#ffffff' })
-      const imgData = canvas.toDataURL('image/png')
+      const scale = 2
+      const toImg = async (el) => { const c = await html2canvas(el, { scale, backgroundColor: '#ffffff' }); return { data: c.toDataURL('image/png'), h: c.height / scale } }
       const pdf = new jsPDF('p', 'pt', 'a4')
       const pageW = pdf.internal.pageSize.getWidth()
       const pageH = pdf.internal.pageSize.getHeight()
-      const imgW = pageW
-      const imgH = canvas.height * imgW / canvas.width
-      let heightLeft = imgH
-      let position = 0
-      pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
-      heightLeft -= pageH
-      while (heightLeft > 0) {
-        position -= pageH
-        pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
-        heightLeft -= pageH
+      const marginTop = 20, marginBottom = 24
+      const k = pageW / 760
+      let y = marginTop
+      const place = (img) => { const h = img.h * k; pdf.addImage(img.data, 'PNG', 0, y, pageW, h); y += h }
+      const headerImg = await toImg(headerEl)
+      const colImg = await toImg(colEl)
+      const rowImgs = []
+      for (const el of rowEls) rowImgs.push(await toImg(el))
+      place(headerImg)
+      place(colImg)
+      for (let i = 0; i < rowImgs.length; i++) {
+        let needed = rowImgs[i].h * k
+        if (schRows[i].row_type === 'day' && i + 1 < rowImgs.length) needed += rowImgs[i + 1].h * k
+        if (y + needed > pageH - marginBottom) { pdf.addPage(); y = marginTop; place(colImg) }
+        place(rowImgs[i])
       }
       const blob = pdf.output('blob')
       const path = `${sch.id}.pdf`
@@ -2025,7 +2028,7 @@ export function GeneralSchedulesMode() {
       alert('שגיאה ביצירת ה-PDF: ' + (e && e.message ? e.message : e))
       return null
     } finally {
-      document.body.removeChild(container)
+      document.body.removeChild(host)
     }
   }
 
