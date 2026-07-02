@@ -1645,7 +1645,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V26
+// HAZIRA-GENSCHED-DAYS-V28
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
@@ -2016,10 +2016,10 @@ export function GeneralSchedulesMode() {
         heightLeft -= pageH
       }
       const blob = pdf.output('blob')
-      const path = `rundowns/${sch.id}.pdf`
-      const up = await supabase.storage.from('venues').upload(path, blob, { upsert: true, contentType: 'application/pdf' })
+      const path = `${sch.id}.pdf`
+      const up = await supabase.storage.from('rundowns').upload(path, blob, { upsert: true, contentType: 'application/pdf' })
       if (up.error) { alert('שגיאה בהעלאת הקובץ: ' + up.error.message); return null }
-      const { data: pub } = supabase.storage.from('venues').getPublicUrl(path)
+      const { data: pub } = supabase.storage.from('rundowns').getPublicUrl(path)
       return pub.publicUrl + '?t=' + Date.now()
     } catch (e) {
       alert('שגיאה ביצירת ה-PDF: ' + (e && e.message ? e.message : e))
@@ -2197,13 +2197,13 @@ export function GeneralSchedulesMode() {
                       </div>
                     </td>
                     <td style={{width:"36px"}} className="align-middle">
-                      <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex flex-col items-center justify-center gap-0.5">
                         <span draggable onDragStart={e => { setDragSch(sch.id); setDragIdx(idx); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(row.id)) }}
                           onDragEnd={() => { setDragIdx(null); setDragSch(null); setDropIdx(null) }}
-                          title="גרור לשינוי סדר" className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-600 p-0.5">
-                          <i className="ti ti-grip-vertical" style={{fontSize:11}}/>
+                          title="גרור לשינוי סדר" className="cursor-grab active:cursor-grabbing text-[#E0197D]/50 hover:text-[#E0197D] p-0.5">
+                          <i className="ti ti-grip-vertical" style={{fontSize:14}}/>
                         </span>
-                        <button onClick={() => deleteRow(sch.id, row.id)} className="text-gray-300 hover:text-red-500 p-0.5">
+                        <button onClick={() => deleteRow(sch.id, row.id)} className="text-gray-300 hover:text-red-500 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <i className="ti ti-trash" style={{fontSize:10}}/>
                         </button>
                       </div>
@@ -2231,16 +2231,16 @@ export function GeneralSchedulesMode() {
                         className="w-full bg-transparent outline-none text-right text-[12px] text-gray-500 resize-none leading-5 pt-1.5" rows={Math.max(1,Math.ceil((row.notes||'').length/20))}/>
                     </td>
                     <td style={{width:"36px"}} className="align-middle">
-                      <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex flex-col items-center justify-center gap-0.5">
                         <span draggable onDragStart={e => { setDragSch(sch.id); setDragIdx(idx); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(row.id)) }}
                           onDragEnd={() => { setDragIdx(null); setDragSch(null); setDropIdx(null) }}
-                          title="גרור לשינוי סדר" className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-600 p-0.5">
-                          <i className="ti ti-grip-vertical" style={{fontSize:11}}/>
+                          title="גרור לשינוי סדר" className="cursor-grab active:cursor-grabbing text-[#E0197D]/50 hover:text-[#E0197D] p-0.5">
+                          <i className="ti ti-grip-vertical" style={{fontSize:16}}/>
                         </span>
-                        <button onClick={() => addRowAt(sch.id, idx+1)} title="הוסף שורה מתחת" className="text-gray-300 hover:text-[#E0197D] p-0.5">
+                        <button onClick={() => addRowAt(sch.id, idx+1)} title="הוסף שורה מתחת" className="text-gray-300 hover:text-[#E0197D] p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <i className="ti ti-plus" style={{fontSize:11}}/>
                         </button>
-                        <button onClick={() => deleteRow(sch.id, row.id)} className="text-gray-300 hover:text-red-500 p-0.5">
+                        <button onClick={() => deleteRow(sch.id, row.id)} className="text-gray-300 hover:text-red-500 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <i className="ti ti-trash" style={{fontSize:10}}/>
                         </button>
                       </div>
