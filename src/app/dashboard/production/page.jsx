@@ -682,8 +682,8 @@ function ProductionInquiries() {
               onDragOver={e => { if (!groupEvents) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; const r = e.currentTarget.getBoundingClientRect(); const af = (e.clientY - r.top) > r.height / 2; if (dragOver.id !== ev.id || dragOver.after !== af) setDragOver({ id: ev.id, after: af }) }}
               onDrop={e => { e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); const af = (e.clientY - r.top) > r.height / 2; handleDrop(ev, groupEvents, e.dataTransfer.getData('text/plain'), af); setDraggingId(null); setDragOver({ id: null, after: false }) }}
               className={`bg-[#B6CFD0] border rounded-xl overflow-hidden transition-all duration-300 ${selectMode && selectedIds.has(ev.id) ? 'border-[#E0197D] ring-2 ring-[#E0197D]/40' : flashId === ev.id ? 'border-[#E0197D] ring-2 ring-[#E0197D] shadow-lg shadow-[#E0197D]/20' : 'border-black'}`}>
-            <div className="flex items-center gap-3 px-4 py-3 flex-row-reverse">
-              <div className="flex-1 min-w-0 text-right">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 px-4 py-3 md:flex-row-reverse">
+              <div className="flex-1 min-w-0 text-right w-full">
                 {editingEvent === ev.id ? (
                   <div className="flex gap-2 flex-row-reverse" onClick={e=>e.stopPropagation()}>
                     <input value={editEventVal.event_name||''} onChange={e=>setEditEventVal(p=>({...p,event_name:e.target.value}))}
@@ -705,8 +705,8 @@ function ProductionInquiries() {
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-5">
-                    <div className="text-[13px] font-semibold text-black whitespace-nowrap">{ev.event_name}</div>
+                    <div className="flex items-center flex-wrap gap-x-4 gap-y-1 min-w-0">
+                    <div className="text-[13px] font-semibold text-black break-words min-w-0">{ev.event_name}</div>
                     <div className="text-[13px] font-semibold text-black flex items-center gap-2 flex-wrap">
                       {ev.date && <span>{fmtDate(ev.date)}</span>}
                       {ev.day && <span>יום {ev.day}</span>}
@@ -746,7 +746,7 @@ function ProductionInquiries() {
                   </>
                 )}
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 flex-wrap justify-start shrink-0">
                 {selectMode && <input type="checkbox" checked={selectedIds.has(ev.id)} onChange={() => toggleSelect(ev.id)} onClick={e => e.stopPropagation()}
                   className="no-print w-4 h-4 cursor-pointer ml-1" style={{accentColor:'#E0197D'}}/>}
                 {groupEvents && <span draggable onDragStart={e => { dragId.current = ev.id; setDraggingId(ev.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', ev.id); const el = document.getElementById('prod-ev-' + ev.id); if (el) e.dataTransfer.setDragImage(el, 24, 24) }} onDragEnd={() => { dragId.current = null; setDraggingId(null); setDragOver({ id: null, after: false }) }}
@@ -1645,7 +1645,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V29
+// HAZIRA-GENSCHED-DAYS-V31
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
@@ -2467,7 +2467,7 @@ export default function ProductionPage() {
   ]
 
   return (
-    <div ref={rootRef}>
+    <div ref={rootRef} className="overflow-x-hidden max-w-full">
       <div className="flex gap-2 mb-4 justify-start" dir="rtl">
         {PTABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
