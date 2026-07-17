@@ -8,6 +8,13 @@ const HE_DAYS = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']
 const PROD_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
 const TYPE_COLOR = { rehearsal:'bg-[#FCE4F3] text-[#A0106A]', show:'bg-[#E1F5EE] text-[#085041]', crew:'bg-[#FAEEDA] text-[#633806]', technical:'bg-[#FAECE7] text-[#4A1B0C]', strike:'bg-[#FAECE7] text-[#4A1B0C]' }
 const TYPE_LABEL = { rehearsal:'חזרה', show:'הצגה', crew:'צוות', technical:'טכני', strike:'פירוק' }
+const CON_NAME_OVERRIDES = { 'דניאל גמליאלי': 'דונדו', 'דניאל ק': 'דניאל ק' }
+function conDisplayName(fullName, firstCount) {
+  const key = (fullName || '').trim()
+  if (CON_NAME_OVERRIDES[key]) return CON_NAME_OVERRIDES[key]
+  const parts = key.split(/\s+/)
+  return (firstCount[parts[0]] > 1 && parts[1]) ? parts[0] + ' ' + parts[1][0] : parts[0]
+}
 function mixHex(a, b, t) {
   const pa = (a || '#000000').replace('#',''), pb = (b || '#ffffff').replace('#','')
   if (pa.length < 6 || pb.length < 6) return a
@@ -40,6 +47,7 @@ export default function CalendarPage() {
   const [inqBusy, setInqBusy] = useState(null)
   // HAZIRA-GCAL-BTN5
   // HAZIRA-GCAL-AUTOSYNC-V1
+  // HAZIRA-GCAL-CONSTRAINTS-MERGE-V1
   const [savedGoogle, setSavedGoogle] = useState(new Set())
   const [gBusy, setGBusy] = useState(null)
   const [gAllBusy, setGAllBusy] = useState(false)
@@ -48,6 +56,11 @@ export default function CalendarPage() {
   const [connecting, setConnecting] = useState(false)
   const [gMsg, setGMsg] = useState('')
   const [gPurging, setGPurging] = useState(false)
+  const [constraints, setConstraints] = useState([])
+  const [crewNames, setCrewNames] = useState([])
+  const [conForm, setConForm] = useState({ crew_name: '', available: false, notes: '' })
+  const [conCrewOpen, setConCrewOpen] = useState(false)
+  const [conBusy, setConBusy] = useState(false)
 
   async function toggleGoogle(e) {
     if (gBusy) return
@@ -186,6 +199,20 @@ export default function CalendarPage() {
       setInqRows(pe || [])
       const { data: gl } = await supabase.from('google_calendar_links').select('source_id').eq('source_type', 'event')
       setSavedGoogle(new Set((gl || []).map(r => r.source_id)))
+      await loadConstraints()
+      const [{ data: profs }, { data: cm }, { data: ops }] = await Promise.all([
+        supabase.from('profiles').select('id,full_name,dept').order('full_name'),
+        supabase.from('crew_members').select('id,full_name').order('full_name'),
+        supabase.from('user_area_access').select('user_id').eq('area', 'operations'),
+      ])
+      const opsSet = new Set((ops || []).map(o => o.user_id))
+      const merged = []; const seen = new Set()
+      ;(profs || []).forEach(p => { if (!p.full_name) return; if (opsSet.has(p.id)) return; if ((p.dept || '').trim() === 'תפעול') return; const k = p.full_name.trim(); if (seen.has(k)) return; seen.add(k); merged.push(p.full_name.trim()) })
+      ;(cm || []).forEach(m => { if (!m.full_name) return; const k = m.full_name.trim(); if (seen.has(k)) return; seen.add(k); merged.push(m.full_name.trim()) })
+      const firstCount = {}
+      merged.forEach(fn => { const f = fn.split(/\s+/)[0]; firstCount[f] = (firstCount[f] || 0) + 1 })
+      const names = merged.map(fn => conDisplayName(fn, firstCount)).sort((a, b) => a.localeCompare(b, 'he'))
+      setCrewNames(names)
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
@@ -197,6 +224,43 @@ export default function CalendarPage() {
     }
     load()
   }, [])
+
+  async function loadConstraints() {
+    const { data } = await supabase.from('crew_constraints').select('*').order('date')
+    setConstraints(data || [])
+  }
+  // אילוצי-יום עם שם צוות אמיתי בלבד (מסננים רשומות טכניות שנוצרו מאירועים)
+  function dayConstraints(ds) {
+    return (constraints || []).filter(c =>
+      c.crew_name && c.crew_name.trim() &&
+      (c.date === ds || (c.date_to && ds >= c.date && ds <= c.date_to))
+    )
+  }
+  async function addConstraint(ds) {
+    if (!conForm.crew_name.trim() || conBusy) return
+    setConBusy(true)
+    const { error } = await supabase.from('crew_constraints').insert({
+      crew_member_id: null,
+      crew_name: conForm.crew_name.trim(),
+      date: ds,
+      available: conForm.available,
+      notes: conForm.notes || '',
+    })
+    setConBusy(false)
+    if (error) { alert('שגיאה בהוספת אילוץ: ' + error.message); return }
+    setConForm({ crew_name: '', available: false, notes: '' })
+    setConCrewOpen(false)
+    await loadConstraints()
+  }
+  async function toggleConstraint(c) {
+    await supabase.from('crew_constraints').update({ available: !c.available }).eq('id', c.id)
+    setConstraints(prev => prev.map(x => x.id === c.id ? { ...x, available: !c.available } : x))
+  }
+  async function deleteConstraint(c) {
+    if (!window.confirm('למחוק את האילוץ של ' + c.crew_name + '?')) return
+    await supabase.from('crew_constraints').delete().eq('id', c.id)
+    setConstraints(prev => prev.filter(x => x.id !== c.id))
+  }
 
   const inInq = e => inqAdded.has(e.id) || inqRows.some(r => r.event_name === (e.title || '').trim() && (r.date || '') === (e.date || ''))
   function addToInquiries(e) {
@@ -625,6 +689,9 @@ export default function CalendarPage() {
                             {e.time ? e.time.slice(0,5) + ' ' : ''}{e.title}
                           </div>
                         ))}
+                        {(() => { const wa = dayConstraints(c.ds).filter(x => !x.available); return wa.length > 0 ? (
+                          <div className="mt-1 pt-1 border-t border-[#F3C9E2] text-[10px] md:text-[12px]" style={{ color: '#C0392B' }}>לא נמצאים: {wa.map(a => a.crew_name).join(', ')}</div>
+                        ) : null })()}
                       </div>
                     )
                   })}
@@ -645,6 +712,7 @@ export default function CalendarPage() {
                         if (a.type !== 'show' && b.type === 'show') return 1
                         return (a.time || '').localeCompare(b.time || '')
                       })
+                    const dAbsent = dayConstraints(c.ds).filter(x => !x.available)
                     return (
                       <div key={ci} onClick={() => setSelectedDay(c.ds)}
                         className={`min-h-[72px] md:min-h-[150px] rounded-lg p-1.5 cursor-pointer border transition-all ${
@@ -666,6 +734,12 @@ export default function CalendarPage() {
                         ))}
                         {dayEvents.length > 4 && (
                           <div className="hidden md:block text-[9px] text-gray-400 text-center">+{dayEvents.length - 4}</div>
+                        )}
+                        {dAbsent.length > 0 && (
+                          <div className="mt-0.5 pt-0.5 border-t border-[#F3C9E2]">
+                            <div className="md:hidden flex items-center justify-center gap-0.5"><span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#C0392B' }}/><span className="text-[9px]" style={{ color: '#C0392B' }}>{dAbsent.length}</span></div>
+                            <div className="hidden md:block text-[10px] truncate" style={{ color: '#C0392B' }} title={dAbsent.map(a => a.crew_name).join(', ')}>לא נמצאים: {dAbsent.map(a => a.crew_name).join(', ')}</div>
+                          </div>
                         )}
                       </div>
                     )
@@ -763,6 +837,57 @@ export default function CalendarPage() {
               ))}
             </div>
           )}
+          {/* זמינות צוות — אילוצים ליום זה */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="text-[13px] font-semibold text-gray-800 text-right mb-2">זמינות צוות</div>
+            {(() => {
+              const dc = dayConstraints(selectedDay)
+              const absent = dc.filter(x => !x.available)
+              const present = dc.filter(x => x.available)
+              return (
+                <div className="flex flex-col gap-1.5 mb-3">
+                  {dc.length === 0 && <p className="text-[12px] text-gray-400 text-right">אין אילוצים ליום זה</p>}
+                  {absent.map(c => (
+                    <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: '#FBEAEA' }}>
+                      <div className="flex items-center gap-2">
+                        {profile?.is_manager && <button onClick={() => deleteConstraint(c)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:13}}/></button>}
+                        {profile?.is_manager && <button onClick={() => toggleConstraint(c)} title="שנה ל׳נמצא׳" className="text-gray-300 hover:text-[#085041]"><i className="ti ti-refresh" style={{fontSize:13}}/></button>}
+                      </div>
+                      <div className="text-[12.5px] text-right" style={{ color: '#C0392B' }}>לא נמצא: <span className="font-medium">{c.crew_name}</span>{c.notes ? ' · ' + c.notes : ''}</div>
+                    </div>
+                  ))}
+                  {present.map(c => (
+                    <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: '#E7F3EE' }}>
+                      <div className="flex items-center gap-2">
+                        {profile?.is_manager && <button onClick={() => deleteConstraint(c)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:13}}/></button>}
+                        {profile?.is_manager && <button onClick={() => toggleConstraint(c)} title="שנה ל׳לא נמצא׳" className="text-gray-300 hover:text-[#C0392B]"><i className="ti ti-refresh" style={{fontSize:13}}/></button>}
+                      </div>
+                      <div className="text-[12.5px] text-right" style={{ color: '#085041' }}>נמצא: <span className="font-medium">{c.crew_name}</span>{c.notes ? ' · ' + c.notes : ''}</div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
+            <div className="flex flex-col gap-2 bg-gray-50 rounded-lg p-3">
+              <div className="relative">
+                <input value={conForm.crew_name} onChange={e => { setConForm(f => ({ ...f, crew_name: e.target.value })); setConCrewOpen(true) }} onFocus={() => setConCrewOpen(true)} onBlur={() => setTimeout(() => setConCrewOpen(false), 150)}
+                  placeholder="שם איש צוות" className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#E0197D] text-right" />
+                {conCrewOpen && crewNames.filter(n => !conForm.crew_name || n.includes(conForm.crew_name)).length > 0 && (
+                  <div className="absolute z-10 right-0 left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow max-h-40 overflow-y-auto">
+                    {crewNames.filter(n => !conForm.crew_name || n.includes(conForm.crew_name)).map(n => (
+                      <div key={n} onMouseDown={() => { setConForm(f => ({ ...f, crew_name: n })); setConCrewOpen(false) }} className="px-3 py-1.5 text-[13px] text-right hover:bg-[#FCE4F3] cursor-pointer">{n}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex rounded-lg overflow-hidden border border-gray-200">
+                <button type="button" onClick={() => setConForm(f => ({ ...f, available: false }))} className={`flex-1 text-[13px] py-2 ${!conForm.available ? 'bg-red-100 text-red-900' : 'bg-white text-gray-500'}`}>לא נמצא</button>
+                <button type="button" onClick={() => setConForm(f => ({ ...f, available: true }))} className={`flex-1 text-[13px] py-2 ${conForm.available ? 'bg-green-100 text-green-900' : 'bg-white text-gray-500'}`}>נמצא</button>
+              </div>
+              <input value={conForm.notes} onChange={e => setConForm(f => ({ ...f, notes: e.target.value }))} placeholder="הערה (אופציונלי)" className="text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#E0197D] text-right" />
+              <button onClick={() => addConstraint(selectedDay)} disabled={conBusy || !conForm.crew_name.trim()} className="text-[13px] bg-[#E0197D] text-white py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-40">הוסף אילוץ</button>
+            </div>
+          </div>
         </div>
       )}
       {editingEvent && (
