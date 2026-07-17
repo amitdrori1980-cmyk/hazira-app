@@ -47,7 +47,7 @@ export default function CalendarPage() {
   const [inqBusy, setInqBusy] = useState(null)
   // HAZIRA-GCAL-BTN5
   // HAZIRA-GCAL-AUTOSYNC-V1
-  // HAZIRA-GCAL-CONSTRAINTS-MERGE-V1
+  // HAZIRA-GCAL-CONSTRAINTS-MERGE-V3
   const [savedGoogle, setSavedGoogle] = useState(new Set())
   const [gBusy, setGBusy] = useState(null)
   const [gAllBusy, setGAllBusy] = useState(false)
@@ -689,8 +689,11 @@ export default function CalendarPage() {
                             {e.time ? e.time.slice(0,5) + ' ' : ''}{e.title}
                           </div>
                         ))}
-                        {(() => { const wa = dayConstraints(c.ds).filter(x => !x.available); return wa.length > 0 ? (
-                          <div className="mt-1 pt-1 border-t border-[#F3C9E2] text-[10px] md:text-[12px]" style={{ color: '#C0392B' }}>לא נמצאים: {wa.map(a => a.crew_name).join(', ')}</div>
+                        {(() => { const wp = dayConstraints(c.ds).filter(x => x.available); const wa = dayConstraints(c.ds).filter(x => !x.available); return (wp.length > 0 || wa.length > 0) ? (
+                          <div className="mt-1 pt-1 border-t border-[#F3C9E2] text-[10px] md:text-[12px]">
+                            {wp.length > 0 && <div style={{ color: '#085041' }}>נמצאים: {wp.map(a => a.crew_name).join(', ')}</div>}
+                            {wa.length > 0 && <div style={{ color: '#C0392B' }}>לא נמצאים: {wa.map(a => a.crew_name).join(', ')}</div>}
+                          </div>
                         ) : null })()}
                       </div>
                     )
@@ -713,6 +716,7 @@ export default function CalendarPage() {
                         return (a.time || '').localeCompare(b.time || '')
                       })
                     const dAbsent = dayConstraints(c.ds).filter(x => !x.available)
+                    const dPresent = dayConstraints(c.ds).filter(x => x.available)
                     return (
                       <div key={ci} onClick={() => setSelectedDay(c.ds)}
                         className={`min-h-[72px] md:min-h-[150px] rounded-lg p-1.5 cursor-pointer border transition-all ${
@@ -735,10 +739,16 @@ export default function CalendarPage() {
                         {dayEvents.length > 4 && (
                           <div className="hidden md:block text-[9px] text-gray-400 text-center">+{dayEvents.length - 4}</div>
                         )}
-                        {dAbsent.length > 0 && (
+                        {(dPresent.length > 0 || dAbsent.length > 0) && (
                           <div className="mt-0.5 pt-0.5 border-t border-[#F3C9E2]">
-                            <div className="md:hidden flex items-center justify-center gap-0.5"><span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#C0392B' }}/><span className="text-[9px]" style={{ color: '#C0392B' }}>{dAbsent.length}</span></div>
-                            <div className="hidden md:block text-[10px] truncate" style={{ color: '#C0392B' }} title={dAbsent.map(a => a.crew_name).join(', ')}>לא נמצאים: {dAbsent.map(a => a.crew_name).join(', ')}</div>
+                            {dPresent.length > 0 && (<>
+                              <div className="md:hidden flex items-center justify-center gap-0.5"><span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#085041' }}/><span className="text-[9px]" style={{ color: '#085041' }}>{dPresent.length}</span></div>
+                              <div className="hidden md:block text-[10px] truncate" style={{ color: '#085041' }} title={dPresent.map(a => a.crew_name).join(', ')}>נמצאים: {dPresent.map(a => a.crew_name).join(', ')}</div>
+                            </>)}
+                            {dAbsent.length > 0 && (<>
+                              <div className="md:hidden flex items-center justify-center gap-0.5"><span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#C0392B' }}/><span className="text-[9px]" style={{ color: '#C0392B' }}>{dAbsent.length}</span></div>
+                              <div className="hidden md:block text-[10px] truncate" style={{ color: '#C0392B' }} title={dAbsent.map(a => a.crew_name).join(', ')}>לא נמצאים: {dAbsent.map(a => a.crew_name).join(', ')}</div>
+                            </>)}
                           </div>
                         )}
                       </div>
@@ -847,24 +857,34 @@ export default function CalendarPage() {
               return (
                 <div className="flex flex-col gap-1.5 mb-3">
                   {dc.length === 0 && <p className="text-[12px] text-gray-400 text-right">אין אילוצים ליום זה</p>}
-                  {absent.map(c => (
-                    <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: '#FBEAEA' }}>
-                      <div className="flex items-center gap-2">
-                        {profile?.is_manager && <button onClick={() => deleteConstraint(c)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:13}}/></button>}
-                        {profile?.is_manager && <button onClick={() => toggleConstraint(c)} title="שנה ל׳נמצא׳" className="text-gray-300 hover:text-[#085041]"><i className="ti ti-refresh" style={{fontSize:13}}/></button>}
+                  {present.length > 0 && (
+                    <div className="flex items-start justify-between gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: '#E7F3EE' }}>
+                      <div className="flex flex-wrap items-center gap-x-1 gap-y-1 justify-end flex-1 text-right">
+                        <span className="text-[12.5px] font-semibold" style={{ color: '#085041' }}>נמצאים:</span>
+                        {present.map((c, i) => (
+                          <span key={c.id} className="inline-flex items-center gap-1 text-[12.5px]" style={{ color: '#085041' }}>
+                            <span className="font-medium">{c.crew_name}</span>{c.notes ? ' (' + c.notes + ')' : ''}{i < present.length - 1 ? ',' : ''}
+                            {profile?.is_manager && <button onClick={() => toggleConstraint(c)} title="שנה ל׳לא נמצא׳" className="text-gray-300 hover:text-[#C0392B]"><i className="ti ti-refresh" style={{fontSize:12}}/></button>}
+                            {profile?.is_manager && <button onClick={() => deleteConstraint(c)} title="מחק" className="text-gray-300 hover:text-red-500"><i className="ti ti-x" style={{fontSize:12}}/></button>}
+                          </span>
+                        ))}
                       </div>
-                      <div className="text-[12.5px] text-right" style={{ color: '#C0392B' }}>לא נמצא: <span className="font-medium">{c.crew_name}</span>{c.notes ? ' · ' + c.notes : ''}</div>
                     </div>
-                  ))}
-                  {present.map(c => (
-                    <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: '#E7F3EE' }}>
-                      <div className="flex items-center gap-2">
-                        {profile?.is_manager && <button onClick={() => deleteConstraint(c)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{fontSize:13}}/></button>}
-                        {profile?.is_manager && <button onClick={() => toggleConstraint(c)} title="שנה ל׳לא נמצא׳" className="text-gray-300 hover:text-[#C0392B]"><i className="ti ti-refresh" style={{fontSize:13}}/></button>}
+                  )}
+                  {absent.length > 0 && (
+                    <div className="flex items-start justify-between gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: '#FBEAEA' }}>
+                      <div className="flex flex-wrap items-center gap-x-1 gap-y-1 justify-end flex-1 text-right">
+                        <span className="text-[12.5px] font-semibold" style={{ color: '#C0392B' }}>לא נמצאים:</span>
+                        {absent.map((c, i) => (
+                          <span key={c.id} className="inline-flex items-center gap-1 text-[12.5px]" style={{ color: '#C0392B' }}>
+                            <span className="font-medium">{c.crew_name}</span>{c.notes ? ' (' + c.notes + ')' : ''}{i < absent.length - 1 ? ',' : ''}
+                            {profile?.is_manager && <button onClick={() => toggleConstraint(c)} title="שנה ל׳נמצא׳" className="text-gray-300 hover:text-[#085041]"><i className="ti ti-refresh" style={{fontSize:12}}/></button>}
+                            {profile?.is_manager && <button onClick={() => deleteConstraint(c)} title="מחק" className="text-gray-300 hover:text-red-500"><i className="ti ti-x" style={{fontSize:12}}/></button>}
+                          </span>
+                        ))}
                       </div>
-                      <div className="text-[12.5px] text-right" style={{ color: '#085041' }}>נמצא: <span className="font-medium">{c.crew_name}</span>{c.notes ? ' · ' + c.notes : ''}</div>
                     </div>
-                  ))}
+                  )}
                 </div>
               )
             })()}
