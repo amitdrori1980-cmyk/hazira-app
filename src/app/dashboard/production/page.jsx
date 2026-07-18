@@ -1645,7 +1645,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V31
+// HAZIRA-GENSCHED-DAYS-V32
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
@@ -2379,7 +2379,7 @@ function ProductionTasks() {
         <div className="text-center text-gray-400 text-[13px] py-10 border border-gray-100 rounded-xl">אין משימות עדיין</div>
       ) : (
         <div className="flex flex-col gap-2">
-          {tasks.map(t => (
+          {[...tasks].sort((a, b) => ((a.done ? 1 : 0) - (b.done ? 1 : 0)) || ((a.created_at || '').localeCompare(b.created_at || ''))).map(t => (
             <div key={t.id} className={`border rounded-xl p-3 bg-white transition-opacity ${t.done ? 'border-gray-200 opacity-60' : 'border-gray-200'}`}>
               {editId === t.id ? (
                 <div className="flex flex-col gap-2">
