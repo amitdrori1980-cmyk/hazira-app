@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-OVERVIEW-WEEK-V12
+// HAZIRA-OVERVIEW-WEEK-V14
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
@@ -201,12 +201,14 @@ export default function DashboardPage() {
       const { data: m } = await mq
       setMessages(m || [])
 
-      const umq = supabase.from('messages').select('*, sender:sender_id(full_name)').order('created_at', { ascending: false }).limit(20)
-      const orParts = [`to_user.eq.${user.id}`, 'to_dept.eq.all']
+      const { data: myCrew } = await supabase.from('crew_members').select('id').eq('user_id', user.id).maybeSingle()
+      const umq = supabase.from('messages').select('*, sender:sender_id(full_name)').order('created_at', { ascending: false }).limit(30)
+      const orParts = [`to_user.eq.${user.id}`, 'to_dept.eq.all', `sender_id.eq.${user.id}`]
       if (p?.dept) orParts.push(`to_dept.eq.${p.dept}`)
+      if (myCrew?.id) orParts.push(`to_crew_id.eq.${myCrew.id}`)
       umq.or(orParts.join(','))
       const { data: um } = await umq
-      setMyUnread((um || []).filter(x => x.released !== false && x.sender_id !== user.id).slice(0, 5))
+      setMyUnread((um || []).filter(x => x.released !== false).slice(0, 8))
 
       const weekStart = new Date()
       weekStart.setDate(weekStart.getDate() - weekStart.getDay())
