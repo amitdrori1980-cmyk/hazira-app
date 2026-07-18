@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-OVERVIEW-WEEK-V11
+// HAZIRA-OVERVIEW-WEEK-V12
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
@@ -201,10 +201,12 @@ export default function DashboardPage() {
       const { data: m } = await mq
       setMessages(m || [])
 
-      const umq = supabase.from('messages').select('*, sender:sender_id(full_name)').eq('read', false).order('created_at', { ascending: false })
-      umq.or(`to_user.eq.${user.id},to_dept.eq.${p?.dept},to_dept.eq.all`)
+      const umq = supabase.from('messages').select('*, sender:sender_id(full_name)').order('created_at', { ascending: false }).limit(20)
+      const orParts = [`to_user.eq.${user.id}`, 'to_dept.eq.all']
+      if (p?.dept) orParts.push(`to_dept.eq.${p.dept}`)
+      umq.or(orParts.join(','))
       const { data: um } = await umq
-      setMyUnread((um || []).filter(x => x.released !== false))
+      setMyUnread((um || []).filter(x => x.released !== false && x.sender_id !== user.id).slice(0, 5))
 
       const weekStart = new Date()
       weekStart.setDate(weekStart.getDate() - weekStart.getDay())
