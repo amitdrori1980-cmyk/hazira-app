@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-OVERVIEW-WEEK-V10
+// HAZIRA-OVERVIEW-WEEK-V11
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
@@ -171,6 +171,7 @@ export default function DashboardPage() {
   const [tasks, setTasks]       = useState([])
   const [events, setEvents]     = useState([])
   const [messages, setMessages] = useState([])
+  const [myUnread, setMyUnread] = useState([])
   const [constraints, setConstraints] = useState([])
   const [loading, setLoading]   = useState(true)
 
@@ -199,6 +200,11 @@ export default function DashboardPage() {
       if (!p?.is_manager) mq.or(`to_user.eq.${user.id},to_dept.eq.${p?.dept},to_dept.eq.all`)
       const { data: m } = await mq
       setMessages(m || [])
+
+      const umq = supabase.from('messages').select('*, sender:sender_id(full_name)').eq('read', false).order('created_at', { ascending: false })
+      umq.or(`to_user.eq.${user.id},to_dept.eq.${p?.dept},to_dept.eq.all`)
+      const { data: um } = await umq
+      setMyUnread((um || []).filter(x => x.released !== false))
 
       const weekStart = new Date()
       weekStart.setDate(weekStart.getDate() - weekStart.getDay())
@@ -268,6 +274,7 @@ export default function DashboardPage() {
   }
 
   const urgent = tasks.filter(t => t.priority === 'דחוף' || t.priority === 'היום')
+  const openTasks = [...urgent, ...tasks.filter(t => t.priority !== 'דחוף' && t.priority !== 'היום')]
   const totalResults = searchResults ? Object.values(searchResults).flat().length : 0
 
   return (
@@ -347,29 +354,35 @@ export default function DashboardPage() {
 
       {!query && (
         <>
-          <WeekDashboard />
-
-          {urgent.length > 0 && (
-            <Card title="דורש טיפול עכשיו" icon="ti-alert-triangle" href="/dashboard/tasks">
-              {urgent.map(t => (
-                <div key={t.id} className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
-                  <span className="flex-1 text-[13px] text-right">{t.title}</span>
+          {(myUnread.length > 0 || openTasks.length > 0) && (
+            <div className="bg-white border border-gray-100 rounded-xl p-4 mb-3">
+              <div className="flex items-center gap-2 mb-3">
+                <i className="ti ti-inbox text-[#E0197D]" style={{ fontSize: 15 }} />
+                <span className="text-[13px] font-medium text-gray-800">הודעות ומשימות</span>
+                <span className="text-[11px] text-gray-400">({myUnread.length + openTasks.length})</span>
+              </div>
+              {myUnread.map(m => (
+                <div key={'m' + m.id} onClick={() => router.push('/dashboard/messages')}
+                  className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0 flex-row-reverse cursor-pointer hover:bg-gray-50 rounded-lg px-1">
+                  <div className="flex-1 min-w-0 text-right">
+                    <div className="text-[11px] text-gray-400">{m.sender?.full_name || 'מנהל הפקה'}</div>
+                    <div className="text-[13px] text-gray-800 truncate">{m.body}</div>
+                  </div>
+                  <Badge text="הודעה" color="bg-[#E3F0FF] text-[#1A4A8A]" />
+                </div>
+              ))}
+              {openTasks.map(t => (
+                <div key={'t' + t.id} onClick={() => router.push('/dashboard/tasks')}
+                  className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0 flex-row-reverse cursor-pointer hover:bg-gray-50 rounded-lg px-1">
+                  <span className="flex-1 text-[13px] text-right truncate">{t.title}</span>
                   <Badge text={t.priority} color={PRI_COLOR[t.priority] || 'bg-gray-100 text-gray-600'} />
+                  <Badge text="משימה" color="bg-[#FCE4F3] text-[#A0106A]" />
                 </div>
               ))}
-            </Card>
+            </div>
           )}
 
-          {messages.length > 0 && (
-            <Card title="הודעות אחרונות" icon="ti-message" href="/dashboard/messages">
-              {messages.map(m => (
-                <div key={m.id} className="p-2.5 bg-gray-50 rounded-lg mb-2 last:mb-0 border-r-2 border-[#E0197D]">
-                  <div className="text-[11px] text-gray-400 mb-1">{m.sender?.full_name || 'מנהל הפקה'}</div>
-                  <div className="text-[13px] text-gray-800 text-right">{m.body}</div>
-                </div>
-              ))}
-            </Card>
-          )}
+          <WeekDashboard />
         </>
       )}
     </div>
