@@ -1,9 +1,11 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-TASKS-REBUILD-V10
+// HAZIRA-TASKS-REBUILD-V11
 
 const TEAM = ['עמית','לאה','עינת','מרקו','ניב','דונדו','איתן','נועה']
+const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
+function todayStr() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
 const TEAM_TOKEN = { 'דונדו': 'דניאל', 'נועה': 'גמליאל' }
 function teamOptions(crew, people) {
   const all = []
@@ -34,6 +36,8 @@ export default function TasksPage() {
   const [commentText, setCommentText] = useState({})
   const [busy, setBusy] = useState(false)
   const [dateFilter, setDateFilter] = useState('')
+  const [view, setView] = useState('list')
+  const [weekAnchor, setWeekAnchor] = useState(todayStr())
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get('date')
@@ -157,8 +161,68 @@ export default function TasksPage() {
   const dateFiltered = dateFilter ? visibleTasks.filter(t => t.due_date === dateFilter) : visibleTasks
   const sortedTasks = [...dateFiltered].sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0))
 
+  function weekDays(anchor) {
+    const [y, m, d] = anchor.split('-').map(Number)
+    const base = new Date(y, m - 1, d); base.setDate(base.getDate() - base.getDay())
+    const out = []
+    for (let j = 0; j < 7; j++) { const dt = new Date(base); dt.setDate(base.getDate() + j); out.push(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`) }
+    return out
+  }
+  function shiftWeek(dir) {
+    const [y, m, d] = weekAnchor.split('-').map(Number)
+    const dt = new Date(y, m - 1, d); dt.setDate(dt.getDate() + dir * 7)
+    setWeekAnchor(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`)
+  }
+
   return (
     <div className="w-full">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+          <button onClick={() => setView('list')} className={`text-[12px] px-4 py-1.5 ${view === 'list' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>רשימה</button>
+          <button onClick={() => setView('week')} className={`text-[12px] px-4 py-1.5 ${view === 'week' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>שבועי</button>
+        </div>
+        <button onClick={addTask} className="bg-[#E0197D] hover:bg-[#A0106A] text-white text-[13px] px-4 py-2 rounded-lg flex items-center gap-1.5">
+          <i className="ti ti-plus" style={{ fontSize: 15 }} /> הוסף משימה
+        </button>
+      </div>
+
+      {view === 'week' ? (
+        <div>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <button onClick={() => shiftWeek(1)} className="text-gray-400 hover:text-[#E0197D] p-1"><i className="ti ti-chevron-right" style={{ fontSize: 20 }} /></button>
+            <button onClick={() => setWeekAnchor(todayStr())} className="text-[12px] px-3 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[#E0197D]">השבוע</button>
+            <button onClick={() => shiftWeek(-1)} className="text-gray-400 hover:text-[#E0197D] p-1"><i className="ti ti-chevron-left" style={{ fontSize: 20 }} /></button>
+          </div>
+          {weekDays(weekAnchor).map(ds => {
+            const [yy, mm, dd] = ds.split('-').map(Number)
+            const dow = new Date(yy, mm - 1, dd).getDay()
+            const dTasks = visibleTasks.filter(t => t.due_date === ds).sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0))
+            const isToday = ds === todayStr()
+            return (
+              <div key={ds} className="mb-3">
+                <div className={`flex items-center gap-2 mb-1.5 pb-1 border-b ${isToday ? 'border-[#E0197D]' : 'border-gray-100'}`}>
+                  <span className={`text-[13px] font-semibold ${isToday ? 'text-[#E0197D]' : 'text-gray-700'}`}>יום {HE_DAYS_FULL[dow]} · {dd}/{String(mm).padStart(2, '0')}</span>
+                  {dTasks.length > 0 && <span className="text-[11px] text-gray-400">({dTasks.length})</span>}
+                </div>
+                {dTasks.length === 0 ? (
+                  <p className="text-[12px] text-gray-300 text-right px-1">—</p>
+                ) : dTasks.map(t => (
+                  <div key={t.id} onClick={() => { setDateFilter(ds); setView('list') }}
+                    className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 cursor-pointer border ${t.done ? 'opacity-60' : ''}`}
+                    style={{ backgroundColor: '#FCF2F8', borderColor: '#F3C9E2' }}>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {t.priority && <span className="text-[11px] px-2 py-0.5 rounded-full bg-white border border-[#F3C9E2]" style={{ color: '#A0106A' }}>{t.priority}</span>}
+                      {t.done && <i className="ti ti-check text-green-600" style={{ fontSize: 14 }} />}
+                    </div>
+                    <span className={`text-[13px] text-right flex-1 min-w-0 truncate ${t.done ? 'line-through text-gray-400' : 'text-gray-800'}`}>{t.title || '(ללא נושא)'}</span>
+                  </div>
+                ))}
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+      <>
       {dateFilter && (
         <div className="flex items-center justify-between mb-3 px-3 py-2 rounded-lg border" style={{ backgroundColor: '#FCF2F8', borderColor: '#F3C9E2' }}>
           <button onClick={() => { setDateFilter(''); if (typeof window !== 'undefined') window.history.replaceState(null, '', '/dashboard/tasks') }}
@@ -168,12 +232,7 @@ export default function TasksPage() {
           </span>
         </div>
       )}
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-[13px] text-gray-500">{dateFiltered.length} משימות</span>
-        <button onClick={addTask} className="bg-[#E0197D] hover:bg-[#A0106A] text-white text-[13px] px-4 py-2 rounded-lg flex items-center gap-1.5">
-          <i className="ti ti-plus" style={{ fontSize: 15 }} /> הוסף משימה
-        </button>
-      </div>
+      <div className="mb-3"><span className="text-[13px] text-gray-500">{dateFiltered.length} משימות</span></div>
 
       {loading ? (
         <div className="text-center text-sm text-gray-400 py-8">טוען...</div>
@@ -270,6 +329,8 @@ export default function TasksPage() {
             )}
           </div>
         ))
+      )}
+      </>
       )}
     </div>
   )
