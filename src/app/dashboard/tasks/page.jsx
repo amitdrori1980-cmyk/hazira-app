@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-TASKS-REBUILD-V8
+// HAZIRA-TASKS-REBUILD-V10
 
 const TEAM = ['עמית','לאה','עינת','מרקו','ניב','דונדו','איתן','נועה']
 const TEAM_TOKEN = { 'דונדו': 'דניאל', 'נועה': 'גמליאל' }
@@ -33,6 +33,12 @@ export default function TasksPage() {
   const [comments, setComments] = useState({})
   const [commentText, setCommentText] = useState({})
   const [busy, setBusy] = useState(false)
+  const [dateFilter, setDateFilter] = useState('')
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get('date')
+    if (p) setDateFilter(p)
+  }, [])
 
   useEffect(() => { load() }, [])
 
@@ -72,13 +78,13 @@ export default function TasksPage() {
   function startEdit(t) {
     setEditId(t.id)
     const vis = Array.isArray(t.visible_to) ? t.visible_to : []
-    setDraft({ title: t.title || '', body: t.body || '', visible_to: vis })
+    setDraft({ title: t.title || '', body: t.body || '', visible_to: vis, due_date: t.due_date || '' })
   }
 
   async function saveEdit(t) {
     setBusy(true)
     const vis = draft.visible_to || []
-    const payload = { title: draft.title, body: draft.body, visible_to: vis }
+    const payload = { title: draft.title, body: draft.body, visible_to: vis, due_date: draft.due_date || null }
     const { error } = await supabase.from('tasks').update(payload).eq('id', t.id)
     setBusy(false)
     if (error) { alert('שגיאה: ' + error.message); return }
@@ -148,12 +154,22 @@ export default function TasksPage() {
     if (aud.length === 0) return true
     return aud.includes(uid)
   })
-  const sortedTasks = [...visibleTasks].sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0))
+  const dateFiltered = dateFilter ? visibleTasks.filter(t => t.due_date === dateFilter) : visibleTasks
+  const sortedTasks = [...dateFiltered].sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0))
 
   return (
     <div className="w-full">
+      {dateFilter && (
+        <div className="flex items-center justify-between mb-3 px-3 py-2 rounded-lg border" style={{ backgroundColor: '#FCF2F8', borderColor: '#F3C9E2' }}>
+          <button onClick={() => { setDateFilter(''); if (typeof window !== 'undefined') window.history.replaceState(null, '', '/dashboard/tasks') }}
+            className="text-[12px] px-3 py-1 rounded-lg bg-white border border-[#F3C9E2]" style={{ color: '#A0106A' }}>הצג הכל</button>
+          <span className="text-[13px] font-medium text-right" style={{ color: '#A0106A' }}>
+            <i className="ti ti-calendar" style={{ fontSize: 13 }} /> משימות לתאריך {dateFilter.split('-').reverse().join('/')}
+          </span>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-4">
-        <span className="text-[13px] text-gray-500">{visibleTasks.length} משימות</span>
+        <span className="text-[13px] text-gray-500">{dateFiltered.length} משימות</span>
         <button onClick={addTask} className="bg-[#E0197D] hover:bg-[#A0106A] text-white text-[13px] px-4 py-2 rounded-lg flex items-center gap-1.5">
           <i className="ti ti-plus" style={{ fontSize: 15 }} /> הוסף משימה
         </button>
@@ -161,8 +177,8 @@ export default function TasksPage() {
 
       {loading ? (
         <div className="text-center text-sm text-gray-400 py-8">טוען...</div>
-      ) : visibleTasks.length === 0 ? (
-        <div className="text-center text-sm text-gray-400 py-8">אין משימות עדיין</div>
+      ) : dateFiltered.length === 0 ? (
+        <div className="text-center text-sm text-gray-400 py-8">{dateFilter ? 'אין משימות לתאריך זה' : 'אין משימות עדיין'}</div>
       ) : (
         sortedTasks.map(t => (
           <div key={t.id} className={`border border-gray-100 rounded-xl p-3.5 bg-white mb-2 shadow-sm hover:shadow-md transition-all ${t.done ? 'opacity-60' : ''}`}>
@@ -197,6 +213,12 @@ export default function TasksPage() {
                     </div>
                   )}
                 </div>
+                <div className="flex items-center gap-2 flex-row-reverse">
+                  <span className="text-[12px] text-gray-500 flex-shrink-0">שייך לתאריך:</span>
+                  <input type="date" value={draft.due_date || ''} onChange={e => setDraft(d => ({ ...d, due_date: e.target.value }))}
+                    className="text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
+                  {draft.due_date && <button onClick={() => setDraft(d => ({ ...d, due_date: '' }))} className="text-gray-400 hover:text-red-500 text-[12px]">נקה</button>}
+                </div>
                 <div className="flex gap-2">
                   <button onClick={() => saveEdit(t)} disabled={busy} className="bg-[#E0197D] text-white text-[12px] px-3 py-1.5 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">{busy ? 'שומר...' : 'שמור'}</button>
                   <button onClick={() => { setEditId(null); if (!t.title && !t.body) deleteTask(t) }} className="text-[12px] text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200">ביטול</button>
@@ -211,10 +233,15 @@ export default function TasksPage() {
                     <div className={`text-[14px] font-bold ${t.done ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{t.title || '(ללא נושא)'}</div>
                     <div className="text-[11px] text-gray-400 mt-0.5">{t.created_by_name ? `מאת ${t.created_by_name} · ` : ''}{fmtDT(t.created_at)}</div>
                     {t.body && <div className="text-[13px] text-gray-600 whitespace-pre-wrap mt-1.5 leading-7">{renderBody(t)}</div>}
-                    <div className="mt-1.5">
+                    <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
                       <span className="text-[11px] text-gray-400 inline-flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-full px-2 py-0.5">
                         <i className="ti ti-eye" style={{ fontSize: 11 }} /> {audienceLabel(t)}
                       </span>
+                      {t.due_date && (
+                        <span className="text-[11px] inline-flex items-center gap-1 rounded-full px-2 py-0.5 border" style={{ backgroundColor: '#FCE4F3', color: '#A0106A', borderColor: '#F3C9E2' }}>
+                          <i className="ti ti-calendar" style={{ fontSize: 11 }} /> {t.due_date.split('-').reverse().join('/')}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">

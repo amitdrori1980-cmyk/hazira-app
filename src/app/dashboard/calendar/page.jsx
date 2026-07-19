@@ -47,7 +47,7 @@ export default function CalendarPage() {
   const [inqBusy, setInqBusy] = useState(null)
   // HAZIRA-GCAL-BTN5
   // HAZIRA-GCAL-AUTOSYNC-V1
-  // HAZIRA-GCAL-CONSTRAINTS-MERGE-V5
+  // HAZIRA-GCAL-TASKS-V7
   const [savedGoogle, setSavedGoogle] = useState(new Set())
   const [gBusy, setGBusy] = useState(null)
   const [gAllBusy, setGAllBusy] = useState(false)
@@ -57,6 +57,7 @@ export default function CalendarPage() {
   const [gMsg, setGMsg] = useState('')
   const [gPurging, setGPurging] = useState(false)
   const [constraints, setConstraints] = useState([])
+  const [dayTasks, setDayTasks] = useState([])
   const [crewNames, setCrewNames] = useState([])
   const [conForm, setConForm] = useState({ crew_name: '', available: false, notes: '' })
   const [conCrewOpen, setConCrewOpen] = useState(false)
@@ -200,6 +201,8 @@ export default function CalendarPage() {
       const { data: gl } = await supabase.from('google_calendar_links').select('source_id').eq('source_type', 'event')
       setSavedGoogle(new Set((gl || []).map(r => r.source_id)))
       await loadConstraints()
+      const { data: dtk } = await supabase.from('tasks').select('*').not('due_date', 'is', null)
+      setDayTasks(dtk || [])
       const [{ data: profs }, { data: cm }, { data: ops }] = await Promise.all([
         supabase.from('profiles').select('id,full_name,dept').order('full_name'),
         supabase.from('crew_members').select('id,full_name').order('full_name'),
@@ -228,6 +231,9 @@ export default function CalendarPage() {
   async function loadConstraints() {
     const { data } = await supabase.from('crew_constraints').select('*').order('date')
     setConstraints(data || [])
+  }
+  function tasksForDay(ds) {
+    return (dayTasks || []).filter(t => t.due_date === ds)
   }
   // אילוצי-יום עם שם צוות אמיתי בלבד (מסננים רשומות טכניות שנוצרו מאירועים)
   function dayConstraints(ds) {
@@ -747,6 +753,11 @@ export default function CalendarPage() {
                             {wa.length > 0 && <div style={{ color: '#C0392B' }}>לא נמצאים: {wa.map(a => a.crew_name).join(', ')}</div>}
                           </div>
                         ) : null })()}
+                        {tasksForDay(c.ds).length > 0 && (
+                          <div className="mt-1 flex items-center gap-1 text-[10px] md:text-[12px] font-medium" style={{ color: '#A0106A' }}>
+                            <i className="ti ti-checklist" style={{ fontSize: 12 }} />{tasksForDay(c.ds).length} משימות
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -769,6 +780,7 @@ export default function CalendarPage() {
                       })
                     const dAbsent = dayConstraints(c.ds).filter(x => !x.available)
                     const dPresent = dayConstraints(c.ds).filter(x => x.available)
+                    const dTasks = tasksForDay(c.ds)
                     return (
                       <div key={ci} onClick={() => setSelectedDay(c.ds)}
                         className={`min-h-[72px] md:min-h-[150px] rounded-lg p-1.5 cursor-pointer border transition-all ${
@@ -801,6 +813,11 @@ export default function CalendarPage() {
                               <div className="md:hidden flex items-center justify-center gap-0.5"><span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#C0392B' }}/><span className="text-[9px]" style={{ color: '#C0392B' }}>{dAbsent.length}</span></div>
                               <div className="hidden md:block text-[10px] truncate" style={{ color: '#C0392B' }} title={dAbsent.map(a => a.crew_name).join(', ')}>לא נמצאים: {dAbsent.map(a => a.crew_name).join(', ')}</div>
                             </>)}
+                          </div>
+                        )}
+                        {dTasks.length > 0 && (
+                          <div className="mt-0.5 flex items-center justify-center md:justify-start gap-1 text-[9px] md:text-[10px] font-medium" style={{ color: '#A0106A' }}>
+                            <i className="ti ti-checklist" style={{ fontSize: 11 }} />{dTasks.length} משימות
                           </div>
                         )}
                       </div>
@@ -897,6 +914,16 @@ export default function CalendarPage() {
                   <div className="text-[12px] text-gray-400 whitespace-nowrap mt-0.5 font-mono">{e.time?.slice(0,5)}</div>
                 </div>
               ))}
+            </div>
+          )}
+          {/* משימות ליום זה — קפיצה למסך המשימות מסונן */}
+          {tasksForDay(selectedDay).length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <button onClick={() => router.push(`/dashboard/tasks?date=${selectedDay}`)}
+                className="w-full flex items-center justify-center gap-2 text-[13px] py-2.5 rounded-lg border transition-colors"
+                style={{ backgroundColor: '#FCF2F8', borderColor: '#F3C9E2', color: '#A0106A' }}>
+                <i className="ti ti-checklist" style={{ fontSize: 15 }} /> צפייה במשימות ({tasksForDay(selectedDay).length})
+              </button>
             </div>
           )}
           {/* זמינות צוות — אילוצים ליום זה */}
