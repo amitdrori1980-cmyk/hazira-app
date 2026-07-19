@@ -47,7 +47,7 @@ export default function CalendarPage() {
   const [inqBusy, setInqBusy] = useState(null)
   // HAZIRA-GCAL-BTN5
   // HAZIRA-GCAL-AUTOSYNC-V1
-  // HAZIRA-GCAL-CONSTRAINTS-MERGE-V4
+  // HAZIRA-GCAL-CONSTRAINTS-MERGE-V5
   const [savedGoogle, setSavedGoogle] = useState(new Set())
   const [gBusy, setGBusy] = useState(null)
   const [gAllBusy, setGAllBusy] = useState(false)
@@ -295,6 +295,52 @@ export default function CalendarPage() {
       wk.push({ d: dt.getDate(), ds: dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate()), inMonth: true })
     }
     return wk
+  }
+
+  function exportWeekPdf() {
+    const wk = buildWeekCells(weekAnchor || selectedDay || todayDs)
+    const dayBlocks = wk.map(c => {
+      const evs = filteredEvents
+        .filter(e => e.date === c.ds || (e.end_date && e.end_date >= e.date && c.ds >= e.date && c.ds <= e.end_date))
+        .sort((a, b) => {
+          const ao = a.sort_order, bo = b.sort_order
+          if (ao != null && bo != null && ao !== bo) return ao - bo
+          if (ao != null && bo == null) return -1
+          if (ao == null && bo != null) return 1
+          if (a.type === 'show' && b.type !== 'show') return -1
+          if (a.type !== 'show' && b.type === 'show') return 1
+          return (a.time || '').localeCompare(b.time || '')
+        })
+      const [yy, mm, dd] = c.ds.split('-').map(Number)
+      const dow = new Date(yy, mm - 1, dd).getDay()
+      const header = `יום ${HE_DAYS[dow]} · ${dd} ${HE_MONTHS[mm - 1]}`
+      const evHtml = evs.length ? evs.map(e => {
+        const col = getTypeColors(e.type)
+        return `<div style="background:${col.bg};color:${col.text};padding:4px 8px;border-radius:6px;margin-bottom:4px;font-size:12px">${e.time ? e.time.slice(0,5) + ' · ' : ''}${e.title || ''}${e.venue ? ' · ' + e.venue : ''}${e.type ? ' · ' + getTypeLabel(e.type) : ''}</div>`
+      }).join('') : `<div style="color:#bbb;font-size:11px">אין אירועים</div>`
+      const wp = dayConstraints(c.ds).filter(x => x.available)
+      const wa = dayConstraints(c.ds).filter(x => !x.available)
+      let avail = ''
+      if (wp.length || wa.length) {
+        avail = `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #F3C9E2;font-size:11px">`
+        if (wp.length) avail += `<div style="color:#085041">נמצאים: ${wp.map(a => a.crew_name).join(', ')}</div>`
+        if (wa.length) avail += `<div style="color:#C0392B">לא נמצאים: ${wa.map(a => a.crew_name).join(', ')}</div>`
+        avail += `</div>`
+      }
+      return `<td style="vertical-align:top;border:1px solid #eee;padding:8px;width:14.28%">
+        <div style="font-weight:bold;color:#A0106A;font-size:12px;margin-bottom:6px;border-bottom:2px solid #E0197D;padding-bottom:4px">${header}</div>
+        ${evHtml}${avail}</td>`
+    }).join('')
+    const label = `${wk[0].d} ${HE_MONTHS[Number(wk[0].ds.split('-')[1]) - 1]} – ${wk[6].d} ${HE_MONTHS[Number(wk[6].ds.split('-')[1]) - 1]}`
+    const win = window.open('', '_blank')
+    win.document.write(`<!doctype html><html dir="rtl" lang="he"><head><meta charset="utf-8"><title>יומן שבועי ${label}</title>
+      <style>@page{size:A4 landscape;margin:12mm} body{font-family:Arial,sans-serif;direction:rtl} h1{color:#E0197D;font-size:18px;text-align:center;margin:0 0 12px} table{width:100%;border-collapse:collapse;table-layout:fixed}</style>
+      </head><body>
+      <h1>יומן שבועי · ${label}</h1>
+      <table><tr>${dayBlocks}</tr></table>
+      <script>window.onload=function(){window.print()}</script>
+      </body></html>`)
+    win.document.close()
   }
 
   function navigate(dir) {
@@ -630,6 +676,12 @@ export default function CalendarPage() {
             <button onClick={() => setViewMode('month')} className={`text-[12px] px-3 py-1 ${viewMode === 'month' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>חודשי</button>
             <button onClick={() => { setViewMode('week'); setWeekAnchor(selectedDay || todayDs) }} className={`text-[12px] px-3 py-1 ${viewMode === 'week' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>שבועי</button>
           </div>
+          {viewMode === 'week' && (
+            <button onClick={exportWeekPdf} title="ייצוא PDF של השבוע"
+              className="flex items-center gap-1 text-[12px] px-3 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[#E0197D] hover:text-[#E0197D]">
+              <i className="ti ti-file-type-pdf" style={{ fontSize: 14 }} /> PDF
+            </button>
+          )}
         </div>
 
         {/* Venue filter */}
