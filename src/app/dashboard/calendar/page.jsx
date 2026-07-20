@@ -47,7 +47,7 @@ export default function CalendarPage() {
   const [inqBusy, setInqBusy] = useState(null)
   // HAZIRA-GCAL-BTN5
   // HAZIRA-GCAL-AUTOSYNC-V1
-  // HAZIRA-GCAL-TASKS-V7
+  // HAZIRA-GCAL-BACKBTN-V8
   const [savedGoogle, setSavedGoogle] = useState(new Set())
   const [gBusy, setGBusy] = useState(null)
   const [gAllBusy, setGAllBusy] = useState(false)
@@ -411,13 +411,27 @@ export default function CalendarPage() {
     if (day && /^\d{4}-\d{2}-\d{2}$/.test(day)) {
       const [yy, mm] = day.split('-').map(Number)
       setCalYear(yy); setCalMonth(mm - 1)
-      setSelectedDay(day)
+      openDay(day)
       const ev = params.get('ev')
       if (ev) {
         setFlashEv(decodeURIComponent(ev).trim())
         setTimeout(() => setFlashEv(null), 4000)
       }
     }
+  }, [])
+
+  function openDay(ds) {
+    setSelectedDay(ds)
+    try { window.history.pushState({ haziraDay: ds }, '') } catch (e) {}
+  }
+  function closeDay() {
+    if (typeof window !== 'undefined' && window.history.state && window.history.state.haziraDay) window.history.back()
+    else setSelectedDay(null)
+  }
+  useEffect(() => {
+    function onPop() { setSelectedDay(null) }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
   }, [])
 
   useEffect(() => {
@@ -734,7 +748,7 @@ export default function CalendarPage() {
                         return (a.time || '').localeCompare(b.time || '')
                       })
                     return (
-                      <div key={ci} onClick={() => setSelectedDay(c.ds)}
+                      <div key={ci} onClick={() => openDay(c.ds)}
                         className={`min-h-[120px] md:min-h-[420px] rounded-lg p-1.5 md:p-2 cursor-pointer border transition-all ${
                           isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
                           isToday ? 'bg-[#FCE4F3] border-transparent' :
@@ -782,7 +796,7 @@ export default function CalendarPage() {
                     const dPresent = dayConstraints(c.ds).filter(x => x.available)
                     const dTasks = tasksForDay(c.ds)
                     return (
-                      <div key={ci} onClick={() => setSelectedDay(c.ds)}
+                      <div key={ci} onClick={() => openDay(c.ds)}
                         className={`min-h-[72px] md:min-h-[150px] rounded-lg p-1.5 cursor-pointer border transition-all ${
                           isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
                           isToday ? 'bg-[#FCE4F3] border-transparent' :
@@ -835,7 +849,7 @@ export default function CalendarPage() {
         <div ref={detailRef} className="bg-white border border-gray-100 rounded-xl p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <button onClick={() => setSelectedDay(null)}
+              <button onClick={closeDay}
                 className="flex items-center gap-1 text-[13px] text-gray-600 hover:text-[#E0197D] border border-gray-200 hover:border-[#E0197D] rounded-lg px-3 py-1.5 transition-colors">
                 <i className="ti ti-arrow-right" style={{fontSize:15}}/>
                 חזרה ליומן
