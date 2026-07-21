@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-PROJPLANS-V7
+// HAZIRA-PROJPLANS-V8
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -546,7 +546,6 @@ export default function ProjectPlansMode({ profile }) {
                             </div>
                           )
                         })()}
-                      </>
                         <div className="flex gap-2 mt-3">
                           <button onClick={() => runImport(plan.id)} disabled={importSel.size === 0}
                             className="flex-1 bg-[#E0197D] text-white text-[13px] py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
