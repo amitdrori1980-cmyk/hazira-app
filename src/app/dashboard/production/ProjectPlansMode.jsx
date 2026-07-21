@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-PROJPLANS-V6
+// HAZIRA-PROJPLANS-V7
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -77,6 +77,7 @@ export default function ProjectPlansMode({ profile }) {
   const [importFor, setImportFor]       = useState(null) // planId whose import panel is open
   const [importEvents, setImportEvents] = useState([])   // candidate production_events (with _crew[])
   const [importSel, setImportSel]       = useState(new Set())
+  const [importSearch, setImportSearch] = useState('')
   const [importBusy, setImportBusy]     = useState(false)
   const [syncBusy, setSyncBusy]         = useState(null) // planId currently syncing
 
@@ -295,6 +296,7 @@ export default function ProjectPlansMode({ profile }) {
     if (importFor === planId) { setImportFor(null); return }
     setImportFor(planId)
     setImportSel(new Set())
+    setImportSearch('')
     setImportBusy(true)
     const { data: evs } = await supabase.from('production_events')
       .select('*').is('deleted_at', null).order('date', { ascending: true })
@@ -505,30 +507,46 @@ export default function ProjectPlansMode({ profile }) {
                       <div className="text-center text-[12px] text-gray-400 py-4">אין אירועים עם תאריך בהפקה הטכנית</div>
                     ) : (
                       <>
-                        <div className="text-[11px] text-gray-400 mb-2 px-1">בחר אירועים — כל אירוע ייכנס ככרטיס ביום התואם. אירוע שכבר יובא יעודכן.</div>
-                        <div className="max-h-64 overflow-y-auto space-y-1">
-                          {importEvents.map(ev => {
-                            const already = linkedEventIds.has(ev.id)
-                            const checked = importSel.has(ev.id)
-                            return (
-                              <label key={ev.id}
-                                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-right flex-row-reverse ${checked ? 'bg-[#FCE4F3]' : 'hover:bg-gray-50'}`}>
-                                <input type="checkbox" checked={checked} onChange={() => toggleImportSel(ev.id)} className="accent-[#E0197D]" />
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-[12px] font-medium text-gray-800 truncate flex items-center gap-1.5 justify-end">
-                                    {already && <span className="text-[9px] text-[#E0197D] border border-[#E0197D] rounded px-1 py-px">מקושר</span>}
-                                    {ev.event_name}
-                                  </div>
-                                  <div className="text-[11px] text-gray-400 flex gap-2 justify-end flex-wrap">
-                                    {ev._crew.length > 0 && <span>{ev._crew.length} אישרו</span>}
-                                    {ev.venue && <span>{ev.venue}</span>}
-                                    <span>{fmtShort(ev.date)}</span>
-                                  </div>
-                                </div>
-                              </label>
-                            )
-                          })}
+                        <div className="relative mb-2">
+                          <i className="ti ti-search absolute top-1/2 -translate-y-1/2 right-2.5 text-gray-300" style={{ fontSize: 14 }} />
+                          <input value={importSearch} onChange={e => setImportSearch(e.target.value)}
+                            placeholder="חיפוש אירוע..."
+                            className="w-full text-[12px] pr-8 pl-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
                         </div>
+                        <div className="text-[11px] text-gray-400 mb-2 px-1 text-right">בחר אירועים — כל אירוע ייכנס ככרטיס ביום התואם. אירוע שכבר יובא יעודכן.</div>
+                        {(() => {
+                          const q = importSearch.trim().toLowerCase()
+                          const shown = q
+                            ? importEvents.filter(e => (e.event_name || '').toLowerCase().includes(q) || (e.venue || '').toLowerCase().includes(q))
+                            : importEvents
+                          if (shown.length === 0) return <div className="text-center text-[12px] text-gray-400 py-4">לא נמצאו אירועים תואמים</div>
+                          return (
+                            <div className="max-h-64 overflow-y-auto space-y-1">
+                              {shown.map(ev => {
+                                const already = linkedEventIds.has(ev.id)
+                                const checked = importSel.has(ev.id)
+                                return (
+                                  <label key={ev.id}
+                                    className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-right ${checked ? 'bg-[#FCE4F3]' : 'hover:bg-gray-50'}`}>
+                                    <input type="checkbox" checked={checked} onChange={() => toggleImportSel(ev.id)} className="accent-[#E0197D] shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-[12px] font-medium text-gray-800 flex items-center gap-1.5 min-w-0">
+                                        {already && <span className="text-[9px] text-[#E0197D] border border-[#E0197D] rounded px-1 py-px shrink-0">מקושר</span>}
+                                        <span className="truncate">{ev.event_name}</span>
+                                      </div>
+                                      <div className="text-[11px] text-gray-400 flex gap-2 flex-wrap">
+                                        {ev._crew.length > 0 && <span>{ev._crew.length} אישרו</span>}
+                                        {ev.venue && <span>{ev.venue}</span>}
+                                        <span>{fmtShort(ev.date)}</span>
+                                      </div>
+                                    </div>
+                                  </label>
+                                )
+                              })}
+                            </div>
+                          )
+                        })()}
+                      </>
                         <div className="flex gap-2 mt-3">
                           <button onClick={() => runImport(plan.id)} disabled={importSel.size === 0}
                             className="flex-1 bg-[#E0197D] text-white text-[13px] py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
