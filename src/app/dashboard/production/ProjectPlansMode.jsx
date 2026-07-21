@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-PROJPLANS-V9
+// HAZIRA-PROJPLANS-V10
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -394,6 +394,94 @@ export default function ProjectPlansMode({ profile }) {
     setSyncBusy(null)
   }
 
+  // ---- PDF export (styled print window) ----
+  function pdfEsc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  }
+
+  async function exportPdf(plan) {
+    const { cols, grouped } = await fetchBoard(plan.id)
+    const days = sortColsByDate(cols)
+    const dates = days.map(d => d.date).filter(Boolean)
+    const range = dates.length
+      ? (fmtShort(dates[0]) + (dates.length > 1 ? ' – ' + fmtShort(dates[dates.length - 1]) : ''))
+      : ''
+    const stLabel = getPlanStatus(plan.status).label
+    const notes = plan.notes || ''
+
+    const daysHtml = days.map(col => {
+      const cat = getDayCategory(col.category)
+      const cells = grouped[col.id] || []
+      const rows = cells.length
+        ? cells.map((c, i) => `
+          <tr class="${i % 2 ? 'alt' : ''}">
+            <td class="c-action">${c.source_event_id ? '<span class="lnk"></span>' : ''}${pdfEsc(c.action) || '<span class="ph">—</span>'}</td>
+            <td>${pdfEsc(c.crew)}</td>
+            <td class="c-notes">${pdfEsc(c.notes).replace(/\n/g, '<br>')}</td>
+          </tr>`).join('')
+        : `<tr><td colspan="3" class="empty">אין פעולות</td></tr>`
+      return `
+        <section class="day">
+          <div class="day-head" style="background:${cat.head};color:${cat.text}">
+            <span class="dd">${pdfEsc(fmtDay(col.date))}</span>
+            ${cat.value ? `<span class="cat" style="border-color:${cat.text}">${pdfEsc(cat.label)}</span>` : ''}
+          </div>
+          <table>
+            <thead><tr><th class="c-action">פעולה</th><th>צוות</th><th class="c-notes">הערות</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </section>`
+    }).join('')
+
+    const t = new Date()
+    const stamp = t.getDate() + '/' + (t.getMonth() + 1) + '/' + t.getFullYear()
+
+    const html = `<!doctype html><html dir="rtl" lang="he"><head><meta charset="utf-8"/>
+<title>${pdfEsc(plan.title)}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Heebo','Assistant',Arial,sans-serif; direction: rtl; color:#1f2937; margin:0; padding:26px 30px;
+         -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  header.doc { border-bottom:2px solid #E0197D; padding-bottom:12px; margin-bottom:16px; }
+  .brand { font-size:11px; letter-spacing:.04em; color:#E0197D; font-weight:600; margin-bottom:2px; }
+  h1 { font-size:24px; margin:0 0 4px; color:#111827; }
+  .meta { font-size:12px; color:#6b7280; }
+  .notes { background:#F9FAFB; border:1px solid #eee; border-radius:8px; padding:10px 12px; margin-bottom:18px; font-size:12px; color:#374151; }
+  .notes-t { font-size:11px; color:#9ca3af; margin-bottom:3px; }
+  section.day { border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; margin-bottom:13px; break-inside:avoid; }
+  .day-head { display:flex; align-items:center; justify-content:space-between; padding:7px 12px; font-weight:700; font-size:13px; }
+  .day-head .cat { font-size:10px; font-weight:600; border:1px solid; border-radius:999px; padding:1px 9px; background:rgba(255,255,255,.4); }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { background:#F3F4F6; color:#374151; text-align:right; font-weight:600; padding:6px 12px; border-bottom:1px solid #e5e7eb; }
+  td { padding:7px 12px; border-bottom:1px solid #f1f1f1; text-align:right; vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  tr.alt td { background:#FAFAFB; }
+  .c-action { width:42%; font-weight:600; color:#111827; }
+  .c-notes { width:30%; color:#6b7280; }
+  .ph { color:#d1d5db; }
+  .lnk { display:inline-block; width:6px; height:6px; border-radius:50%; background:#E0197D; margin-left:6px; vertical-align:middle; }
+  td.empty { color:#9ca3af; text-align:center; padding:10px; }
+  footer { margin-top:22px; padding-top:10px; border-top:1px solid #eee; font-size:10px; color:#9ca3af; text-align:center; }
+  @page { margin:14mm 12mm; }
+</style></head><body>
+  <header class="doc">
+    <div class="brand">הזירה · תכנון פרויקטים</div>
+    <h1>${pdfEsc(plan.title)}</h1>
+    <div class="meta">${pdfEsc(stLabel)}${range ? ' · ' + range : ''}${days.length ? ' · ' + days.length + ' ימים' : ''}</div>
+  </header>
+  ${notes ? `<div class="notes"><div class="notes-t">הערות כלליות</div><div>${pdfEsc(notes).replace(/\n/g, '<br>')}</div></div>` : ''}
+  ${daysHtml || '<div class="empty" style="text-align:center;color:#9ca3af;padding:30px">אין ימים בתוכנית</div>'}
+  <footer>הופק ב-${stamp} · הזירה</footer>
+  <script>window.onload=function(){window.print();window.onafterprint=function(){window.close()}}<\/script>
+</body></html>`
+
+    const win = window.open('', '_blank')
+    if (!win) { alert('חלון ההדפסה נחסם — אפשר חלונות קופצים (pop-ups) לאתר ונסה שוב'); return }
+    win.document.write(html)
+    win.document.close()
+  }
+
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
 
   return (
@@ -454,6 +542,10 @@ export default function ProjectPlansMode({ profile }) {
                   className={`text-[11px] px-2 py-1 rounded-lg border-0 outline-none cursor-pointer ${st.color}`}>
                   {PLAN_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
+                <button onClick={e => { e.stopPropagation(); exportPdf(plan) }}
+                  className="text-gray-300 hover:text-[#E0197D] p-1" title="ייצוא PDF">
+                  <i className="ti ti-file-type-pdf" style={{ fontSize: 13 }} />
+                </button>
                 <button onClick={e => { e.stopPropagation(); duplicatePlan(plan) }}
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="שכפל תוכנית">
                   <i className="ti ti-copy" style={{ fontSize: 13 }} />
