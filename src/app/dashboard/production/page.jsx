@@ -1645,7 +1645,7 @@ function ProductionSchedule({ profile }) {
   )
 }
 
-// HAZIRA-GENSCHED-DAYS-V32
+// HAZIRA-GENSCHED-DUPFIX-V33
 function fmtDayHeader(ds) {
   if (!ds) return ''
   const parts = String(ds).split('-').map(Number)
@@ -1735,11 +1735,15 @@ export function GeneralSchedulesMode() {
     if (!newSch) return
     const { data: srcRows2 } = await supabase.from('general_schedule_rows').select('*').eq('schedule_id', sch.id).order('sort_order')
     const srcRows = srcRows2 || []
+    let insertedRows = []
     if (srcRows.length > 0) {
-      await supabase.from('general_schedule_rows').insert(srcRows.map((r,i) => ({ schedule_id: newSch.id, time: r.time, what: r.what, who: r.who, notes: r.notes, row_type: r.row_type || 'item', day_date: r.day_date || null, day_label: r.day_label || null, sort_order: i })))
+      const { data: ins } = await supabase.from('general_schedule_rows')
+        .insert(srcRows.map((r,i) => ({ schedule_id: newSch.id, time: r.time, what: r.what, who: r.who, notes: r.notes, row_type: r.row_type || 'item', day_date: r.day_date || null, day_label: r.day_label || null, sort_order: i })))
+        .select()
+      insertedRows = (ins || []).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     }
     setSchedules(prev => [newSch, ...prev])
-    setRows(prev => ({ ...prev, [newSch.id]: srcRows.map((r,i) => ({ ...r, id: i, schedule_id: newSch.id })) }))
+    setRows(prev => ({ ...prev, [newSch.id]: insertedRows }))
   }
 
   async function addRow(scheduleId) {
