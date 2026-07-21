@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-PROJPLANS-V4
+// HAZIRA-PROJPLANS-V5
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -32,6 +32,16 @@ const PLAN_STATUSES = [
   { value: 'done',   label: 'הושלם',  color: 'bg-blue-100 text-blue-700' },
 ]
 const getPlanStatus = v => PLAN_STATUSES.find(s => s.value === v) || PLAN_STATUSES[0]
+
+// קטגוריית יום — צובעת את כותרת העמודה
+const DAY_CATEGORIES = [
+  { value: '',        label: '— יום —', head: '#B6CFD0', text: '#374151' },
+  { value: 'prep',    label: 'הכנות',   head: '#FCE3B8', text: '#7A4A00' },
+  { value: 'rehears', label: 'חזרות',   head: '#C9DEF5', text: '#1E3A5F' },
+  { value: 'show',    label: 'מופע',    head: '#F7C9E0', text: '#7A1750' },
+  { value: 'strike',  label: 'פירוק',   head: '#D8DBDF', text: '#3A3F45' },
+]
+const getDayCategory = v => DAY_CATEGORIES.find(c => c.value === (v || '')) || DAY_CATEGORIES[0]
 
 // עמודות ממוינות כרונולוגית לפי תאריך (ריק — בסוף)
 function sortColsByDate(arr) {
@@ -151,7 +161,7 @@ export default function ProjectPlansMode({ profile }) {
     for (let i = 0; i < cols.length; i++) {
       const src = cols[i]
       const { data: nc } = await supabase.from('project_plan_columns')
-        .insert({ plan_id: newPlan.id, date: src.date, sort_order: i })
+        .insert({ plan_id: newPlan.id, date: src.date, category: src.category || null, sort_order: i })
         .select().single()
       if (!nc) continue
       newCols.push(nc)
@@ -195,6 +205,11 @@ export default function ProjectPlansMode({ profile }) {
   async function updateColumnDate(planId, colId, value) {
     setColumns(prev => ({ ...prev, [planId]: prev[planId].map(c => c.id === colId ? { ...c, date: value } : c) }))
     await supabase.from('project_plan_columns').update({ date: value || null }).eq('id', colId)
+  }
+
+  async function updateColumnCategory(planId, colId, value) {
+    setColumns(prev => ({ ...prev, [planId]: prev[planId].map(c => c.id === colId ? { ...c, category: value } : c) }))
+    await supabase.from('project_plan_columns').update({ category: value || null }).eq('id', colId)
   }
 
   async function deleteColumn(planId, colId) {
@@ -506,15 +521,24 @@ export default function ProjectPlansMode({ profile }) {
                 <div className="flex gap-3 overflow-x-auto pb-2 items-start">
                   {planCols.map((col, ci) => {
                     const colCells = cells[col.id] || []
+                    const cat = getDayCategory(col.category)
                     return (
                       <div key={col.id} className="w-64 flex-shrink-0 bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
                         {/* column header */}
-                        <div className="bg-[#B6CFD0] px-3 py-2 flex items-center gap-1">
+                        <div className="px-3 py-2 flex items-center gap-1" style={{ backgroundColor: cat.head }}>
                           <div className="flex-1 min-w-0">
-                            <div className="text-[12px] font-bold text-gray-800 truncate">{fmtDay(col.date)}</div>
-                            <input type="date" value={col.date || ''}
-                              onChange={e => updateColumnDate(plan.id, col.id, e.target.value)}
-                              className="mt-1 text-[11px] px-1.5 py-0.5 rounded bg-white/70 border border-black/10 outline-none focus:border-[#E0197D] w-full" />
+                            <div className="text-[12px] font-bold truncate" style={{ color: cat.text }}>{fmtDay(col.date)}</div>
+                            <div className="flex gap-1 mt-1">
+                              <input type="date" value={col.date || ''}
+                                onChange={e => updateColumnDate(plan.id, col.id, e.target.value)}
+                                className="flex-1 min-w-0 text-[11px] px-1.5 py-0.5 rounded bg-white/70 border border-black/10 outline-none focus:border-[#E0197D]" />
+                              <select value={col.category || ''}
+                                onChange={e => updateColumnCategory(plan.id, col.id, e.target.value)}
+                                title="קטגוריית יום"
+                                className="text-[10px] px-1 py-0.5 rounded bg-white/70 border border-black/10 outline-none focus:border-[#E0197D] cursor-pointer">
+                                {DAY_CATEGORIES.map(c => <option key={c.value || 'none'} value={c.value}>{c.label}</option>)}
+                              </select>
+                            </div>
                           </div>
                           <div className="flex flex-col">
                             <button onClick={() => moveColumn(plan.id, ci, -1)} disabled={ci === 0}
