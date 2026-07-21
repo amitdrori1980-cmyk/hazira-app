@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-PROJPLANS-V8
+// HAZIRA-PROJPLANS-V9
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -33,13 +33,13 @@ const PLAN_STATUSES = [
 ]
 const getPlanStatus = v => PLAN_STATUSES.find(s => s.value === v) || PLAN_STATUSES[0]
 
-// קטגוריית יום — צובעת את כותרת העמודה
+// קטגוריית יום — צובעת את כותרת העמודה (פלטה מאופקת, באותו רגיסטר של הטורקיז)
 const DAY_CATEGORIES = [
-  { value: '',        label: '— יום —', head: '#B6CFD0', text: '#374151' },
-  { value: 'prep',    label: 'הכנות',   head: '#FCE3B8', text: '#7A4A00' },
-  { value: 'rehears', label: 'חזרות',   head: '#C9DEF5', text: '#1E3A5F' },
-  { value: 'show',    label: 'מופע',    head: '#F7C9E0', text: '#7A1750' },
-  { value: 'strike',  label: 'פירוק',   head: '#D8DBDF', text: '#3A3F45' },
+  { value: '',        label: '— יום —', head: '#B6CFD0', text: '#33414A' },
+  { value: 'prep',    label: 'הכנות',   head: '#D8C7A8', text: '#5E4E30' },
+  { value: 'rehears', label: 'חזרות',   head: '#AEC3D0', text: '#33495A' },
+  { value: 'show',    label: 'מופע',    head: '#D3A9BE', text: '#6E2E4E' },
+  { value: 'strike',  label: 'פירוק',   head: '#C3C6C9', text: '#40454A' },
 ]
 const getDayCategory = v => DAY_CATEGORIES.find(c => c.value === (v || '')) || DAY_CATEGORIES[0]
 
