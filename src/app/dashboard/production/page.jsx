@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import HaziraLogo from '@/components/HaziraLogo'
 import { supabase } from '@/lib/supabase'
 import * as XLSX from 'xlsx-js-style'
+import ProjectPlansMode from './ProjectPlansMode'
+// HAZIRA-PROJPLANS-TAB-V34
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -2468,6 +2470,7 @@ export default function ProductionPage() {
   const PTABS = [
     { id: 'inquiries', label: 'הפקה טכנית', icon: 'ti-clipboard-list' },
     { id: 'tasks', label: 'משימות', icon: 'ti-checklist' },
+    { id: 'plans', label: 'תכנון פרויקטים', icon: 'ti-layout-kanban' },
   ]
 
   return (
@@ -2480,7 +2483,9 @@ export default function ProductionPage() {
           </button>
         ))}
       </div>
-      {tab === 'tasks' ? <ProductionTasks /> : <ProductionInquiries />}
+      {tab === 'tasks' ? <ProductionTasks />
+        : tab === 'plans' ? <ProjectPlansMode profile={profile} />
+        : <ProductionInquiries />}
       <button onClick={scrollToTop} title="חזרה לראש העמוד"
         className="fixed bottom-6 left-6 z-50 w-12 h-12 rounded-full bg-[#E0197D] text-white shadow-lg hover:bg-[#A0106A] flex items-center justify-center no-print">
         <i className="ti ti-arrow-up" style={{ fontSize: 22 }} />
