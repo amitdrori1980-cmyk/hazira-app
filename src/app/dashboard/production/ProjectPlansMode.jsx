@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-PROJPLANS-V2
+// HAZIRA-PROJPLANS-V3
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -367,7 +367,7 @@ export default function ProjectPlansMode({ profile }) {
         planCols.forEach(c => (cells[c.id] || []).forEach(cell => { if (cell.source_event_id) linkedEventIds.add(cell.source_event_id) }))
         const hasLinked = linkedEventIds.size > 0
         return (
-          <div key={plan.id} id={`pp-${plan.id}`} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
+          <div key={plan.id} id={`pp-${plan.id}`} className="bg-white border-2 border-[#B6CFD0] rounded-xl mb-3 overflow-hidden shadow-sm">
             {/* header */}
             <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 flex-row-reverse"
               onClick={() => toggleOpen(plan.id)}>
@@ -401,6 +401,18 @@ export default function ProjectPlansMode({ profile }) {
             {/* board */}
             {isOpen && (
               <div className="border-t border-gray-50 p-4">
+                {/* project notes */}
+                <div className="mb-3">
+                  <label className="text-[11px] text-gray-400 mb-1 block text-right">הערות כלליות לפרויקט</label>
+                  <textarea
+                    value={plan.notes || ''}
+                    onChange={e => setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, notes: e.target.value } : p))}
+                    onBlur={e => updatePlan(plan.id, 'notes', e.target.value)}
+                    placeholder="הערות, אנשי קשר, לינקים..."
+                    rows={2}
+                    className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y"
+                  />
+                </div>
                 {/* toolbar */}
                 <div className="flex justify-end gap-2 mb-3">
                   {hasLinked && (
@@ -496,7 +508,7 @@ export default function ProjectPlansMode({ profile }) {
                         {/* cells */}
                         <div className="p-2 space-y-2">
                           {colCells.map((cell, cj) => (
-                            <div key={cell.id} className={`bg-white rounded-lg border p-2 group ${cell.source_event_id ? 'border-[#E0197D]/30' : 'border-gray-100'}`}>
+                            <div key={cell.id} className="bg-white rounded-lg border border-[#E0197D]/30 p-2 group">
                               <div className="flex items-start gap-1">
                                 <div className="flex-1 space-y-1">
                                   <div className="flex items-center gap-1 justify-end">
