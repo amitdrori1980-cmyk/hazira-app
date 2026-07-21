@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-PROJPLANS-V1
+// HAZIRA-PROJPLANS-V2
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -12,6 +12,13 @@ function fmtDay(ds) {
   if (!y || !m || !d) return 'ללא תאריך'
   const dt = new Date(y, m - 1, d)
   return 'יום ' + HE_DAYS[dt.getDay()] + ' · ' + d + ' ' + HE_MONTHS[m - 1]
+}
+
+function fmtShort(ds) {
+  if (!ds) return '—'
+  const [y, m, d] = String(ds).split('-').map(Number)
+  if (!y || !m || !d) return '—'
+  return d + '/' + m
 }
 
 function todayISO() {
@@ -32,34 +39,58 @@ export default function ProjectPlansMode({ profile }) {
   const [openId, setOpenId]   = useState(null)
   const [columns, setColumns] = useState({}) // { [planId]: Column[] }
   const [cells, setCells]     = useState({}) // { [columnId]: Cell[] }
+  const [eventTypes, setEventTypes] = useState([])
   const [showNew, setShowNew] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [saving, setSaving]   = useState(false)
 
+  // import / sync
+  const [importFor, setImportFor]       = useState(null) // planId whose import panel is open
+  const [importEvents, setImportEvents] = useState([])   // candidate production_events (with _crew[])
+  const [importSel, setImportSel]       = useState(new Set())
+  const [importBusy, setImportBusy]     = useState(false)
+  const [syncBusy, setSyncBusy]         = useState(null) // planId currently syncing
+
   useEffect(() => { load() }, [])
+
+  const typeLabel = v => { const t = eventTypes.find(t => t.value === v); return t ? t.label : (v || '') }
 
   async function load() {
     setLoading(true)
-    const { data } = await supabase.from('project_plans').select('*').order('created_at', { ascending: false })
+    const [{ data }, { data: ts }] = await Promise.all([
+      supabase.from('project_plans').select('*').order('created_at', { ascending: false }),
+      supabase.from('event_types').select('*').order('sort_order'),
+    ])
     setPlans(data || [])
+    setEventTypes(ts || [])
     setLoading(false)
   }
 
-  async function loadBoard(planId) {
+  // returns board data WITHOUT touching state
+  async function fetchBoard(planId) {
     const [{ data: cols }, { data: allCells }] = await Promise.all([
       supabase.from('project_plan_columns').select('*').eq('plan_id', planId).order('sort_order'),
       supabase.from('project_plan_cells').select('*').eq('plan_id', planId).order('sort_order'),
     ])
     const grouped = {}
     ;(cols || []).forEach(c => { grouped[c.id] = [] })
-    ;(allCells || []).forEach(cell => { (grouped[cell.column_id] || (grouped[cell.column_id] = [])).push(cell) })
-    setColumns(prev => ({ ...prev, [planId]: cols || [] }))
+    ;(allCells || []).forEach(cell => {
+      if (!grouped[cell.column_id]) grouped[cell.column_id] = []
+      grouped[cell.column_id].push(cell)
+    })
+    return { cols: cols || [], allCells: allCells || [], grouped }
+  }
+
+  async function loadBoard(planId) {
+    const { cols, grouped } = await fetchBoard(planId)
+    setColumns(prev => ({ ...prev, [planId]: cols }))
     setCells(prev => ({ ...prev, ...grouped }))
   }
 
   function toggleOpen(id) {
-    if (openId === id) { setOpenId(null); return }
+    if (openId === id) { setOpenId(null); setImportFor(null); return }
     setOpenId(id)
+    setImportFor(null)
     if (!columns[id]) loadBoard(id)
   }
 
@@ -92,38 +123,27 @@ export default function ProjectPlansMode({ profile }) {
   }
 
   async function duplicatePlan(plan) {
-    // make sure the board is loaded before copying
-    let planCols = columns[plan.id]
-    let planCells = cells
-    if (!planCols) {
-      const [{ data: c }, { data: allCells }] = await Promise.all([
-        supabase.from('project_plan_columns').select('*').eq('plan_id', plan.id).order('sort_order'),
-        supabase.from('project_plan_cells').select('*').eq('plan_id', plan.id).order('sort_order'),
-      ])
-      planCols = c || []
-      const grouped = {}
-      ;(allCells || []).forEach(cell => { (grouped[cell.column_id] || (grouped[cell.column_id] = [])).push(cell) })
-      planCells = grouped
-    }
+    const { cols, grouped } = await fetchBoard(plan.id)
     const { data: newPlan } = await supabase.from('project_plans')
       .insert({ title: plan.title + ' (עותק)', status: plan.status || 'draft', created_by: profile?.id || null })
       .select().single()
     if (!newPlan) return
     const newCols = []
     const newCellsByCol = {}
-    for (let i = 0; i < planCols.length; i++) {
-      const src = planCols[i]
+    for (let i = 0; i < cols.length; i++) {
+      const src = cols[i]
       const { data: nc } = await supabase.from('project_plan_columns')
         .insert({ plan_id: newPlan.id, date: src.date, sort_order: i })
         .select().single()
       if (!nc) continue
       newCols.push(nc)
-      const srcCells = planCells[src.id] || []
+      const srcCells = grouped[src.id] || []
       if (srcCells.length) {
         const { data: ins } = await supabase.from('project_plan_cells')
           .insert(srcCells.map((cell, j) => ({
             plan_id: newPlan.id, column_id: nc.id,
-            action: cell.action || '', crew: cell.crew || '', notes: cell.notes || '', sort_order: j,
+            action: cell.action || '', crew: cell.crew || '', notes: cell.notes || '',
+            source_event_id: cell.source_event_id || null, sort_order: j,
           })))
           .select()
         newCellsByCol[nc.id] = (ins || []).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
@@ -199,6 +219,113 @@ export default function ProjectPlansMode({ profile }) {
     await Promise.all(curr.map((c, i) => supabase.from('project_plan_cells').update({ sort_order: i }).eq('id', c.id)))
   }
 
+  // ---- import from technical production ----
+  function cellSummary(ev) {
+    return {
+      action: ev.event_name || '',
+      crew: (ev._crew || []).join(', '),
+      notes: [ev.venue, typeLabel(ev.type)].filter(Boolean).join(' · '),
+    }
+  }
+
+  async function openImportPicker(planId) {
+    if (importFor === planId) { setImportFor(null); return }
+    setImportFor(planId)
+    setImportSel(new Set())
+    setImportBusy(true)
+    const { data: evs } = await supabase.from('production_events')
+      .select('*').is('deleted_at', null).order('date', { ascending: true })
+    const withDate = (evs || []).filter(e => e.date)
+    const ids = withDate.map(e => e.id)
+    const crewMap = {}
+    if (ids.length) {
+      const { data: ppl } = await supabase.from('production_people')
+        .select('production_event_id,name,status').in('production_event_id', ids)
+      ;(ppl || []).forEach(p => {
+        if (p.status === 'yellow' && (p.name || '').trim()) {
+          if (!crewMap[p.production_event_id]) crewMap[p.production_event_id] = []
+          crewMap[p.production_event_id].push(p.name.trim())
+        }
+      })
+    }
+    setImportEvents(withDate.map(e => ({ ...e, _crew: crewMap[e.id] || [] })))
+    setImportBusy(false)
+  }
+
+  function toggleImportSel(id) {
+    setImportSel(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+
+  async function runImport(planId) {
+    const sel = importEvents.filter(e => importSel.has(e.id))
+    if (!sel.length) return
+    setImportBusy(true)
+    const { cols, allCells } = await fetchBoard(planId)
+    const colByDate = {}
+    cols.forEach(c => { if (c.date) colByDate[c.date] = c })
+    const linkedByEvent = {}
+    allCells.forEach(c => { if (c.source_event_id) linkedByEvent[c.source_event_id] = c })
+    const colCount = {}
+    cols.forEach(c => { colCount[c.id] = allCells.filter(x => x.column_id === c.id).length })
+    let nextColSort = cols.length
+
+    for (const ev of sel) {
+      let col = colByDate[ev.date]
+      if (!col) {
+        const { data: nc } = await supabase.from('project_plan_columns')
+          .insert({ plan_id: planId, date: ev.date, sort_order: nextColSort++ }).select().single()
+        if (!nc) continue
+        col = nc; colByDate[ev.date] = nc; colCount[nc.id] = 0
+      }
+      const s = cellSummary(ev)
+      const existing = linkedByEvent[ev.id]
+      if (existing) {
+        await supabase.from('project_plan_cells')
+          .update({ action: s.action, crew: s.crew, notes: s.notes, column_id: col.id })
+          .eq('id', existing.id)
+      } else {
+        await supabase.from('project_plan_cells').insert({
+          plan_id: planId, column_id: col.id, source_event_id: ev.id,
+          action: s.action, crew: s.crew, notes: s.notes, sort_order: colCount[col.id]++,
+        })
+      }
+    }
+    await loadBoard(planId)
+    setImportBusy(false)
+    setImportFor(null)
+    setImportSel(new Set())
+  }
+
+  // re-pull crew/notes/action for every linked card in the plan
+  async function syncLinked(planId) {
+    setSyncBusy(planId)
+    const { allCells } = await fetchBoard(planId)
+    const linked = allCells.filter(c => c.source_event_id)
+    if (!linked.length) { setSyncBusy(null); return }
+    const eventIds = [...new Set(linked.map(c => c.source_event_id))]
+    const [{ data: evs }, { data: ppl }] = await Promise.all([
+      supabase.from('production_events').select('*').in('id', eventIds),
+      supabase.from('production_people').select('production_event_id,name,status').in('production_event_id', eventIds),
+    ])
+    const evMap = {}; (evs || []).forEach(e => { evMap[e.id] = e })
+    const crewMap = {}
+    ;(ppl || []).forEach(p => {
+      if (p.status === 'yellow' && (p.name || '').trim()) {
+        if (!crewMap[p.production_event_id]) crewMap[p.production_event_id] = []
+        crewMap[p.production_event_id].push(p.name.trim())
+      }
+    })
+    for (const cell of linked) {
+      const ev = evMap[cell.source_event_id]
+      if (!ev) continue // event hard-deleted → leave card as-is
+      const s = cellSummary({ ...ev, _crew: crewMap[ev.id] || [] })
+      await supabase.from('project_plan_cells')
+        .update({ action: s.action, crew: s.crew, notes: s.notes }).eq('id', cell.id)
+    }
+    await loadBoard(planId)
+    setSyncBusy(null)
+  }
+
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
 
   return (
@@ -236,6 +363,9 @@ export default function ProjectPlansMode({ profile }) {
         const isOpen = openId === plan.id
         const planCols = columns[plan.id] || []
         const st = getPlanStatus(plan.status)
+        const linkedEventIds = new Set()
+        planCols.forEach(c => (cells[c.id] || []).forEach(cell => { if (cell.source_event_id) linkedEventIds.add(cell.source_event_id) }))
+        const hasLinked = linkedEventIds.size > 0
         return (
           <div key={plan.id} id={`pp-${plan.id}`} className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
             {/* header */}
@@ -256,7 +386,7 @@ export default function ProjectPlansMode({ profile }) {
                   className={`text-[11px] px-2 py-1 rounded-lg border-0 outline-none cursor-pointer ${st.color}`}>
                   {PLAN_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
-                <button onClick={e => { e.stopPropagation(); if (!columns[plan.id]) loadBoard(plan.id).then(() => duplicatePlan(plan)); else duplicatePlan(plan) }}
+                <button onClick={e => { e.stopPropagation(); duplicatePlan(plan) }}
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="שכפל תוכנית">
                   <i className="ti ti-copy" style={{ fontSize: 13 }} />
                 </button>
@@ -271,6 +401,69 @@ export default function ProjectPlansMode({ profile }) {
             {/* board */}
             {isOpen && (
               <div className="border-t border-gray-50 p-4">
+                {/* toolbar */}
+                <div className="flex justify-end gap-2 mb-3">
+                  {hasLinked && (
+                    <button onClick={() => syncLinked(plan.id)} disabled={syncBusy === plan.id}
+                      className="text-[12px] px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:border-[#E0197D] hover:text-[#E0197D] flex items-center gap-1.5 disabled:opacity-50">
+                      <i className={`ti ${syncBusy === plan.id ? 'ti-loader-2 animate-spin' : 'ti-refresh'}`} style={{ fontSize: 14 }} />
+                      {syncBusy === plan.id ? 'מסנכרן...' : 'סנכרן מקושרים'}
+                    </button>
+                  )}
+                  <button onClick={() => openImportPicker(plan.id)}
+                    className="text-[12px] px-3 py-1.5 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1.5">
+                    <i className="ti ti-download" style={{ fontSize: 14 }} /> ייבא מהפקה טכנית
+                  </button>
+                </div>
+
+                {/* import picker */}
+                {importFor === plan.id && (
+                  <div className="bg-white border border-gray-200 rounded-xl p-3 mb-3">
+                    {importBusy ? (
+                      <div className="text-center text-[12px] text-gray-400 py-4 flex items-center justify-center gap-2">
+                        <i className="ti ti-loader-2 animate-spin" /> טוען אירועים...
+                      </div>
+                    ) : importEvents.length === 0 ? (
+                      <div className="text-center text-[12px] text-gray-400 py-4">אין אירועים עם תאריך בהפקה הטכנית</div>
+                    ) : (
+                      <>
+                        <div className="text-[11px] text-gray-400 mb-2 px-1">בחר אירועים — כל אירוע ייכנס ככרטיס ביום התואם. אירוע שכבר יובא יעודכן.</div>
+                        <div className="max-h-64 overflow-y-auto space-y-1">
+                          {importEvents.map(ev => {
+                            const already = linkedEventIds.has(ev.id)
+                            const checked = importSel.has(ev.id)
+                            return (
+                              <label key={ev.id}
+                                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-right flex-row-reverse ${checked ? 'bg-[#FCE4F3]' : 'hover:bg-gray-50'}`}>
+                                <input type="checkbox" checked={checked} onChange={() => toggleImportSel(ev.id)} className="accent-[#E0197D]" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[12px] font-medium text-gray-800 truncate flex items-center gap-1.5 justify-end">
+                                    {already && <span className="text-[9px] text-[#E0197D] border border-[#E0197D] rounded px-1 py-px">מקושר</span>}
+                                    {ev.event_name}
+                                  </div>
+                                  <div className="text-[11px] text-gray-400 flex gap-2 justify-end flex-wrap">
+                                    {ev._crew.length > 0 && <span>{ev._crew.length} אישרו</span>}
+                                    {ev.venue && <span>{ev.venue}</span>}
+                                    <span>{fmtShort(ev.date)}</span>
+                                  </div>
+                                </div>
+                              </label>
+                            )
+                          })}
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <button onClick={() => runImport(plan.id)} disabled={importSel.size === 0}
+                            className="flex-1 bg-[#E0197D] text-white text-[13px] py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
+                            ייבא {importSel.size > 0 ? `(${importSel.size})` : ''}
+                          </button>
+                          <button onClick={() => setImportFor(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-[13px] text-gray-500">ביטול</button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* columns */}
                 <div className="flex gap-3 overflow-x-auto pb-2 items-start">
                   {planCols.map((col, ci) => {
                     const colCells = cells[col.id] || []
@@ -303,13 +496,16 @@ export default function ProjectPlansMode({ profile }) {
                         {/* cells */}
                         <div className="p-2 space-y-2">
                           {colCells.map((cell, cj) => (
-                            <div key={cell.id} className="bg-white rounded-lg border border-gray-100 p-2 group">
+                            <div key={cell.id} className={`bg-white rounded-lg border p-2 group ${cell.source_event_id ? 'border-[#E0197D]/30' : 'border-gray-100'}`}>
                               <div className="flex items-start gap-1">
                                 <div className="flex-1 space-y-1">
-                                  <input value={cell.action || ''} placeholder="פעולה"
-                                    onChange={e => setCellField(col.id, cell.id, 'action', e.target.value)}
-                                    onBlur={e => commitCell(cell.id, 'action', e.target.value)}
-                                    className="w-full text-[12px] font-medium text-gray-800 bg-transparent outline-none text-right placeholder:text-gray-300" />
+                                  <div className="flex items-center gap-1 justify-end">
+                                    {cell.source_event_id && <i className="ti ti-link text-[#E0197D]" style={{ fontSize: 11 }} title="מקושר לאירוע בהפקה הטכנית — יתעדכן בסנכרון" />}
+                                    <input value={cell.action || ''} placeholder="פעולה"
+                                      onChange={e => setCellField(col.id, cell.id, 'action', e.target.value)}
+                                      onBlur={e => commitCell(cell.id, 'action', e.target.value)}
+                                      className="flex-1 text-[12px] font-medium text-gray-800 bg-transparent outline-none text-right placeholder:text-gray-300" />
+                                  </div>
                                   <input value={cell.crew || ''} placeholder="צוות"
                                     onChange={e => setCellField(col.id, cell.id, 'crew', e.target.value)}
                                     onBlur={e => commitCell(cell.id, 'crew', e.target.value)}
