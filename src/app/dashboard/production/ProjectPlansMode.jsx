@@ -1,6 +1,6 @@
 'use client'
-// HAZIRA-PROJPLANS-V3
-import { useEffect, useState } from 'react'
+// HAZIRA-PROJPLANS-V4
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 const HE_DAYS   = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']
@@ -32,6 +32,24 @@ const PLAN_STATUSES = [
   { value: 'done',   label: 'הושלם',  color: 'bg-blue-100 text-blue-700' },
 ]
 const getPlanStatus = v => PLAN_STATUSES.find(s => s.value === v) || PLAN_STATUSES[0]
+
+// עמודות ממוינות כרונולוגית לפי תאריך (ריק — בסוף)
+function sortColsByDate(arr) {
+  return [...arr].sort((a, b) => String(a.date || '9999-12-31').localeCompare(String(b.date || '9999-12-31')))
+}
+
+// textarea שגדל לפי התוכן ועוטף שורות (במקום input שגולש)
+function AutoTextarea({ value, onChange, onBlur, placeholder, className }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const el = ref.current
+    if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' }
+  }, [value])
+  return (
+    <textarea ref={ref} rows={1} value={value} onChange={onChange} onBlur={onBlur} placeholder={placeholder}
+      className={'resize-none overflow-hidden break-words leading-snug ' + (className || '')} />
+  )
+}
 
 export default function ProjectPlansMode({ profile }) {
   const [plans, setPlans]     = useState([])
@@ -157,14 +175,20 @@ export default function ProjectPlansMode({ profile }) {
   }
 
   // ---- columns (days) ----
+  async function persistColOrder(sorted) {
+    await Promise.all(sorted.map((c, i) => supabase.from('project_plan_columns').update({ sort_order: i }).eq('id', c.id)))
+  }
+
   async function addColumn(planId) {
     const curr = columns[planId] || []
     const { data } = await supabase.from('project_plan_columns')
       .insert({ plan_id: planId, date: todayISO(), sort_order: curr.length })
       .select().single()
     if (data) {
-      setColumns(prev => ({ ...prev, [planId]: [...(prev[planId] || []), data] }))
+      const merged = sortColsByDate([...curr, data])
+      setColumns(prev => ({ ...prev, [planId]: merged }))
       setCells(prev => ({ ...prev, [data.id]: [] }))
+      await persistColOrder(merged)
     }
   }
 
@@ -290,6 +314,9 @@ export default function ProjectPlansMode({ profile }) {
         })
       }
     }
+    // מיון כרונולוגי של כל העמודות (כולל החדשות) לפי תאריך
+    const sorted = sortColsByDate(Object.values(colByDate))
+    await persistColOrder(sorted)
     await loadBoard(planId)
     setImportBusy(false)
     setImportFor(null)
@@ -510,19 +537,19 @@ export default function ProjectPlansMode({ profile }) {
                           {colCells.map((cell, cj) => (
                             <div key={cell.id} className="bg-white rounded-lg border border-[#E0197D]/30 p-2 group">
                               <div className="flex items-start gap-1">
-                                <div className="flex-1 space-y-1">
-                                  <div className="flex items-center gap-1 justify-end">
-                                    {cell.source_event_id && <i className="ti ti-link text-[#E0197D]" style={{ fontSize: 11 }} title="מקושר לאירוע בהפקה הטכנית — יתעדכן בסנכרון" />}
-                                    <input value={cell.action || ''} placeholder="פעולה"
+                                <div className="flex-1 min-w-0 space-y-1">
+                                  <div className="flex items-start gap-1 justify-end">
+                                    {cell.source_event_id && <i className="ti ti-link text-[#E0197D] mt-0.5 shrink-0" style={{ fontSize: 11 }} title="מקושר לאירוע בהפקה הטכנית — יתעדכן בסנכרון" />}
+                                    <AutoTextarea value={cell.action || ''} placeholder="פעולה"
                                       onChange={e => setCellField(col.id, cell.id, 'action', e.target.value)}
                                       onBlur={e => commitCell(cell.id, 'action', e.target.value)}
-                                      className="flex-1 text-[12px] font-medium text-gray-800 bg-transparent outline-none text-right placeholder:text-gray-300" />
+                                      className="flex-1 min-w-0 text-[12px] font-medium text-gray-800 bg-transparent outline-none text-right placeholder:text-gray-300" />
                                   </div>
-                                  <input value={cell.crew || ''} placeholder="צוות"
+                                  <AutoTextarea value={cell.crew || ''} placeholder="צוות"
                                     onChange={e => setCellField(col.id, cell.id, 'crew', e.target.value)}
                                     onBlur={e => commitCell(cell.id, 'crew', e.target.value)}
                                     className="w-full text-[11px] text-gray-600 bg-transparent outline-none text-right placeholder:text-gray-300" />
-                                  <input value={cell.notes || ''} placeholder="הערות"
+                                  <AutoTextarea value={cell.notes || ''} placeholder="הערות"
                                     onChange={e => setCellField(col.id, cell.id, 'notes', e.target.value)}
                                     onBlur={e => commitCell(cell.id, 'notes', e.target.value)}
                                     className="w-full text-[11px] text-gray-400 bg-transparent outline-none text-right placeholder:text-gray-300" />
