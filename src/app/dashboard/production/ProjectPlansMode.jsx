@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-PROJPLANS-V5
+// HAZIRA-PROJPLANS-V6
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -71,6 +71,7 @@ export default function ProjectPlansMode({ profile }) {
   const [showNew, setShowNew] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [saving, setSaving]   = useState(false)
+  const cardRefs = useRef({}) // { `${colId}_${cellId}`: HTMLElement } — for per-row height equalize
 
   // import / sync
   const [importFor, setImportFor]       = useState(null) // planId whose import panel is open
@@ -80,6 +81,29 @@ export default function ProjectPlansMode({ profile }) {
   const [syncBusy, setSyncBusy]         = useState(null) // planId currently syncing
 
   useEffect(() => { load() }, [])
+
+  // יישור גובה כרטיסים לפי שורה: כרטיס i בכל הימים מקבל את גובה הכרטיס הגבוה בשורה i.
+  // רץ אחרי שה-textarea-ים כבר קבעו את גובהם (אפקט הורה רץ אחרי אפקטי הילדים).
+  useEffect(() => {
+    if (!openId) return
+    const cols = columns[openId] || []
+    const rows = {}
+    cols.forEach(col => {
+      (cells[col.id] || []).forEach((cell, idx) => {
+        const el = cardRefs.current[`${col.id}_${cell.id}`]
+        if (!el) return
+        if (!rows[idx]) rows[idx] = []
+        rows[idx].push(el)
+      })
+    })
+    const groups = Object.values(rows)
+    groups.forEach(els => els.forEach(el => { el.style.minHeight = '' }))       // reset
+    groups.forEach(els => {                                                     // measure + apply
+      let max = 0
+      els.forEach(el => { if (el.offsetHeight > max) max = el.offsetHeight })
+      els.forEach(el => { el.style.minHeight = max + 'px' })
+    })
+  }, [openId, columns, cells])
 
   const typeLabel = v => { const t = eventTypes.find(t => t.value === v); return t ? t.label : (v || '') }
 
@@ -523,7 +547,7 @@ export default function ProjectPlansMode({ profile }) {
                     const colCells = cells[col.id] || []
                     const cat = getDayCategory(col.category)
                     return (
-                      <div key={col.id} className="w-64 flex-shrink-0 bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
+                      <div key={col.id} className="w-64 flex-shrink-0 bg-gray-50 rounded-xl border border-gray-300 overflow-hidden">
                         {/* column header */}
                         <div className="px-3 py-2 flex items-center gap-1" style={{ backgroundColor: cat.head }}>
                           <div className="flex-1 min-w-0">
@@ -559,7 +583,9 @@ export default function ProjectPlansMode({ profile }) {
                         {/* cells */}
                         <div className="p-2 space-y-2">
                           {colCells.map((cell, cj) => (
-                            <div key={cell.id} className="bg-white rounded-lg border border-[#E0197D]/30 p-2 group">
+                            <div key={cell.id}
+                              ref={el => { const k = `${col.id}_${cell.id}`; if (el) cardRefs.current[k] = el; else delete cardRefs.current[k] }}
+                              className="bg-white rounded-lg border border-[#E0197D]/30 p-2 group">
                               <div className="flex items-start gap-1">
                                 <div className="flex-1 min-w-0 space-y-1">
                                   <div className="flex items-start gap-1 justify-end">
