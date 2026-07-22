@@ -2,7 +2,9 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-EVENTS-GSYNC-V1
+// HAZIRA-EVENTS-SKETCH-V2
+
+const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלים בלבד
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 
@@ -12,6 +14,7 @@ const PANEL_EQUIP = 'equip'
 function EventsPageInner() {
   const searchParams = useSearchParams()
   const [events, setEvents]         = useState([])
+  const [profile, setProfile]       = useState(null)
   const [showTrash, setShowTrash]   = useState(false)
   const [hidePast, setHidePast]     = useState(true)
   const [depts, setDepts]           = useState([])
@@ -63,11 +66,18 @@ function EventsPageInner() {
       supabase.from('event_crew').select('event_id,crew_member_id'),
       supabase.from('event_equipment').select('event_id,equipment_id,quantity_needed,note'),
     ])
-    setEvents(evs || [])
+    // סקיצות גלויות למנהלים בלבד
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: prof } = user ? await supabase.from('profiles').select('*').eq('id', user.id).single() : { data: null }
+    setProfile(prof)
+    const canSeeSketch = !!prof?.is_manager
+    setEvents(canSeeSketch ? (evs || []) : (evs || []).filter(e => e.type !== SKETCH_TYPE))
     setDepts((ds||[]).map(d=>d.name))
     const types = ts || []
     setEventTypes(types)
-    if (types.length) setForm(f=>({...f,type:types[0].value}))
+    // ברירת המחדל לאירוע חדש לעולם לא סקיצה — צריך לבחור אותה במפורש
+    const defType = types.find(t => t.value !== SKETCH_TYPE) || types[0]
+    if (defType) setForm(f=>({...f,type:defType.value}))
     setAllCrew(crew||[])
     setAllEquip(equip||[])
     setVenues((ven||[]).map(v=>v.name))
@@ -93,6 +103,9 @@ function EventsPageInner() {
   }
 
   const getTypeStyle = v => { const t=eventTypes.find(t=>t.value===v); return t?t.color:'bg-gray-100 text-gray-600' }
+  const isManager = !!profile?.is_manager
+  // "סקיצה" מוצעת לבחירה למנהלים בלבד (אך נשארת ב-eventTypes כדי שתוויות יפוענחו)
+  const selectableTypes = isManager ? eventTypes : eventTypes.filter(t => t.value !== SKETCH_TYPE)
   const getTypeLabel = v => { const t=eventTypes.find(t=>t.value===v); return t?t.label:v }
 
   function toggleDept(dept) {
@@ -253,7 +266,7 @@ function EventsPageInner() {
                 <label className="text-[12px] text-gray-500 mb-1 block">סוג</label>
                 <select value={dupForm.type||""} onChange={e=>setDupForm(f=>({...f,type:e.target.value}))}
                   className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]">
-                  {eventTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+                  {selectableTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
               <div>
@@ -293,7 +306,7 @@ function EventsPageInner() {
           </div>
           <select value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}
             className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
-            {eventTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+            {selectableTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
           <input value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="תיאור"
             className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
@@ -365,7 +378,7 @@ function EventsPageInner() {
                   </div>
                   <select value={editVal.type} onChange={e=>setEditVal(v=>({...v,type:e.target.value}))}
                     className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none">
-                    {eventTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+                    {selectableTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                   <input value={editVal.description} onChange={e=>setEditVal(v=>({...v,description:e.target.value}))}
                     placeholder="תיאור" className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
@@ -401,6 +414,12 @@ function EventsPageInner() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 flex-row-reverse flex-wrap justify-end flex-shrink-0">
+                      {ev.type === SKETCH_TYPE && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full border border-dashed border-gray-300 text-gray-400 flex items-center gap-1 flex-shrink-0"
+                          title="סקיצה — גלוי למנהלים בלבד">
+                          <i className="ti ti-eye-off" style={{fontSize:11}}/> מוסתר מהצוות
+                        </span>
+                      )}
                       <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${getTypeStyle(ev.type)}`}>
                         {getTypeLabel(ev.type)}
                       </span>

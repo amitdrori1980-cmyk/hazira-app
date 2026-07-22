@@ -9,6 +9,8 @@ const PROD_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי',
 const TYPE_COLOR = { rehearsal:'bg-[#FCE4F3] text-[#A0106A]', show:'bg-[#E1F5EE] text-[#085041]', crew:'bg-[#FAEEDA] text-[#633806]', technical:'bg-[#FAECE7] text-[#4A1B0C]', strike:'bg-[#FAECE7] text-[#4A1B0C]' }
 const TYPE_LABEL = { rehearsal:'חזרה', show:'הצגה', crew:'צוות', technical:'טכני', strike:'פירוק' }
 const CON_NAME_OVERRIDES = { 'דניאל גמליאלי': 'דונדו', 'דניאל ק': 'דניאל ק' }
+const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלים בלבד
+// HAZIRA-GCAL-SKETCH-V9
 function conDisplayName(fullName, firstCount) {
   const key = (fullName || '').trim()
   if (CON_NAME_OVERRIDES[key]) return CON_NAME_OVERRIDES[key]
@@ -189,9 +191,9 @@ export default function CalendarPage() {
       const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfile(p)
       const q = supabase.from('events').select('*').order('date')
-      // כולם רואים את כל האירועים
+      // אירועי "סקיצה" גלויים למנהלים בלבד (מסונן במקור כדי שלא ידלוף לגוגל/ייצוא/ספירות)
       const { data } = await q
-      setEvents(data || [])
+      setEvents(p?.is_manager ? (data || []) : (data || []).filter(e => e.type !== SKETCH_TYPE))
       const { data: vs } = await supabase.from('venues').select('name').order('sort_order')
       setVenues((vs||[]).map(v => v.name))
       const { data: ts } = await supabase.from('event_types').select('*').order('sort_order')
@@ -911,6 +913,12 @@ export default function CalendarPage() {
                     <div className="text-[13px] font-medium text-right">{e.title}</div>
                     {e.description && <div className="text-[12px] text-gray-500 text-right mt-0.5">{e.description}</div>}
                     <div className="flex gap-2 justify-end mt-1 flex-wrap">
+                      {e.type === SKETCH_TYPE && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full border border-dashed border-gray-300 text-gray-400 flex items-center gap-1"
+                          title="סקיצה — גלוי למנהלים בלבד">
+                          <i className="ti ti-eye-off" style={{ fontSize: 11 }} /> מוסתר מהצוות
+                        </span>
+                      )}
                       <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
                         {getTypeLabel(e.type)}
                       </span>
