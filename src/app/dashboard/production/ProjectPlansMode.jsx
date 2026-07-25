@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-PROJPLANS-V11
+// HAZIRA-PROJPLANS-V12
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -74,6 +74,7 @@ export default function ProjectPlansMode({ profile }) {
   const [newTitle, setNewTitle] = useState('')
   const [saving, setSaving]   = useState(false)
   const cardRefs = useRef({}) // { `${colId}_${cellId}`: HTMLElement } — for per-row height equalize
+  const [copiedId, setCopiedId] = useState(null)
 
   // import / sync
   const [importFor, setImportFor]       = useState(null) // planId whose import panel is open
@@ -396,6 +397,16 @@ export default function ProjectPlansMode({ profile }) {
     setSyncBusy(null)
   }
 
+  // ---- share link ----
+  async function copyLink(planId) {
+    const url = `${window.location.origin}/plan/${planId}`
+    let ok = false
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(url); ok = true } } catch (e) {}
+    if (!ok) { try { window.prompt('העתק את הקישור:', url) } catch (e) {} }
+    setCopiedId(planId)
+    setTimeout(() => setCopiedId(c => (c === planId ? null : c)), 1800)
+  }
+
   // ---- PDF export (styled print window) ----
   function pdfEsc(s) {
     return String(s == null ? '' : s)
@@ -548,6 +559,11 @@ export default function ProjectPlansMode({ profile }) {
                   className={`text-[11px] px-2 py-1 rounded-lg border-0 outline-none cursor-pointer ${st.color}`}>
                   {PLAN_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
+                <button onClick={e => { e.stopPropagation(); copyLink(plan.id) }}
+                  className={`p-1 ${copiedId === plan.id ? 'text-green-600' : 'text-gray-300 hover:text-[#E0197D]'}`}
+                  title={copiedId === plan.id ? 'הקישור הועתק' : 'העתק לינק לצפייה'}>
+                  <i className={`ti ${copiedId === plan.id ? 'ti-check' : 'ti-link'}`} style={{ fontSize: 13 }} />
+                </button>
                 <button onClick={e => { e.stopPropagation(); exportPdf(plan) }}
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="ייצוא PDF">
                   <i className="ti ti-file-type-pdf" style={{ fontSize: 13 }} />
