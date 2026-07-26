@@ -11,7 +11,7 @@ const TYPE_LABEL = { rehearsal:'חזרה', show:'הצגה', crew:'צוות', tec
 const CON_NAME_OVERRIDES = { 'דניאל גמליאלי': 'דונדו', 'דניאל ק': 'דניאל ק' }
 const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלים בלבד
 // HAZIRA-GCAL-SKETCH-V9
-// HAZIRA-GCAL-DAYLINK-V11
+// HAZIRA-GCAL-DAYLINK-V12
 function conDisplayName(fullName, firstCount) {
   const key = (fullName || '').trim()
   if (CON_NAME_OVERRIDES[key]) return CON_NAME_OVERRIDES[key]
@@ -792,7 +792,7 @@ export default function CalendarPage() {
                         } ${c.inMonth ? '' : 'opacity-30'}`}>
                         <div className={`text-center text-[14px] md:text-[20px] font-medium mb-1.5 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
                         {dayLinks[c.ds]?.schedule_id && (
-                          <a href={'/dashboard/specs?tab=rundowns&schedule=' + dayLinks[c.ds].schedule_id} onClick={ev=>ev.stopPropagation()}
+                          <a href={'/rundown/' + dayLinks[c.ds].schedule_id} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()}
                             title="פתח לוז"
                             className="flex items-center justify-center gap-1 text-[10px] md:text-[12px] mb-1 text-[#A0106A] hover:underline">
                             <i className="ti ti-list-details" style={{fontSize:12}}/> לוז
@@ -847,7 +847,7 @@ export default function CalendarPage() {
                         } ${c.inMonth ? '' : 'opacity-30'}`}>
                         <div className={`text-center text-[12px] md:text-[14px] font-medium mb-1 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
                         {dayLinks[c.ds]?.schedule_id && (
-                          <a href={'/dashboard/specs?tab=rundowns&schedule=' + dayLinks[c.ds].schedule_id} onClick={ev=>ev.stopPropagation()}
+                          <a href={'/rundown/' + dayLinks[c.ds].schedule_id} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()}
                             title="פתח לוז"
                             className="flex items-center justify-center gap-1 text-[10px] md:text-[12px] mb-1 text-[#A0106A] hover:underline">
                             <i className="ti ti-list-details" style={{fontSize:12}}/> לוז
@@ -929,7 +929,7 @@ export default function CalendarPage() {
           {(dayLinks[selectedDay]?.schedule_id || profile?.is_manager) && (
             <div className="mb-4">
               {dayLinks[selectedDay]?.schedule_id && (
-                <a href={'/dashboard/specs?tab=rundowns&schedule=' + dayLinks[selectedDay].schedule_id}
+                <a href={'/rundown/' + dayLinks[selectedDay].schedule_id} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-[13px] text-white bg-[#A0106A] hover:bg-[#7c0c52] px-3 py-1.5 rounded-lg mb-2">
                   <i className="ti ti-list-details" style={{fontSize:15}}/> פתח לוז: {scheduleTitle(dayLinks[selectedDay].schedule_id)} <i className="ti ti-external-link" style={{fontSize:13}}/>
                 </a>
