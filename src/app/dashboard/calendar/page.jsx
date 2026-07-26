@@ -11,6 +11,7 @@ const TYPE_LABEL = { rehearsal:'חזרה', show:'הצגה', crew:'צוות', tec
 const CON_NAME_OVERRIDES = { 'דניאל גמליאלי': 'דונדו', 'דניאל ק': 'דניאל ק' }
 const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלים בלבד
 // HAZIRA-GCAL-SKETCH-V9
+// HAZIRA-GCAL-DAYLINK-V10
 function conDisplayName(fullName, firstCount) {
   const key = (fullName || '').trim()
   if (CON_NAME_OVERRIDES[key]) return CON_NAME_OVERRIDES[key]
@@ -33,6 +34,9 @@ export default function CalendarPage() {
   const [calYear, setCalYear] = useState(new Date().getFullYear())
   const [calMonth, setCalMonth] = useState(new Date().getMonth())
   const [selectedDay, setSelectedDay] = useState(null)
+  const [dayLinks, setDayLinks] = useState({}) // { 'YYYY-MM-DD': {date,url,label} }
+  const [linkDraft, setLinkDraft] = useState('')
+  const [linkSaving, setLinkSaving] = useState(false)
   const [flashEv, setFlashEv] = useState(null)
   const [dragId, setDragId] = useState(null)
   const [dragOverId, setDragOverId] = useState(null)
@@ -205,6 +209,8 @@ export default function CalendarPage() {
       await loadConstraints()
       const { data: dtk } = await supabase.from('tasks').select('*').not('due_date', 'is', null)
       setDayTasks(dtk || [])
+      const { data: dl } = await supabase.from('day_links').select('*')
+      const dlMap = {}; (dl || []).forEach(r => { dlMap[r.date] = r }); setDayLinks(dlMap)
       const [{ data: profs }, { data: cm }, { data: ops }] = await Promise.all([
         supabase.from('profiles').select('id,full_name,dept').order('full_name'),
         supabase.from('crew_members').select('id,full_name').order('full_name'),
@@ -426,6 +432,34 @@ export default function CalendarPage() {
     setSelectedDay(ds)
     try { window.history.pushState({ haziraDay: ds }, '') } catch (e) {}
   }
+
+  // סנכרון טיוטת הלינק עם היום שנבחר
+  useEffect(() => { setLinkDraft(selectedDay ? (dayLinks[selectedDay]?.url || '') : '') }, [selectedDay, dayLinks])
+
+  async function saveDayLink() {
+    if (!selectedDay) return
+    const url = linkDraft.trim()
+    setLinkSaving(true)
+    if (!url) {
+      await supabase.from('day_links').delete().eq('date', selectedDay)
+      setDayLinks(prev => { const n = { ...prev }; delete n[selectedDay]; return n })
+    } else {
+      const row = { date: selectedDay, url, updated_at: new Date().toISOString() }
+      const { data } = await supabase.from('day_links').upsert(row, { onConflict: 'date' }).select().single()
+      setDayLinks(prev => ({ ...prev, [selectedDay]: data || row }))
+    }
+    setLinkSaving(false)
+  }
+
+  async function removeDayLink() {
+    if (!selectedDay) return
+    setLinkSaving(true)
+    await supabase.from('day_links').delete().eq('date', selectedDay)
+    setDayLinks(prev => { const n = { ...prev }; delete n[selectedDay]; return n })
+    setLinkDraft('')
+    setLinkSaving(false)
+  }
+
   function closeDay() {
     if (typeof window !== 'undefined' && window.history.state && window.history.state.haziraDay) window.history.back()
     else setSelectedDay(null)
@@ -757,6 +791,13 @@ export default function CalendarPage() {
                           'border-gray-100 bg-gray-50 hover:bg-gray-100'
                         } ${c.inMonth ? '' : 'opacity-30'}`}>
                         <div className={`text-center text-[14px] md:text-[20px] font-medium mb-1.5 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
+                        {dayLinks[c.ds]?.url && (
+                          <a href={dayLinks[c.ds].url} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()}
+                            title={dayLinks[c.ds].label || 'לוז היום'}
+                            className="flex items-center justify-center gap-1 text-[10px] md:text-[12px] mb-1 text-[#A0106A] hover:underline">
+                            <i className="ti ti-list-details" style={{fontSize:12}}/> לוז
+                          </a>
+                        )}
                         {dayEvents.map(e => (
                           <div key={e.id} draggable={profile?.is_manager} onDragStart={ev=>{ev.stopPropagation();ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragEnd={()=>{setDragId(null);setDragOverId(null)}} onDragOver={ev=>{if(profile?.is_manager){ev.preventDefault();ev.dataTransfer.dropEffect='move';setDragOverId(e.id)}}} onDrop={ev=>{if(profile?.is_manager){ev.stopPropagation();reorderEventsInDay(c.ds,e.id)}}} className={`text-[10px] md:text-[14px] px-1.5 py-1 rounded mb-1 truncate ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''} ${dragOverId===e.id&&dragId&&dragId!==e.id?'shadow-[0_-3px_0_0_#E0197D]':''}`}
                             style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
@@ -805,6 +846,13 @@ export default function CalendarPage() {
                           'border-gray-100 bg-gray-50 hover:bg-gray-100'
                         } ${c.inMonth ? '' : 'opacity-30'}`}>
                         <div className={`text-center text-[12px] md:text-[14px] font-medium mb-1 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
+                        {dayLinks[c.ds]?.url && (
+                          <a href={dayLinks[c.ds].url} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()}
+                            title={dayLinks[c.ds].label || 'לוז היום'}
+                            className="flex items-center justify-center gap-1 text-[10px] md:text-[12px] mb-1 text-[#A0106A] hover:underline">
+                            <i className="ti ti-list-details" style={{fontSize:12}}/> לוז
+                          </a>
+                        )}
                         <div className="flex flex-wrap gap-0.5 md:hidden justify-center">
                           {dayEvents.slice(0, 4).map(e => (
                             <span key={e.id} className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: getTypeColors(e.type).dot }}/>
@@ -877,6 +925,34 @@ export default function CalendarPage() {
               </button>
             )}
           </div>
+          {/* לוז היום — לינק ידני, נגיש לכולם, עריכה למנהלים */}
+          {(dayLinks[selectedDay]?.url || profile?.is_manager) && (
+            <div className="mb-4">
+              {dayLinks[selectedDay]?.url && (
+                <a href={dayLinks[selectedDay].url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[13px] text-white bg-[#A0106A] hover:bg-[#7c0c52] px-3 py-1.5 rounded-lg mb-2">
+                  <i className="ti ti-list-details" style={{fontSize:15}}/> פתח לוז היום <i className="ti ti-external-link" style={{fontSize:13}}/>
+                </a>
+              )}
+              {profile?.is_manager && (
+                <div className="flex items-center gap-2">
+                  <input value={linkDraft} onChange={e=>setLinkDraft(e.target.value)} dir="ltr"
+                    placeholder="הדבק לינק ללוז היום (URL)"
+                    className="flex-1 text-[13px] px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-left" />
+                  <button onClick={saveDayLink} disabled={linkSaving}
+                    className="text-[13px] px-3 py-1.5 rounded-lg bg-[#E0197D] text-white hover:bg-[#A0106A] disabled:opacity-50 flex-shrink-0">
+                    {linkSaving ? '...' : 'שמור'}
+                  </button>
+                  {dayLinks[selectedDay]?.url && (
+                    <button onClick={removeDayLink} disabled={linkSaving} title="הסר לינק"
+                      className="text-gray-400 hover:text-red-500 p-1.5 flex-shrink-0">
+                      <i className="ti ti-trash" style={{fontSize:15}}/>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {selectedEvents.length === 0 ? (
             <p className="text-[13px] text-gray-400 text-center py-4">אין אירועים ביום זה</p>
           ) : (
