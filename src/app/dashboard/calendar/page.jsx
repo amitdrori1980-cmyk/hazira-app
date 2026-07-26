@@ -11,7 +11,7 @@ const TYPE_LABEL = { rehearsal:'חזרה', show:'הצגה', crew:'צוות', tec
 const CON_NAME_OVERRIDES = { 'דניאל גמליאלי': 'דונדו', 'דניאל ק': 'דניאל ק' }
 const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלים בלבד
 // HAZIRA-GCAL-SKETCH-V9
-// HAZIRA-GCAL-DAYLINK-V10
+// HAZIRA-GCAL-DAYLINK-V11
 function conDisplayName(fullName, firstCount) {
   const key = (fullName || '').trim()
   if (CON_NAME_OVERRIDES[key]) return CON_NAME_OVERRIDES[key]
@@ -34,8 +34,10 @@ export default function CalendarPage() {
   const [calYear, setCalYear] = useState(new Date().getFullYear())
   const [calMonth, setCalMonth] = useState(new Date().getMonth())
   const [selectedDay, setSelectedDay] = useState(null)
-  const [dayLinks, setDayLinks] = useState({}) // { 'YYYY-MM-DD': {date,url,label} }
-  const [linkDraft, setLinkDraft] = useState('')
+  const [dayLinks, setDayLinks] = useState({}) // { 'YYYY-MM-DD': {date, schedule_id} }
+  const [schedules, setSchedules] = useState([]) // general_schedules for the picker
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerSearch, setPickerSearch] = useState('')
   const [linkSaving, setLinkSaving] = useState(false)
   const [flashEv, setFlashEv] = useState(null)
   const [dragId, setDragId] = useState(null)
@@ -211,6 +213,8 @@ export default function CalendarPage() {
       setDayTasks(dtk || [])
       const { data: dl } = await supabase.from('day_links').select('*')
       const dlMap = {}; (dl || []).forEach(r => { dlMap[r.date] = r }); setDayLinks(dlMap)
+      const { data: gs } = await supabase.from('general_schedules').select('id,title,venue').order('title')
+      setSchedules(gs || [])
       const [{ data: profs }, { data: cm }, { data: ops }] = await Promise.all([
         supabase.from('profiles').select('id,full_name,dept').order('full_name'),
         supabase.from('crew_members').select('id,full_name').order('full_name'),
@@ -433,30 +437,26 @@ export default function CalendarPage() {
     try { window.history.pushState({ haziraDay: ds }, '') } catch (e) {}
   }
 
-  // סנכרון טיוטת הלינק עם היום שנבחר
-  useEffect(() => { setLinkDraft(selectedDay ? (dayLinks[selectedDay]?.url || '') : '') }, [selectedDay, dayLinks])
+  // סגירת בורר הלוזים במעבר בין ימים
+  useEffect(() => { setPickerOpen(false); setPickerSearch('') }, [selectedDay])
 
-  async function saveDayLink() {
+  const scheduleTitle = sid => { const s = schedules.find(x => x.id === sid); return s ? s.title : 'לוז' }
+
+  async function setDaySchedule(sid) {
     if (!selectedDay) return
-    const url = linkDraft.trim()
     setLinkSaving(true)
-    if (!url) {
-      await supabase.from('day_links').delete().eq('date', selectedDay)
-      setDayLinks(prev => { const n = { ...prev }; delete n[selectedDay]; return n })
-    } else {
-      const row = { date: selectedDay, url, updated_at: new Date().toISOString() }
-      const { data } = await supabase.from('day_links').upsert(row, { onConflict: 'date' }).select().single()
-      setDayLinks(prev => ({ ...prev, [selectedDay]: data || row }))
-    }
+    const row = { date: selectedDay, schedule_id: sid, updated_at: new Date().toISOString() }
+    const { data } = await supabase.from('day_links').upsert(row, { onConflict: 'date' }).select().single()
+    setDayLinks(prev => ({ ...prev, [selectedDay]: data || row }))
+    setPickerOpen(false); setPickerSearch('')
     setLinkSaving(false)
   }
 
-  async function removeDayLink() {
+  async function removeDaySchedule() {
     if (!selectedDay) return
     setLinkSaving(true)
     await supabase.from('day_links').delete().eq('date', selectedDay)
     setDayLinks(prev => { const n = { ...prev }; delete n[selectedDay]; return n })
-    setLinkDraft('')
     setLinkSaving(false)
   }
 
@@ -791,9 +791,9 @@ export default function CalendarPage() {
                           'border-gray-100 bg-gray-50 hover:bg-gray-100'
                         } ${c.inMonth ? '' : 'opacity-30'}`}>
                         <div className={`text-center text-[14px] md:text-[20px] font-medium mb-1.5 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
-                        {dayLinks[c.ds]?.url && (
-                          <a href={dayLinks[c.ds].url} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()}
-                            title={dayLinks[c.ds].label || 'לוז היום'}
+                        {dayLinks[c.ds]?.schedule_id && (
+                          <a href={'/dashboard/specs?tab=rundowns&schedule=' + dayLinks[c.ds].schedule_id} onClick={ev=>ev.stopPropagation()}
+                            title="פתח לוז"
                             className="flex items-center justify-center gap-1 text-[10px] md:text-[12px] mb-1 text-[#A0106A] hover:underline">
                             <i className="ti ti-list-details" style={{fontSize:12}}/> לוז
                           </a>
@@ -846,9 +846,9 @@ export default function CalendarPage() {
                           'border-gray-100 bg-gray-50 hover:bg-gray-100'
                         } ${c.inMonth ? '' : 'opacity-30'}`}>
                         <div className={`text-center text-[12px] md:text-[14px] font-medium mb-1 ${isToday || isSelected ? 'text-[#E0197D]' : 'text-gray-700'}`}>{c.d}</div>
-                        {dayLinks[c.ds]?.url && (
-                          <a href={dayLinks[c.ds].url} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()}
-                            title={dayLinks[c.ds].label || 'לוז היום'}
+                        {dayLinks[c.ds]?.schedule_id && (
+                          <a href={'/dashboard/specs?tab=rundowns&schedule=' + dayLinks[c.ds].schedule_id} onClick={ev=>ev.stopPropagation()}
+                            title="פתח לוז"
                             className="flex items-center justify-center gap-1 text-[10px] md:text-[12px] mb-1 text-[#A0106A] hover:underline">
                             <i className="ti ti-list-details" style={{fontSize:12}}/> לוז
                           </a>
@@ -925,29 +925,47 @@ export default function CalendarPage() {
               </button>
             )}
           </div>
-          {/* לוז היום — לינק ידני, נגיש לכולם, עריכה למנהלים */}
-          {(dayLinks[selectedDay]?.url || profile?.is_manager) && (
+          {/* לוז היום — קישור ללוז קיים; פתיחה לכולם, עריכה למנהלים */}
+          {(dayLinks[selectedDay]?.schedule_id || profile?.is_manager) && (
             <div className="mb-4">
-              {dayLinks[selectedDay]?.url && (
-                <a href={dayLinks[selectedDay].url} target="_blank" rel="noopener noreferrer"
+              {dayLinks[selectedDay]?.schedule_id && (
+                <a href={'/dashboard/specs?tab=rundowns&schedule=' + dayLinks[selectedDay].schedule_id}
                   className="inline-flex items-center gap-1.5 text-[13px] text-white bg-[#A0106A] hover:bg-[#7c0c52] px-3 py-1.5 rounded-lg mb-2">
-                  <i className="ti ti-list-details" style={{fontSize:15}}/> פתח לוז היום <i className="ti ti-external-link" style={{fontSize:13}}/>
+                  <i className="ti ti-list-details" style={{fontSize:15}}/> פתח לוז: {scheduleTitle(dayLinks[selectedDay].schedule_id)} <i className="ti ti-external-link" style={{fontSize:13}}/>
                 </a>
               )}
               {profile?.is_manager && (
-                <div className="flex items-center gap-2">
-                  <input value={linkDraft} onChange={e=>setLinkDraft(e.target.value)} dir="ltr"
-                    placeholder="הדבק לינק ללוז היום (URL)"
-                    className="flex-1 text-[13px] px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-left" />
-                  <button onClick={saveDayLink} disabled={linkSaving}
-                    className="text-[13px] px-3 py-1.5 rounded-lg bg-[#E0197D] text-white hover:bg-[#A0106A] disabled:opacity-50 flex-shrink-0">
-                    {linkSaving ? '...' : 'שמור'}
-                  </button>
-                  {dayLinks[selectedDay]?.url && (
-                    <button onClick={removeDayLink} disabled={linkSaving} title="הסר לינק"
-                      className="text-gray-400 hover:text-red-500 p-1.5 flex-shrink-0">
-                      <i className="ti ti-trash" style={{fontSize:15}}/>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={()=>setPickerOpen(o=>!o)}
+                      className="text-[13px] px-3 py-1.5 rounded-lg border border-gray-200 hover:border-[#E0197D] text-gray-600 hover:text-[#E0197D] flex items-center gap-1">
+                      <i className="ti ti-link" style={{fontSize:14}}/> {dayLinks[selectedDay]?.schedule_id ? 'שנה לוז' : 'קשר לוז ליום זה'}
                     </button>
+                    {dayLinks[selectedDay]?.schedule_id && (
+                      <button onClick={removeDaySchedule} disabled={linkSaving} title="הסר קישור"
+                        className="text-gray-400 hover:text-red-500 p-1.5">
+                        <i className="ti ti-trash" style={{fontSize:15}}/>
+                      </button>
+                    )}
+                  </div>
+                  {pickerOpen && (
+                    <div className="mt-2 bg-white border border-gray-200 rounded-xl p-2 max-w-md">
+                      <input value={pickerSearch} onChange={e=>setPickerSearch(e.target.value)}
+                        placeholder="חיפוש לוז..."
+                        className="w-full text-[13px] px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2" />
+                      <div className="max-h-56 overflow-y-auto space-y-0.5">
+                        {schedules
+                          .filter(s => { const q = pickerSearch.trim().toLowerCase(); return !q || (s.title||'').toLowerCase().includes(q) || (s.venue||'').toLowerCase().includes(q) })
+                          .map(s => (
+                            <button key={s.id} onClick={()=>setDaySchedule(s.id)}
+                              className={`w-full text-right px-3 py-2 rounded-lg text-[13px] hover:bg-[#FCE4F3] flex items-center justify-between gap-2 ${dayLinks[selectedDay]?.schedule_id===s.id?'bg-[#FCE4F3] text-[#A0106A]':'text-gray-700'}`}>
+                              <span className="truncate">{s.title}</span>
+                              {s.venue && <span className="text-[11px] text-gray-400 flex-shrink-0">{s.venue}</span>}
+                            </button>
+                          ))}
+                        {schedules.length === 0 && <div className="text-center text-[12px] text-gray-400 py-3">אין לוזים</div>}
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
