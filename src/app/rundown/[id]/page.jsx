@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-RUNDOWN-VIEW-V1
+// HAZIRA-RUNDOWN-VIEW-V2
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -26,6 +26,11 @@ export default function RundownPage({ params }) {
     setSch(s); setRows(r || []); setLoading(false)
   }
 
+  function closeOrBack() {
+    try { window.close() } catch (e) {}
+    setTimeout(() => { if (!window.closed) window.location.href = '/dashboard/calendar' }, 120)
+  }
+
   if (loading) return <div dir="rtl" className="min-h-screen flex items-center justify-center text-gray-400">טוען...</div>
 
   if (!sch) return (
@@ -40,7 +45,11 @@ export default function RundownPage({ params }) {
     <div dir="rtl" className="min-h-screen bg-gray-50 py-8 px-4">
       <style>{`@media print { .no-print { display:none !important } body { background:#fff } .sheet { box-shadow:none !important; border:none !important } } @page { margin:14mm 12mm }`}</style>
       <div className="max-w-3xl mx-auto">
-        <div className="no-print flex justify-end mb-3">
+        <div className="no-print flex items-center justify-between mb-3">
+          <button onClick={closeOrBack}
+            className="inline-flex items-center gap-1.5 text-[13px] text-gray-600 hover:text-[#E0197D] border border-gray-200 hover:border-[#E0197D] bg-white px-4 py-2 rounded-lg">
+            <i className="ti ti-arrow-right" style={{ fontSize: 15 }} /> חזרה ליומן
+          </button>
           <button onClick={() => window.print()}
             className="inline-flex items-center gap-1.5 text-[13px] text-white bg-[#E0197D] hover:bg-[#A0106A] px-4 py-2 rounded-lg">
             <i className="ti ti-printer" style={{ fontSize: 15 }} /> הדפס / שמור PDF
