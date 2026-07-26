@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS   = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']
 // HAZIRA-CONSTRAINTS-DAY-V2
-// HAZIRA-CONSTRAINTS-GAPS-V3
+// HAZIRA-CONSTRAINTS-GAPS-V4
 
 // כינויים לתצוגה בתפריט (גובר על השם הפרטי האוטומטי)
 const NAME_OVERRIDES = {
@@ -509,11 +509,15 @@ export default function ConstraintsPage() {
               <input type="file" accept=".xlsx,.xls" onChange={handleFile} className="hidden" disabled={importing}/>
             </label>
             )}
-            <button onClick={() => { setGapResults(null); setGapOpen(true) }}
-              className="text-[12px] border border-[#A0106A] text-[#A0106A] px-3 py-1.5 rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1">
-              <i className="ti ti-calendar-search" style={{fontSize:13}}/>
-              ימים ללא צוות
-            </button>
+            <div className="relative group">
+              <button onClick={() => { setGapResults(null); setGapOpen(true) }} aria-label="ימים ללא צוות"
+                className="text-[12px] border border-[#A0106A] text-[#A0106A] px-2.5 py-1.5 rounded-lg hover:bg-[#FCE4F3] flex items-center">
+                <i className="ti ti-alert-circle" style={{fontSize:16}}/>
+              </button>
+              <span className="pointer-events-none absolute top-full right-0 mt-1 whitespace-nowrap bg-gray-800 text-white text-[11px] px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                ימים ללא צוות
+              </span>
+            </div>
             <button onClick={exportExcel}
               className="text-[12px] border border-green-600 text-green-600 px-3 py-1.5 rounded-lg hover:bg-green-50 flex items-center gap-1">
               <i className="ti ti-table-export" style={{fontSize:13}}/>
