@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS   = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']
 // HAZIRA-CONSTRAINTS-DAY-V2
+// HAZIRA-CONSTRAINTS-GAPS-V3
 
 // כינויים לתצוגה בתפריט (גובר על השם הפרטי האוטומטי)
 const NAME_OVERRIDES = {
@@ -59,6 +60,10 @@ export default function ConstraintsPage() {
   const [form, setForm]       = useState({ crew_name:'', date:'', available:false, notes:'' })
   const [adding, setAdding]   = useState(false)
   const [confirmId, setConfirmId] = useState(null)
+  const [gapOpen, setGapOpen] = useState(false)
+  const [gapFrom, setGapFrom] = useState(() => { const t = new Date(); return t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0') })
+  const [gapTo, setGapTo] = useState(() => { const t = new Date(); t.setDate(t.getDate()+30); return t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0') })
+  const [gapResults, setGapResults] = useState(null)
   const [editItem, setEditItem] = useState(null) // constraint being edited
   const [editForm, setEditForm] = useState({ crew_name:'', date:'', available:false, notes:'' })
   const [saving, setSaving] = useState(false)
@@ -110,6 +115,23 @@ export default function ConstraintsPage() {
     setInqRows(pe || [])
     setCrew(merged)
     setLoading(false)
+  }
+
+  // איתור ימי חול (א׳–ה׳) בטווח שאין בהם אף איש צוות שסימן זמינות (available=true)
+  function findGaps() {
+    if (!gapFrom || !gapTo) return
+    const start = new Date(gapFrom + 'T00:00:00')
+    const end   = new Date(gapTo + 'T00:00:00')
+    if (isNaN(start) || isNaN(end) || start > end) { setGapResults([]); return }
+    const out = []
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dow = d.getDay()
+      if (dow === 5 || dow === 6) continue // שישי, שבת
+      const ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0')
+      const hasCrew = constraints.some(c => c.available && (c.date === ds || (c.date_to && ds >= c.date && ds <= c.date_to)))
+      if (!hasCrew) out.push(ds)
+    }
+    setGapResults(out)
   }
 
   function changeMonth(dir) {
@@ -487,6 +509,11 @@ export default function ConstraintsPage() {
               <input type="file" accept=".xlsx,.xls" onChange={handleFile} className="hidden" disabled={importing}/>
             </label>
             )}
+            <button onClick={() => { setGapResults(null); setGapOpen(true) }}
+              className="text-[12px] border border-[#A0106A] text-[#A0106A] px-3 py-1.5 rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1">
+              <i className="ti ti-calendar-search" style={{fontSize:13}}/>
+              ימים ללא צוות
+            </button>
             <button onClick={exportExcel}
               className="text-[12px] border border-green-600 text-green-600 px-3 py-1.5 rounded-lg hover:bg-green-50 flex items-center gap-1">
               <i className="ti ti-table-export" style={{fontSize:13}}/>
@@ -862,6 +889,53 @@ export default function ConstraintsPage() {
                 מחק
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {gapOpen && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0"
+          style={{background:'rgba(0,0,0,0.4)'}}>
+          <div className="bg-white rounded-2xl w-full max-w-md p-5 shadow-xl" dir="rtl">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-[16px] font-semibold text-gray-900">ימים ללא צוות זמין</div>
+              <button onClick={()=>setGapOpen(false)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{fontSize:18}}/></button>
+            </div>
+            <div className="text-[12px] text-gray-500 mb-3">מציג ימי חול (א׳–ה׳) בטווח שאין בהם אף איש צוות שסימן זמינות. שישי ושבת לא נכללים.</div>
+            <div className="flex items-end gap-2 mb-3">
+              <div className="flex-1">
+                <label className="text-[11px] text-gray-400 block mb-1">מתאריך</label>
+                <input type="date" value={gapFrom} onChange={e=>{setGapFrom(e.target.value); setGapResults(null)}}
+                  className="w-full text-[13px] px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
+              </div>
+              <div className="flex-1">
+                <label className="text-[11px] text-gray-400 block mb-1">עד תאריך</label>
+                <input type="date" value={gapTo} onChange={e=>{setGapTo(e.target.value); setGapResults(null)}}
+                  className="w-full text-[13px] px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
+              </div>
+              <button onClick={findGaps} className="text-[13px] px-4 py-1.5 rounded-lg bg-[#E0197D] text-white hover:bg-[#A0106A] flex-shrink-0">חשב</button>
+            </div>
+            {gapResults !== null && (
+              gapResults.length === 0 ? (
+                <div className="text-center text-[13px] text-green-800 bg-green-50 rounded-lg py-4">אין ימים חשופים בטווח — יש כיסוי בכל יום חול 🎉</div>
+              ) : (
+                <div>
+                  <div className="text-[12px] text-gray-500 mb-2">{gapResults.length} ימים ללא צוות:</div>
+                  <div className="max-h-64 overflow-y-auto space-y-1">
+                    {gapResults.map(ds => {
+                      const [y,m,dd] = ds.split('-').map(Number)
+                      const dt = new Date(y, m-1, dd)
+                      return (
+                        <div key={ds} className="flex items-center justify-between px-3 py-2 rounded-lg bg-red-50 text-[13px]">
+                          <span className="text-red-900">יום {HE_DAYS[dt.getDay()]} · {dd} {HE_MONTHS[m-1]} {y}</span>
+                          <button onClick={()=>{ setGapOpen(false); setCalYear(y); setCalMonth(m-1); setSelectedDay(ds) }}
+                            className="text-[11px] text-[#A0106A] hover:underline flex-shrink-0">הצג ביומן</button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            )}
           </div>
         </div>
       )}
