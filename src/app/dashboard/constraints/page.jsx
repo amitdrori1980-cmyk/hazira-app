@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS   = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳']
 // HAZIRA-CONSTRAINTS-DAY-V2
-// HAZIRA-CONSTRAINTS-GAPS-V4
+// HAZIRA-CONSTRAINTS-GAPS-V5
 
 // כינויים לתצוגה בתפריט (גובר על השם הפרטי האוטומטי)
 const NAME_OVERRIDES = {
@@ -897,15 +897,15 @@ export default function ConstraintsPage() {
         </div>
       )}
       {gapOpen && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0"
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-[5.5rem] md:pb-0"
           style={{background:'rgba(0,0,0,0.4)'}}>
-          <div className="bg-white rounded-2xl w-full max-w-md p-5 shadow-xl" dir="rtl">
+          <div className="bg-white rounded-2xl w-full max-w-md p-5 shadow-xl max-h-[80vh] overflow-y-auto" dir="rtl">
             <div className="flex items-center justify-between mb-3">
               <div className="text-[16px] font-semibold text-gray-900">ימים ללא צוות זמין</div>
               <button onClick={()=>setGapOpen(false)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{fontSize:18}}/></button>
             </div>
             <div className="text-[12px] text-gray-500 mb-3">מציג ימי חול (א׳–ה׳) בטווח שאין בהם אף איש צוות שסימן זמינות. שישי ושבת לא נכללים.</div>
-            <div className="flex items-end gap-2 mb-3">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-2 mb-3">
               <div className="flex-1">
                 <label className="text-[11px] text-gray-400 block mb-1">מתאריך</label>
                 <input type="date" value={gapFrom} onChange={e=>{setGapFrom(e.target.value); setGapResults(null)}}
@@ -916,7 +916,7 @@ export default function ConstraintsPage() {
                 <input type="date" value={gapTo} onChange={e=>{setGapTo(e.target.value); setGapResults(null)}}
                   className="w-full text-[13px] px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
               </div>
-              <button onClick={findGaps} className="text-[13px] px-4 py-1.5 rounded-lg bg-[#E0197D] text-white hover:bg-[#A0106A] flex-shrink-0">חשב</button>
+              <button onClick={findGaps} className="text-[13px] px-4 py-2 rounded-lg bg-[#E0197D] text-white hover:bg-[#A0106A] w-full sm:w-auto flex-shrink-0">חשב</button>
             </div>
             {gapResults !== null && (
               gapResults.length === 0 ? (
