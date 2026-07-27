@@ -12,6 +12,7 @@ const CON_NAME_OVERRIDES = { 'דניאל גמליאלי': 'דונדו', 'דני�
 const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלים בלבד
 // HAZIRA-GCAL-SKETCH-V9
 // HAZIRA-GCAL-DAYLINK-V13
+// HAZIRA-GCAL-TODAY-V14
 function conDisplayName(fullName, firstCount) {
   const key = (fullName || '').trim()
   if (CON_NAME_OVERRIDES[key]) return CON_NAME_OVERRIDES[key]
@@ -734,6 +735,8 @@ export default function CalendarPage() {
             <button onClick={() => setViewMode('month')} className={`text-[12px] px-3 py-1 ${viewMode === 'month' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>חודשי</button>
             <button onClick={() => { setViewMode('week'); setWeekAnchor(selectedDay || todayDs) }} className={`text-[12px] px-3 py-1 ${viewMode === 'week' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>שבועי</button>
           </div>
+          <button onClick={() => { const [ty, tm] = todayDs.split('-').map(Number); setCalYear(ty); setCalMonth(tm - 1); setWeekAnchor(todayDs); setSelectedDay(null) }}
+            className="text-[12px] px-3 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[#E0197D] hover:text-[#E0197D]">היום</button>
           {viewMode === 'week' && (
             <button onClick={exportWeekPdf} title="ייצוא PDF של השבוע"
               className="flex items-center gap-1 text-[12px] px-3 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[#E0197D] hover:text-[#E0197D]">
