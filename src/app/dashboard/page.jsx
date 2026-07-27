@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-OVERVIEW-WEEK-V14
+// HAZIRA-OVERVIEW-WEEK-V15
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DAYS_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
@@ -123,14 +123,15 @@ function WeekDashboard() {
           return (
             <div key={ds} className="border border-[#F3C9E2] rounded-xl p-3 mb-2 last:mb-0 bg-gray-50">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[13px] font-bold text-gray-800">{dayName} · {d} {HE_MONTHS[m - 1]}</span>
+                <button onClick={() => router.push(`/dashboard/calendar?day=${ds}`)}
+                  className="text-[13px] font-bold text-gray-800 hover:text-[#E0197D] transition-colors">{dayName} · {d} {HE_MONTHS[m - 1]}</button>
                 {idx === 0 && <span className="text-[10px] bg-[#FCE4F3] text-[#A0106A] px-2 py-0.5 rounded-full">היום</span>}
               </div>
 
               {dEvents.length > 0 ? (
                 <div className="mb-2 flex flex-col gap-1">
                   {dEvents.map(e => (
-                    <div key={e.id} dir="rtl" onClick={() => router.push(`/dashboard/calendar?focus=${e.date}&ev=${encodeURIComponent(e.title || '')}`)}
+                    <div key={e.id} dir="rtl" onClick={() => router.push(`/dashboard/calendar?day=${e.date}&ev=${encodeURIComponent(e.title || '')}`)}
                       className="flex items-center gap-2 text-right cursor-pointer hover:bg-white rounded-lg px-1 py-0.5">
                       <span className="text-[13px] text-gray-800 font-medium">{e.title}</span>
                       {e.venue && <span className="text-[12px] text-gray-500">{e.venue}</span>}
