@@ -13,6 +13,7 @@ const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלי�
 // HAZIRA-GCAL-SKETCH-V9
 // HAZIRA-GCAL-DAYLINK-V13
 // HAZIRA-GCAL-TODAY-V14
+// HAZIRA-GCAL-BTNSTYLE-V15
 function conDisplayName(fullName, firstCount) {
   const key = (fullName || '').trim()
   if (CON_NAME_OVERRIDES[key]) return CON_NAME_OVERRIDES[key]
@@ -717,7 +718,7 @@ export default function CalendarPage() {
       <div ref={gridRef} className={`bg-white border border-gray-100 rounded-xl p-5 mb-3 ${selectedDay ? 'hidden' : ''}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-          <button onClick={exportExcel} className="text-sm text-gray-500 hover:text-green-600 px-3 py-1 border border-gray-200 rounded-lg flex items-center gap-1">
+          <button onClick={exportExcel} className="text-sm text-[#E0197D] px-3 py-1 border border-[#E0197D] rounded-lg hover:bg-[#FCE4F3] flex items-center gap-1">
             <i className="ti ti-table-export" style={{fontSize:13}}/> ייצוא
           </button>
           <div className="flex items-center gap-1">
@@ -731,30 +732,32 @@ export default function CalendarPage() {
               <i className="ti ti-chevron-left" style={{fontSize:20}}/>
             </button>
           </div>
-          <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-            <button onClick={() => setViewMode('month')} className={`text-[12px] px-3 py-1 ${viewMode === 'month' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>חודשי</button>
-            <button onClick={() => { setViewMode('week'); setWeekAnchor(selectedDay || todayDs) }} className={`text-[12px] px-3 py-1 ${viewMode === 'week' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:text-[#E0197D]'}`}>שבועי</button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center border border-[#E0197D] rounded-lg overflow-hidden">
+              <button onClick={() => setViewMode('month')} className={`text-[12px] px-3 py-1 ${viewMode === 'month' ? 'bg-[#E0197D] text-white' : 'bg-white text-[#E0197D] hover:bg-[#FCE4F3]'}`}>חודשי</button>
+              <button onClick={() => { setViewMode('week'); setWeekAnchor(selectedDay || todayDs) }} className={`text-[12px] px-3 py-1 ${viewMode === 'week' ? 'bg-[#E0197D] text-white' : 'bg-white text-[#E0197D] hover:bg-[#FCE4F3]'}`}>שבועי</button>
+            </div>
+            <button onClick={() => { const [ty, tm] = todayDs.split('-').map(Number); setCalYear(ty); setCalMonth(tm - 1); setWeekAnchor(todayDs); setSelectedDay(null) }}
+              className="text-[12px] px-3 py-1 rounded-lg border border-[#E0197D] text-[#E0197D] bg-white hover:bg-[#FCE4F3]">היום</button>
+            {viewMode === 'week' && (
+              <button onClick={exportWeekPdf} title="ייצוא PDF של השבוע"
+                className="flex items-center gap-1 text-[12px] px-3 py-1 rounded-lg border border-[#E0197D] text-[#E0197D] bg-white hover:bg-[#FCE4F3]">
+                <i className="ti ti-file-type-pdf" style={{ fontSize: 14 }} /> PDF
+              </button>
+            )}
           </div>
-          <button onClick={() => { const [ty, tm] = todayDs.split('-').map(Number); setCalYear(ty); setCalMonth(tm - 1); setWeekAnchor(todayDs); setSelectedDay(null) }}
-            className="text-[12px] px-3 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[#E0197D] hover:text-[#E0197D]">היום</button>
-          {viewMode === 'week' && (
-            <button onClick={exportWeekPdf} title="ייצוא PDF של השבוע"
-              className="flex items-center gap-1 text-[12px] px-3 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-[#E0197D] hover:text-[#E0197D]">
-              <i className="ti ti-file-type-pdf" style={{ fontSize: 14 }} /> PDF
-            </button>
-          )}
         </div>
 
         {/* Venue filter */}
         {venues.length > 0 && (
           <div className="flex gap-1.5 flex-wrap justify-end mb-4">
             <button onClick={()=>setSelectedVenue('all')}
-              className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${selectedVenue==='all'?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+              className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${selectedVenue==='all'?'bg-[#E0197D] text-white border-[#E0197D]':'bg-white border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3]'}`}>
               כל האולמות
             </button>
             {venues.map(v => (
               <button key={v} onClick={()=>setSelectedVenue(v)}
-                className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${selectedVenue===v?'bg-[#E0197D] text-white border-[#E0197D]':'border-gray-200 text-gray-500 hover:border-[#E0197D]'}`}>
+                className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${selectedVenue===v?'bg-[#E0197D] text-white border-[#E0197D]':'bg-white border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3]'}`}>
                 {v}
               </button>
             ))}
