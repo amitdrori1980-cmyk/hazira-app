@@ -13,7 +13,7 @@ const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלי�
 // HAZIRA-GCAL-SKETCH-V9
 // HAZIRA-GCAL-DAYLINK-V13
 // HAZIRA-GCAL-TODAY-V14
-// HAZIRA-GCAL-BTNSTYLE-V15
+// HAZIRA-GCAL-BTNSTYLE-V16
 function conDisplayName(fullName, firstCount) {
   const key = (fullName || '').trim()
   if (CON_NAME_OVERRIDES[key]) return CON_NAME_OVERRIDES[key]
@@ -752,12 +752,12 @@ export default function CalendarPage() {
         {venues.length > 0 && (
           <div className="flex gap-1.5 flex-wrap justify-end mb-4">
             <button onClick={()=>setSelectedVenue('all')}
-              className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${selectedVenue==='all'?'bg-[#E0197D] text-white border-[#E0197D]':'bg-white border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3]'}`}>
+              className={`text-[11px] px-3 py-1.5 rounded-lg border transition-colors ${selectedVenue==='all'?'bg-[#E0197D] text-white border-[#E0197D]':'bg-white border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3]'}`}>
               כל האולמות
             </button>
             {venues.map(v => (
               <button key={v} onClick={()=>setSelectedVenue(v)}
-                className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${selectedVenue===v?'bg-[#E0197D] text-white border-[#E0197D]':'bg-white border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3]'}`}>
+                className={`text-[11px] px-3 py-1.5 rounded-lg border transition-colors ${selectedVenue===v?'bg-[#E0197D] text-white border-[#E0197D]':'bg-white border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3]'}`}>
                 {v}
               </button>
             ))}
