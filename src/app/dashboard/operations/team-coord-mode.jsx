@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import HaziraLogo from '@/components/HaziraLogo'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-TEAMCOORD-V4
+// HAZIRA-TEAMCOORD-V5
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -755,43 +755,6 @@ export default function TeamCoordMode() {
                 {groupEvents && <span draggable onDragStart={e => { dragId.current = ev.id; setDraggingId(ev.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', ev.id); const el = document.getElementById('prod-ev-' + ev.id); if (el) e.dataTransfer.setDragImage(el, 24, 24) }} onDragEnd={() => { dragId.current = null; setDraggingId(null); setDragOver({ id: null, after: false }) }}
                   className="no-print text-black hover:text-gray-700 p-1 cursor-grab active:cursor-grabbing" title="גרור לשינוי סדר">
                   <i className="ti ti-grip-vertical" style={{fontSize:14}}/></span>}
-                <button onClick={e=>{e.stopPropagation();pushToCalendar(ev)}}
-                  className="text-black hover:text-[#E0197D] p-1" title="עדכן ביומן">
-                  <i className="ti ti-calendar-plus" style={{fontSize:13}}/></button>
-                {ev.date && <button onClick={e=>{e.stopPropagation();router.push(`/dashboard/calendar?day=${ev.date}&ev=${encodeURIComponent(ev.event_name)}`)}}
-                  className="text-black hover:text-[#E0197D] p-1" title="הקפצה ליומן (תצוגה יומית)">
-                  <i className="ti ti-external-link" style={{fontSize:13}}/></button>}
-                {(() => {
-                  const linkedGs = linkedFor(ev)
-                  if (linkPickerFor === ev.id) {
-                    return (
-                      <select autoFocus defaultValue="" onClick={e=>e.stopPropagation()}
-                        onChange={e => { if (e.target.value) linkSchedule(ev, e.target.value); else setLinkPickerFor(null) }}
-                        onBlur={() => setLinkPickerFor(null)}
-                        className="no-print text-[12px] px-2 py-1 border border-[#E0197D] rounded-lg bg-white outline-none text-right max-w-[150px]">
-                        <option value="">בחר לוז…</option>
-                        {allGenScheds.map(g => <option key={g.id} value={g.id}>{g.title}{g.linked_event_id && g.linked_event_id !== ev.id ? ' (מקושר)' : ''}</option>)}
-                      </select>
-                    )
-                  }
-                  if (linkedGs) {
-                    return (
-                      <>
-                        <button onClick={e=>{e.stopPropagation();openLinkedSchedule(linkedGs)}}
-                          className="text-[#E0197D] hover:text-[#A0106A] p-1" title={'פתח לוז: ' + linkedGs.title}>
-                          <i className="ti ti-list" style={{fontSize:13}}/></button>
-                        <button onClick={e=>{e.stopPropagation();unlinkSchedule(linkedGs)}}
-                          className="text-black hover:text-red-500 p-1" title="נתק לוז">
-                          <i className="ti ti-unlink" style={{fontSize:13}}/></button>
-                      </>
-                    )
-                  }
-                  return (
-                    <button onClick={e=>{e.stopPropagation();setLinkPickerFor(ev.id)}}
-                      className="text-black hover:text-[#E0197D] p-1" title="קשר לוז">
-                      <i className="ti ti-link" style={{fontSize:13}}/></button>
-                  )
-                })()}
                 <button onClick={e=>{e.stopPropagation();setEditingEvent(ev.id);setEditEventVal({event_name:ev.event_name,date:ev.date||'',day:ev.day||'',venue:ev.venue||'',type:ev.type||''})}}
                   className="text-black hover:text-gray-600 p-1"><i className="ti ti-pencil" style={{fontSize:13}}/></button>
                 <button onClick={e=>{e.stopPropagation();if(window.confirm('למחוק את האירוע?'))deleteEvent(ev.id)}}
