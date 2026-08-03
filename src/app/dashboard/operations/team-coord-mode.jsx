@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import HaziraLogo from '@/components/HaziraLogo'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-TEAMCOORD-V2
+// HAZIRA-TEAMCOORD-V3
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -195,8 +195,11 @@ export default function TeamCoordMode() {
     setShowNewEvent(false)
     if (!calEvents.length) {
       setImportLoading(true)
+      const t = new Date()
+      const todayIso = t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0')
       const { data } = await supabase.from('events').select('id, title, date, end_date, time, venue, type').order('date', { ascending: true })
-      setCalEvents(data || [])
+      // לא להציע אירועי עבר (אירוע שכבר הסתיים)
+      setCalEvents((data || []).filter(e => (e.end_date || e.date || '') >= todayIso))
       setImportLoading(false)
     }
   }
