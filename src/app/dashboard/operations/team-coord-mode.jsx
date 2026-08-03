@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import HaziraLogo from '@/components/HaziraLogo'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-TEAMCOORD-V1
+// HAZIRA-TEAMCOORD-V2
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -834,24 +834,12 @@ export default function TeamCoordMode() {
           </>
         ) : (
           <>
-            <button onClick={() => window.print()}
-              className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
-              <i className="ti ti-file-type-pdf"/> ייצוא PDF
-            </button>
-            <button onClick={() => setSelectMode(true)}
-              className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
-              <i className="ti ti-checkbox"/> בחר לייצוא
-            </button>
             <button onClick={() => { setReviewOpen(true); setReviewPerson(''); setReviewLink(null); setReviewResponses([]); loadReviewLinksList() }}
               className="bg-white border border-[#14b8a6] text-[#0f766e] text-sm px-4 py-2 rounded-lg hover:bg-[#ccfbf1] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
               <i className="ti ti-clipboard-check"/> שלח לבדיקה
             </button>
           </>
         )}
-        <button onClick={syncAll} disabled={bulkBusy || (activeEvents.length===0 && liveEvents.length===0)}
-          className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px] disabled:opacity-50">
-          <i className="ti ti-refresh"/> {bulkBusy ? 'מסנכרן…' : 'סנכרן עם היומן'}
-        </button>
         <button onClick={openImport}
           className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
           <i className="ti ti-calendar-down"/> ייבא מהיומן
