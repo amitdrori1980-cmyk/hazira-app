@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '@/lib/supabase'
+import TeamCoordMode from './team-coord-mode'
 
 export default function OperationsPage() {
   const [tab, setTab] = useState('team')
@@ -44,6 +45,7 @@ export default function OperationsPage() {
   const [boardRange, setBoardRange] = useState({ from: '', to: '' })
   const [colorMenu, setColorMenu] = useState(null)
   // HAZIRA-OPS-GBTN-V4
+// HAZIRA-OPS-COORD-V5
   const [savedGShift, setSavedGShift] = useState(new Set())
   const [gBusy, setGBusy] = useState(null)
   const [gConn, setGConn] = useState(null)
@@ -378,6 +380,7 @@ export default function OperationsPage() {
   }
 
   // HAZIRA-OPS-GBTN-V4
+// HAZIRA-OPS-COORD-V5
   async function toggleGoogleShift(s) {
     if (gBusy) return
     setGBusy(s.id)
@@ -762,6 +765,10 @@ export default function OperationsPage() {
           className={`text-[13px] px-4 py-1.5 rounded-lg border border-[#E0197D] font-medium transition-colors ${tab === 'summary' ? 'bg-[#E0197D] text-white' : 'bg-white text-[#E0197D] hover:bg-[#E0197D]/10'}`}>
           סיכום ערב
         </button>
+        <button onClick={() => setTab('coord')}
+          className={`text-[13px] px-4 py-1.5 rounded-lg border border-[#E0197D] font-medium transition-colors ${tab === 'coord' ? 'bg-[#E0197D] text-white' : 'bg-white text-[#E0197D] hover:bg-[#E0197D]/10'}`}>
+          תיאום צוותים
+        </button>
         {isManager && (
           <button onClick={() => setTab('team')}
             className={`text-[13px] px-4 py-1.5 rounded-lg border border-[#E0197D] font-medium transition-colors ${tab === 'team' ? 'bg-[#E0197D] text-white' : 'bg-white text-[#E0197D] hover:bg-[#E0197D]/10'}`}>
@@ -769,6 +776,8 @@ export default function OperationsPage() {
           </button>
         )}
       </div>
+
+      {tab === 'coord' && <TeamCoordMode />}
 
 
 
