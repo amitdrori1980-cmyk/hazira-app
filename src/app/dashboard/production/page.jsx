@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import * as XLSX from 'xlsx-js-style'
 import ProjectPlansMode from './ProjectPlansMode'
 // HAZIRA-PROJPLANS-TAB-V34
+// HAZIRA-GENSCHED-SEARCH-V35
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -1672,6 +1673,7 @@ export function GeneralSchedulesMode() {
   const [dragIdx, setDragIdx] = useState(null)
   const [dragSch, setDragSch] = useState(null)
   const [dropIdx, setDropIdx] = useState(null)
+  const [schedSearch, setSchedSearch] = useState('')
 
   useEffect(() => { load() }, [])
 
@@ -2052,9 +2054,20 @@ export function GeneralSchedulesMode() {
 
   if (loading) return <div className="text-center text-gray-400 py-8">טוען...</div>
 
+  const _q = schedSearch.trim().toLowerCase()
+  const shownSchedules = _q
+    ? schedules.filter(s => (s.title || '').toLowerCase().includes(_q) || (s.venue || '').toLowerCase().includes(_q) || (s.participants || '').toLowerCase().includes(_q))
+    : schedules
+
   return (
     <div className="max-w-5xl">
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-between items-center gap-2 mb-4 flex-wrap">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <i className="ti ti-search absolute top-1/2 -translate-y-1/2 right-2.5 text-gray-300" style={{fontSize:14}}/>
+          <input value={schedSearch} onChange={e => setSchedSearch(e.target.value)}
+            placeholder="חיפוש לוז..."
+            className="w-full text-sm pr-8 pl-2 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right"/>
+        </div>
         <button onClick={() => setShowNew(v => !v)}
           className="bg-[#E0197D] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#A0106A] flex items-center gap-1">
           <i className="ti ti-plus"/> לוז חדש
@@ -2084,7 +2097,12 @@ export function GeneralSchedulesMode() {
           אין לוזים — לחץ על "לוז חדש" להתחלה
         </div>
       )}
-      {schedules.map(sch => {
+      {schedules.length > 0 && shownSchedules.length === 0 && (
+        <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">
+          לא נמצאו לוזים תואמים
+        </div>
+      )}
+      {shownSchedules.map(sch => {
         const isOpen = openId === sch.id
         const schRows = rows[sch.id] || []
         return (
