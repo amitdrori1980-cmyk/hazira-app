@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx-js-style'
 import ProjectPlansMode from './ProjectPlansMode'
 // HAZIRA-PROJPLANS-TAB-V34
 // HAZIRA-GENSCHED-SEARCH-V35
-// HAZIRA-PRODINQ-IMPORTNOTES-V36
+// HAZIRA-PRODINQ-IMPORTNOTES-V37
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -195,14 +195,12 @@ function ProductionInquiries() {
   }
 
   async function openImport() {
-    setShowImport(v => !v)
     setShowNewEvent(false)
-    if (!calEvents.length) {
-      setImportLoading(true)
-      const { data } = await supabase.from('events').select('id, title, date, end_date, time, venue, type, crew_notes').order('date', { ascending: true })
-      setCalEvents(data || [])
-      setImportLoading(false)
-    }
+    setShowImport(v => !v)
+    setImportLoading(true)
+    const { data } = await supabase.from('events').select('id, title, date, end_date, time, venue, type, crew_notes').order('date', { ascending: true })
+    setCalEvents(data || [])
+    setImportLoading(false)
   }
 
   async function importFromCalendar(ce) {
@@ -210,6 +208,11 @@ function ProductionInquiries() {
     if (!name) return
     const exists = events.find(e => e.event_name === name && (!ce.date || e.date === ce.date))
     if (exists) {
+      // כרטיס קיים — העתק את הערות היומן רק אם ההערות בכרטיס ריקות (לא לדרוס מה שהוקלד)
+      if ((ce.crew_notes || '').trim() && !((exists.notes || '').trim())) {
+        await supabase.from('production_events').update({ notes: ce.crew_notes }).eq('id', exists.id)
+        setEvents(prev => prev.map(e => e.id === exists.id ? { ...e, notes: ce.crew_notes } : e))
+      }
       setShowImport(false)
       setOpenEvent(exists.id)
       setTimeout(() => document.getElementById('prod-ev-' + exists.id)?.scrollIntoView({ behavior:'smooth', block:'center' }), 200)
