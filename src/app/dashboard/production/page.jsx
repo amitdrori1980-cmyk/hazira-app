@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx-js-style'
 import ProjectPlansMode from './ProjectPlansMode'
 // HAZIRA-PROJPLANS-TAB-V34
 // HAZIRA-GENSCHED-SEARCH-V35
+// HAZIRA-PRODINQ-IMPORTNOTES-V36
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -198,7 +199,7 @@ function ProductionInquiries() {
     setShowNewEvent(false)
     if (!calEvents.length) {
       setImportLoading(true)
-      const { data } = await supabase.from('events').select('id, title, date, end_date, time, venue, type').order('date', { ascending: true })
+      const { data } = await supabase.from('events').select('id, title, date, end_date, time, venue, type, crew_notes').order('date', { ascending: true })
       setCalEvents(data || [])
       setImportLoading(false)
     }
@@ -216,7 +217,7 @@ function ProductionInquiries() {
     }
     const day = ce.date ? DAYS[new Date(ce.date).getDay()] : null
     const { data } = await supabase.from('production_events').insert({
-      event_name: name, date: ce.date || null, day, venue: ce.venue || null,
+      event_name: name, date: ce.date || null, day, venue: ce.venue || null, notes: ce.crew_notes || null,
     }).select().single()
     if (data) {
       setEvents(prev => [...prev, data].sort((a,b)=>(a.date||'9999-12-31').localeCompare(b.date||'9999-12-31')))
