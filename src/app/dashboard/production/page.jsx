@@ -8,6 +8,7 @@ import ProjectPlansMode from './ProjectPlansMode'
 // HAZIRA-PROJPLANS-TAB-V34
 // HAZIRA-GENSCHED-SEARCH-V35
 // HAZIRA-PRODINQ-IMPORTNOTES-V37
+// HAZIRA-PRODINQ-SLOTS14-V38
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -27,7 +28,7 @@ const STATUSES = [
 const getStatus = v => STATUSES.find(s => s.value === v) || STATUSES[0]
 const DAYS   = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
 const VENUES = ['אולם 1','אולם 2','אולם 3','אולם 4','אולם 5','תיאטרון הבית','דירה']
-const SLOTS  = 10
+const SLOTS  = 14
 function emptySlots() {
   return Array.from({length: SLOTS}, (_, i) => ({ slot: i, name: '', status: 'white', note: '' }))
 }
@@ -723,7 +724,7 @@ function ProductionInquiries() {
                     </div>
                     {/* רשימת אנשים גלויה תמיד — שם ניטרלי + נקודת צבע לסטטוס, לחיצה פותחת תפריט */}
                     <div className="flex flex-wrap items-end gap-2 mt-1.5">
-                    <div dir="rtl" className="flex gap-1.5 justify-start flex-wrap flex-1 min-w-0" onClick={e => e.stopPropagation()}>
+                    <div dir="rtl" className="grid grid-cols-7 gap-1.5 flex-1 min-w-0" onClick={e => e.stopPropagation()}>
                       {evSlots.map((slot, idx) => {
                         if (!slot.name.trim() && idx !== firstEmptyHdr) return null
                         const st = getStatus(slot.status)
