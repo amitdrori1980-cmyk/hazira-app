@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+// HAZIRA-STORAGE-OPENADD-V1
 
 export default function StoragePage() {
   const [items, setItems]         = useState([])
@@ -62,8 +63,7 @@ export default function StoragePage() {
         </div>
       </div>
 
-      {isManager && (
-        <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
+      <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
           <div className="text-[13px] font-medium text-gray-800 mb-3">הוסף פריט</div>
           <form onSubmit={addItem} className="flex flex-col gap-2">
             <input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}
@@ -81,7 +81,6 @@ export default function StoragePage() {
             </button>
           </form>
         </div>
-      )}
 
       <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
         <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-[11px] font-semibold text-gray-500">

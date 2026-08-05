@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+// HAZIRA-STORAGE-OPENADD-V1
 
 export default function StorageContent() {
   const [items, setItems] = useState([])
@@ -77,8 +78,7 @@ export default function StorageContent() {
           <i className="ti ti-table-export" style={{fontSize:13}}/> ייצוא
         </button>
       </div>
-      {isManager && (
-        <form onSubmit={addItem} className="bg-white border border-gray-100 rounded-xl p-3 mb-4 flex gap-2 flex-wrap">
+      <form onSubmit={addItem} className="bg-white border border-gray-100 rounded-xl p-3 mb-4 flex gap-2 flex-wrap">
           <input value={form.name} onChange={e => setForm(v=>({...v,name:e.target.value}))}
             placeholder="שם פריט" className="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D]" />
           <input value={form.location} onChange={e => setForm(v=>({...v,location:e.target.value}))}
@@ -88,7 +88,6 @@ export default function StorageContent() {
           <button type="submit" disabled={adding}
             className="text-sm bg-[#E0197D] text-white px-3 py-1.5 rounded-lg">הוסף</button>
         </form>
-      )}
       <div className="space-y-2">
         {filtered.map(item => (
           <div key={item.id} className="bg-white border border-gray-100 rounded-xl p-3 flex items-center justify-between">
