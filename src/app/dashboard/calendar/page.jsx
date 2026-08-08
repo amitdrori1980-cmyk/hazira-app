@@ -14,6 +14,7 @@ const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלי�
 // HAZIRA-GCAL-DAYLINK-V13
 // HAZIRA-GCAL-TODAY-V14
 // HAZIRA-GCAL-BTNSTYLE-V16
+// HAZIRA-GCAL-VENUEDROPDOWN-V17
 function conDisplayName(fullName, firstCount) {
   const key = (fullName || '').trim()
   if (CON_NAME_OVERRIDES[key]) return CON_NAME_OVERRIDES[key]
@@ -750,17 +751,12 @@ export default function CalendarPage() {
 
         {/* Venue filter */}
         {venues.length > 0 && (
-          <div className="flex gap-1.5 flex-wrap justify-end mb-4">
-            <button onClick={()=>setSelectedVenue('all')}
-              className={`text-[11px] px-3 py-1.5 rounded-lg border transition-colors ${selectedVenue==='all'?'bg-[#E0197D] text-white border-[#E0197D]':'bg-white border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3]'}`}>
-              כל האולמות
-            </button>
-            {venues.map(v => (
-              <button key={v} onClick={()=>setSelectedVenue(v)}
-                className={`text-[11px] px-3 py-1.5 rounded-lg border transition-colors ${selectedVenue===v?'bg-[#E0197D] text-white border-[#E0197D]':'bg-white border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3]'}`}>
-                {v}
-              </button>
-            ))}
+          <div className="flex justify-end mb-4">
+            <select value={selectedVenue} onChange={e => setSelectedVenue(e.target.value)}
+              className="text-[13px] px-3 py-1.5 rounded-lg border border-[#E0197D] text-[#E0197D] bg-white outline-none focus:border-[#A0106A] cursor-pointer">
+              <option value="all">כל האולמות</option>
+              {venues.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
           </div>
         )}
 
