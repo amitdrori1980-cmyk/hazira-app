@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V5
+// HAZIRA-CULT-V6
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -212,6 +212,7 @@ export default function CultPage() {
   const dates = dateRange(config?.date_from, config?.date_to)
   const venues = config?.venues || []
   const cellProds = (venue, date) => prods.filter(p => p.venue === venue && p.date === date)
+  const isWeekend = ds => { const dow = new Date(ds + 'T00:00:00').getDay(); return dow === 5 || dow === 6 }
 
   return (
     <div dir="rtl" className="p-4 md:p-6 max-w-full">
@@ -259,20 +260,34 @@ export default function CultPage() {
             <thead>
               <tr className="bg-[#B6CFD0]">
                 <th className="sticky right-0 z-10 bg-[#B6CFD0] border border-gray-300 px-3 py-2 text-[12px] font-bold text-gray-800 min-w-[90px]">אולם</th>
-                {dates.map(ds => (
-                  <th key={ds} className="border border-gray-300 px-3 py-2 min-w-[150px]">
-                    <div className="text-[12px] font-bold text-gray-800">{fmtCell(ds)}</div>
-                    <div className="text-[11px] text-gray-600">{dayName(ds)}</div>
-                  </th>
-                ))}
+                {dates.map(ds => {
+                  const we = isWeekend(ds)
+                  return (
+                    <th key={ds} className={`border border-gray-300 ${we ? 'px-1 py-2 w-9 min-w-[34px]' : 'px-3 py-2 min-w-[150px]'}`}>
+                      {we ? (
+                        <>
+                          <div className="text-[11px] font-bold text-gray-500">{dayName(ds).replace('יום ', '')}׳</div>
+                          <div className="text-[9px] text-gray-400 whitespace-nowrap">{ds.split('-')[2]}/{ds.split('-')[1]}</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-[12px] font-bold text-gray-800">{fmtCell(ds)}</div>
+                          <div className="text-[11px] text-gray-600">{dayName(ds)}</div>
+                        </>
+                      )}
+                    </th>
+                  )
+                })}
               </tr>
             </thead>
             <tbody>
               {venues.map(venue => (
                 <tr key={venue}>
                   <th className="sticky right-0 z-10 bg-white border border-gray-300 px-3 py-2 text-[12px] font-bold text-gray-800 text-right">{venue}</th>
-                  {dates.map(ds => (
-                    <td key={ds} className="border border-gray-200 align-top p-1.5 min-w-[150px]">
+                  {dates.map(ds => {
+                    const we = isWeekend(ds)
+                    return (
+                    <td key={ds} className={`border border-gray-200 align-top ${we ? 'p-0.5 w-9 min-w-[34px] bg-gray-50/50' : 'p-1.5 min-w-[150px]'}`}>
                       <div className="flex flex-col gap-1">
                         {cellProds(venue, ds).map(p => (
                           <div key={p.id} className="relative">
@@ -309,12 +324,14 @@ export default function CultPage() {
                           </div>
                         ))}
                         <button onClick={() => { setAddCell({ venue, date: ds }); setAddName(''); setAddArtist('') }}
-                          className="text-[11px] text-gray-400 hover:text-[#E0197D] border border-dashed border-gray-200 hover:border-[#E0197D] rounded-lg py-1 flex items-center justify-center gap-1">
-                          <i className="ti ti-plus" style={{ fontSize: 12 }} /> הפקה
+                          title={we ? 'הוסף הפקה' : undefined}
+                          className={`text-gray-400 hover:text-[#E0197D] border border-dashed border-gray-200 hover:border-[#E0197D] rounded-lg flex items-center justify-center gap-1 ${we ? 'py-0.5 text-[10px]' : 'py-1 text-[11px]'}`}>
+                          <i className="ti ti-plus" style={{ fontSize: 12 }} />{!we && ' הפקה'}
                         </button>
                       </div>
                     </td>
-                  ))}
+                    )
+                  })}
                 </tr>
               ))}
             </tbody>
