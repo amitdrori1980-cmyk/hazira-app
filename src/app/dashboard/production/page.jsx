@@ -9,6 +9,7 @@ import ProjectPlansMode from './ProjectPlansMode'
 // HAZIRA-GENSCHED-SEARCH-V35
 // HAZIRA-PRODINQ-IMPORTNOTES-V37
 // HAZIRA-PRODINQ-SLOTS14-V38
+// HAZIRA-PRODINQ-BULKIMPORT-V39
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -52,6 +53,8 @@ function ProductionInquiries() {
   const [calEvents, setCalEvents] = useState([])
   const [importLoading, setImportLoading] = useState(false)
   const [importSearch, setImportSearch] = useState('')
+  const [importSel, setImportSel] = useState(new Set())
+  const [importBusy, setImportBusy] = useState(false)
   const [eventTypes, setEventTypes] = useState([])
   const [view, setView] = useState('active')
   const [archiveSearch, setArchiveSearch] = useState('')
@@ -198,6 +201,7 @@ function ProductionInquiries() {
   async function openImport() {
     setShowNewEvent(false)
     setShowImport(v => !v)
+    setImportSel(new Set())
     setImportLoading(true)
     const { data } = await supabase.from('events').select('id, title, date, end_date, time, venue, type, crew_notes').order('date', { ascending: true })
     setCalEvents(data || [])
@@ -230,6 +234,34 @@ function ProductionInquiries() {
       setOpenEvent(data.id)
       setTimeout(() => document.getElementById('prod-ev-' + data.id)?.scrollIntoView({ behavior:'smooth', block:'center' }), 250)
     }
+  }
+
+  function toggleImportSel(id) {
+    setImportSel(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+
+  async function importMany() {
+    const chosen = calEvents.filter(ce => importSel.has(ce.id))
+    if (!chosen.length) return
+    setImportBusy(true)
+    const rows = []
+    for (const ce of chosen) {
+      const name = (ce.title || '').trim()
+      if (!name) continue
+      if (events.some(e => e.event_name === name && (!ce.date || e.date === ce.date))) continue // כבר קיים
+      const day = ce.date ? DAYS[new Date(ce.date).getDay()] : null
+      rows.push({ event_name: name, date: ce.date || null, day, venue: ce.venue || null, notes: ce.crew_notes || null })
+    }
+    if (rows.length) {
+      const { data } = await supabase.from('production_events').insert(rows).select()
+      if (data && data.length) {
+        setEvents(prev => [...prev, ...data].sort((a,b)=>(a.date||'9999-12-31').localeCompare(b.date||'9999-12-31')))
+        setSlots(prev => { const n = { ...prev }; data.forEach(d => { n[d.id] = emptySlots() }); return n })
+      }
+    }
+    setImportSel(new Set())
+    setShowImport(false)
+    setImportBusy(false)
   }
 
   async function syncEventToCalendarAndConstraints(ev) {
@@ -949,36 +981,54 @@ function ProductionInquiries() {
         <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
             <button onClick={()=>setShowImport(false)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{fontSize:16}}/></button>
-            <div className="text-[13px] font-medium text-gray-700 text-right">ייבא אירוע מהיומן</div>
+            <div className="text-[13px] font-medium text-gray-700 text-right">ייבא אירועים מהיומן</div>
           </div>
           <input value={importSearch} onChange={e=>setImportSearch(e.target.value)}
             placeholder="חיפוש לפי שם..." className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-3"/>
           {importLoading ? (
             <div className="text-center text-gray-400 py-4 text-[13px]">טוען אירועים...</div>
           ) : (() => {
+            const alreadyFn = ce => events.some(e => e.event_name === (ce.title||'').trim() && (!ce.date || e.date === ce.date))
             const list = calEvents.filter(ce => !importSearch || (ce.title||'').includes(importSearch))
             if (list.length === 0) return <div className="text-center text-gray-400 py-4 text-[13px]">לא נמצאו אירועים</div>
+            const selectable = list.filter(ce => !alreadyFn(ce))
+            const allSelected = selectable.length > 0 && selectable.every(ce => importSel.has(ce.id))
             return (
-              <div className="max-h-72 overflow-y-auto flex flex-col gap-1.5 [scrollbar-width:thin]">
-                {list.map(ce => {
-                  const already = events.some(e => e.event_name === (ce.title||'').trim() && (!ce.date || e.date === ce.date))
-                  return (
-                    <div key={ce.id} className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg flex-row-reverse">
-                      <div className="flex-1 text-right min-w-0">
-                        <div className="text-[13px] text-gray-800 truncate">{ce.title}</div>
-                        <div className="text-[11px] text-gray-400 flex gap-2 justify-end flex-wrap">
-                          {ce.date && <span>{fmtDate(ce.date)}</span>}
-                          {ce.venue && <span>{ce.venue}</span>}
+              <>
+                {selectable.length > 0 && (
+                  <label className="flex items-center gap-2 justify-end mb-2 text-[12px] text-gray-500 cursor-pointer">
+                    בחר הכל
+                    <input type="checkbox" checked={allSelected}
+                      onChange={()=> setImportSel(allSelected ? new Set() : new Set(selectable.map(c=>c.id)))}
+                      className="accent-[#E0197D]"/>
+                  </label>
+                )}
+                <div className="max-h-72 overflow-y-auto flex flex-col gap-1.5 [scrollbar-width:thin]">
+                  {list.map(ce => {
+                    const already = alreadyFn(ce)
+                    const checked = importSel.has(ce.id)
+                    return (
+                      <label key={ce.id}
+                        className={`flex items-center gap-2 p-2.5 rounded-lg flex-row-reverse ${already ? 'bg-gray-50 opacity-60' : checked ? 'bg-[#FCE4F3] cursor-pointer' : 'bg-gray-50 hover:bg-gray-100 cursor-pointer'}`}>
+                        {already
+                          ? <span className="text-[11px] text-gray-400 flex-shrink-0">קיים</span>
+                          : <input type="checkbox" checked={checked} onChange={()=>toggleImportSel(ce.id)} className="accent-[#E0197D] flex-shrink-0"/>}
+                        <div className="flex-1 text-right min-w-0">
+                          <div className="text-[13px] text-gray-800 truncate">{ce.title}</div>
+                          <div className="text-[11px] text-gray-400 flex gap-2 justify-end flex-wrap">
+                            {ce.date && <span>{fmtDate(ce.date)}</span>}
+                            {ce.venue && <span>{ce.venue}</span>}
+                          </div>
                         </div>
-                      </div>
-                      <button onClick={()=>importFromCalendar(ce)} disabled={already}
-                        className={`text-[12px] px-3 py-1.5 rounded-lg flex-shrink-0 ${already ? 'bg-gray-100 text-gray-400' : 'bg-[#E0197D] text-white hover:bg-[#A0106A]'}`}>
-                        {already ? 'קיים' : 'ייבא'}
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
+                      </label>
+                    )
+                  })}
+                </div>
+                <button onClick={importMany} disabled={importSel.size === 0 || importBusy}
+                  className="w-full mt-3 bg-[#E0197D] text-white text-sm py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
+                  {importBusy ? 'מייבא...' : `ייבא נבחרים${importSel.size ? ` (${importSel.size})` : ''}`}
+                </button>
+              </>
             )
           })()}
         </div>
