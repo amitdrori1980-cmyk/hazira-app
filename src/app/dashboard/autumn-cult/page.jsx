@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V1
+// HAZIRA-CULT-V2
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -7,12 +7,27 @@ const DEV_ID = '1ad454b6-4087-49c8-86c6-3b6582dc1327'
 const HE_DAYS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש']
 
 const ASPECTS = [
-  { key: 'times',   label: 'זמנים',      icon: 'ti-clock',          hint: 'לו״ז זמנים (פורמט מלא בשלב הבא)' },
-  { key: 'op_crew', label: 'צוות הפעלה', icon: 'ti-users',          hint: 'צוות הפעלה (כמו לוז — בשלב הבא)' },
-  { key: 'support', label: 'צוות תומך',  icon: 'ti-user-heart',     hint: 'תגיות שמות + סטטוס (בשלב הבא)' },
-  { key: 'gear',    label: 'ציוד',       icon: 'ti-plug',           hint: 'רשימת ציוד + סטטוס (בשלב הבא)' },
-  { key: 'notes',   label: 'הערות',      icon: 'ti-note',           hint: 'פתקית / מפרט (בשלב הבא)' },
+  { key: 'times', label: 'זמנים', icon: 'ti-clock', hint: 'לו״ז זמנים (פורמט מלא בשלב הבא)' },
+  { key: 'crew',  label: 'צוות',  icon: 'ti-users' },
+  { key: 'gear',  label: 'ציוד',  icon: 'ti-plug', hint: 'רשימת ציוד + סטטוס (בשלב הבא)' },
+  { key: 'notes', label: 'הערות', icon: 'ti-note', hint: 'פתקית / מפרט (בשלב הבא)' },
 ]
+
+const CREW_ROWS = [
+  { key: 'operation', label: 'צוות הפעלה' },
+  { key: 'setup',     label: 'צוות הקמה' },
+  { key: 'strike',    label: 'צוות פירוק' },
+]
+const CULT_STATUSES = [
+  { value: 'white',  label: 'לא נבדק', bg: '#F3F4F6', text: '#4B5563' },
+  { value: 'green',  label: 'מוכן',    bg: '#DCFCE7', text: '#166534' },
+  { value: 'teal',   label: 'ממתין',   bg: '#CCFBF1', text: '#0F766E' },
+  { value: 'yellow', label: 'אישר',    bg: '#FEF9C3', text: '#854D0E' },
+  { value: 'red',    label: 'לא יכול', bg: '#FEE2E2', text: '#991B1B' },
+  { value: 'purple', label: 'לבירור',  bg: '#F3E8FF', text: '#6B21A8' },
+]
+const cultStatus = v => CULT_STATUSES.find(s => s.value === v) || CULT_STATUSES[0]
+const newTagId = () => Math.random().toString(36).slice(2) + Date.now().toString(36)
 
 function fmtCell(ds) { if (!ds) return ''; const [y, m, d] = ds.split('-'); return `${d}/${m}/${y}` }
 function dayName(ds) { const [y, m, d] = ds.split('-').map(Number); const dt = new Date(y, m - 1, d); return 'יום ' + HE_DAYS[dt.getDay()] }
@@ -36,6 +51,10 @@ export default function CultPage() {
   const [menuFor, setMenuFor] = useState(null)   // production id whose aspect-menu is open
   const [aspectEdit, setAspectEdit] = useState(null) // { prod, key }
   const [aspectDraft, setAspectDraft] = useState('')
+  const [crewFor, setCrewFor] = useState(null)       // production whose crew window is open
+  const [crew, setCrew] = useState({ operation: [], setup: [], strike: [] })
+  const [crewAdd, setCrewAdd] = useState({ operation: '', setup: '', strike: '' })
+  const [crewEditing, setCrewEditing] = useState(null) // { row, id }
 
   useEffect(() => { init() }, [])
 
@@ -90,6 +109,34 @@ export default function CultPage() {
     await supabase.from('cult_productions').update({ aspects }).eq('id', prod.id)
     setProds(prev => prev.map(p => p.id === prod.id ? { ...p, aspects } : p))
     setAspectEdit(null)
+  }
+
+  // ---- crew window ----
+  function openCrew(prod) {
+    setCrewFor(prod)
+    const c = prod.aspects?.crew || {}
+    setCrew({ operation: c.operation || [], setup: c.setup || [], strike: c.strike || [] })
+    setCrewAdd({ operation: '', setup: '', strike: '' })
+    setCrewEditing(null)
+  }
+  async function saveCrew(next) {
+    const aspects = { ...(crewFor.aspects || {}), crew: next }
+    await supabase.from('cult_productions').update({ aspects }).eq('id', crewFor.id)
+    setProds(prev => prev.map(p => p.id === crewFor.id ? { ...p, aspects } : p))
+    setCrewFor(cf => cf ? { ...cf, aspects } : cf)
+  }
+  function mutateCrew(next) { setCrew(next); saveCrew(next) }
+  function addCrew(row) {
+    const name = (crewAdd[row] || '').trim(); if (!name) return
+    mutateCrew({ ...crew, [row]: [...(crew[row] || []), { id: newTagId(), name, status: 'white', note: '' }] })
+    setCrewAdd(a => ({ ...a, [row]: '' }))
+  }
+  function updateTag(row, id, patch) {
+    mutateCrew({ ...crew, [row]: crew[row].map(t => t.id === id ? { ...t, ...patch } : t) })
+  }
+  function deleteTag(row, id) {
+    mutateCrew({ ...crew, [row]: crew[row].filter(t => t.id !== id) })
+    setCrewEditing(null)
   }
 
   if (checking) return <div dir="rtl" className="p-8 text-center text-gray-400">טוען...</div>
@@ -179,9 +226,11 @@ export default function CultPage() {
                                   <span className="text-[11px] text-gray-400">{p.name}</span>
                                 </div>
                                 {ASPECTS.map(a => {
-                                  const has = ((p.aspects || {})[a.key] || '').trim()
+                                  const has = a.key === 'crew'
+                                    ? ['operation','setup','strike'].some(k => (((p.aspects||{}).crew||{})[k]||[]).length)
+                                    : ((p.aspects || {})[a.key] || '').trim()
                                   return (
-                                    <button key={a.key} onClick={() => { setAspectEdit({ prod: p, key: a.key }); setAspectDraft((p.aspects || {})[a.key] || ''); setMenuFor(null) }}
+                                    <button key={a.key} onClick={() => { if (a.key === 'crew') { openCrew(p) } else { setAspectEdit({ prod: p, key: a.key }); setAspectDraft((p.aspects || {})[a.key] || '') } setMenuFor(null) }}
                                       className="w-full text-right px-2 py-1.5 rounded-lg text-[13px] text-gray-700 hover:bg-[#FCE4F3] flex items-center gap-2 flex-row-reverse">
                                       <i className={`ti ${a.icon}`} style={{ fontSize: 14 }} />
                                       <span className="flex-1">{a.label}</span>
@@ -240,6 +289,59 @@ export default function CultPage() {
               <button onClick={saveAspect} className="flex-1 bg-[#E0197D] text-white text-[13px] py-2 rounded-lg hover:bg-[#A0106A]">שמור</button>
               <button onClick={() => setAspectEdit(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-[13px] text-gray-500">ביטול</button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* crew window */}
+      {crewFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => { setCrewFor(null); setCrewEditing(null) }}>
+          <div className="bg-white rounded-2xl w-full max-w-2xl p-5 max-h-[85vh] overflow-y-auto" dir="rtl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={() => { setCrewFor(null); setCrewEditing(null) }} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
+              <div className="text-[15px] font-semibold text-gray-900">צוות — {crewFor.name}</div>
+            </div>
+            {CREW_ROWS.map(row => (
+              <div key={row.key} className="mb-4">
+                <div className="text-[12px] font-semibold text-gray-600 mb-1.5 text-right">{row.label}</div>
+                <div className="flex flex-wrap gap-1.5 items-center justify-end">
+                  <input value={crewAdd[row.key] || ''} onChange={e => setCrewAdd(a => ({ ...a, [row.key]: e.target.value }))}
+                    onKeyDown={e => { if (e.key === 'Enter') addCrew(row.key) }}
+                    placeholder="+ שם" className="text-[12px] px-2 py-1 border border-dashed border-gray-300 rounded-lg outline-none focus:border-[#E0197D] w-24 text-right" />
+                  {(crew[row.key] || []).map(tag => {
+                    const st = cultStatus(tag.status)
+                    const editing = crewEditing && crewEditing.row === row.key && crewEditing.id === tag.id
+                    return (
+                      <div key={tag.id} className="relative">
+                        <button onClick={() => setCrewEditing(editing ? null : { row: row.key, id: tag.id })}
+                          style={{ backgroundColor: st.bg, color: st.text }}
+                          className="text-[12px] rounded-lg px-2.5 py-1 flex items-center gap-1">
+                          {tag.name}
+                          {(tag.note || '').trim() && <i className="ti ti-message-dots" style={{ fontSize: 11 }} />}
+                        </button>
+                        {editing && (
+                          <div className="absolute z-30 mt-1 right-0 bg-white border border-gray-200 rounded-xl shadow-lg p-2 w-64">
+                            <div className="flex gap-1 flex-wrap mb-2">
+                              {CULT_STATUSES.map(s => (
+                                <button key={s.value} onClick={() => updateTag(row.key, tag.id, { status: s.value })}
+                                  style={{ backgroundColor: s.bg, color: s.text, outline: tag.status === s.value ? '2px solid #E0197D' : 'none', outlineOffset: '1px' }}
+                                  className="text-[10px] rounded px-1.5 py-0.5">{s.label}</button>
+                              ))}
+                            </div>
+                            <textarea value={tag.note || ''} onChange={e => updateTag(row.key, tag.id, { note: e.target.value })}
+                              placeholder="הערה..." rows={2}
+                              className="w-full text-[12px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y mb-1" />
+                            <div className="flex justify-between">
+                              <button onClick={() => deleteTag(row.key, tag.id)} className="text-[11px] text-red-500 hover:underline">מחק</button>
+                              <button onClick={() => setCrewEditing(null)} className="text-[11px] text-gray-500 hover:underline">סגור</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
