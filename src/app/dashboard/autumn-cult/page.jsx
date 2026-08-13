@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V6
+// HAZIRA-CULT-V7
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -64,6 +64,13 @@ export default function CultPage() {
   const [gearOpenSub, setGearOpenSub] = useState(null)
   const [timesFor, setTimesFor] = useState(null)   // production whose times (rundown) window is open
   const [times, setTimes] = useState([])           // [{ id, time, what, who, notes }]
+  const [editProd, setEditProd] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editArtist, setEditArtist] = useState('')
+  const [conflictDay, setConflictDay] = useState(null)
+  const [crewDayFor, setCrewDayFor] = useState(null)
+  const [dayNoteFor, setDayNoteFor] = useState(null)
+  const [dayNoteDraft, setDayNoteDraft] = useState('')
 
   useEffect(() => { init() }, [])
 
@@ -201,6 +208,47 @@ export default function CultPage() {
     setTimes(next); saveTimes(next)
   }
 
+  // ---- edit production ----
+  function openEdit(p) { setEditProd(p); setEditName(p.name || ''); setEditArtist(p.artist || '') }
+  async function saveEdit() {
+    if (!editProd) return
+    await updateProduction(editProd.id, { name: editName.trim(), artist: editArtist.trim() })
+    setEditProd(null)
+  }
+
+  // ---- day summaries ----
+  function dayGearConflicts(ds) {
+    const map = {}
+    prods.filter(p => p.date === ds).forEach(p => (p.aspects?.gear || []).forEach(g => {
+      const qty = parseInt(g.quantity || 0) || 0
+      if (!map[g.equipment_item_id]) map[g.equipment_item_id] = { total: 0, entries: [] }
+      map[g.equipment_item_id].total += qty
+      map[g.equipment_item_id].entries.push({ name: p.name, qty })
+    }))
+    return Object.entries(map).map(([itemId, d]) => {
+      const item = allItems.find(i => i.id === itemId)
+      const stock = item?.units ? parseInt(item.units) : null
+      return { item, total: d.total, entries: d.entries, stock, over: stock != null && d.total > stock }
+    }).filter(x => x.item).sort((a, b) => (b.over ? 1 : 0) - (a.over ? 1 : 0) || b.total - a.total)
+  }
+  function dayCrew(ds) {
+    const byName = {}
+    prods.filter(p => p.date === ds).forEach(p => {
+      const c = p.aspects?.crew || {}
+      CREW_ROWS.forEach(r => (c[r.key] || []).forEach(t => {
+        if (!t.name) return
+        if (!byName[t.name]) byName[t.name] = []
+        byName[t.name].push({ role: r.label, prod: p.name, status: t.status, note: t.note })
+      }))
+    })
+    return byName
+  }
+  async function saveDayNote(ds, val) {
+    const dn = { ...(config.day_notes || {}), [ds]: val }
+    setConfig(c => ({ ...c, day_notes: dn }))
+    await supabase.from('cult_config').update({ day_notes: dn, updated_at: new Date().toISOString() }).eq('id', 1)
+  }
+
   if (checking) return <div dir="rtl" className="p-8 text-center text-gray-400">טוען...</div>
   if (!allowed) return (
     <div dir="rtl" className="p-10 text-center">
@@ -299,7 +347,10 @@ export default function CultPage() {
                             {menuFor === p.id && (
                               <div className="absolute z-20 mt-1 right-0 bg-white border border-gray-200 rounded-xl shadow-lg p-1 w-48">
                                 <div className="px-2 py-1 flex items-center justify-between">
-                                  <button onClick={() => deleteProduction(p.id)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{ fontSize: 13 }} /></button>
+                                  <div className="flex gap-1">
+                                    <button onClick={() => { openEdit(p); setMenuFor(null) }} className="text-gray-300 hover:text-[#E0197D]"><i className="ti ti-pencil" style={{ fontSize: 13 }} /></button>
+                                    <button onClick={() => deleteProduction(p.id)} className="text-gray-300 hover:text-red-500"><i className="ti ti-trash" style={{ fontSize: 13 }} /></button>
+                                  </div>
                                   <span className="text-[11px] text-gray-400">{p.name}</span>
                                 </div>
                                 {ASPECTS.map(a => {
@@ -574,6 +625,142 @@ export default function CultPage() {
                   <i className="ti ti-plus" style={{ fontSize: 13 }} /> הוסף שורה
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* daily summary rows */}
+      {dates.length > 0 && venues.length > 0 && (
+        <div className="mt-6">
+          <div className="text-[13px] font-semibold text-gray-600 mb-2">סיכום יומי</div>
+          <div className="flex flex-col gap-1.5">
+            {dates.filter(ds => !isWeekend(ds)).map(ds => {
+              const note = (config.day_notes || {})[ds]
+              return (
+                <div key={ds} className="flex items-center gap-2 flex-wrap bg-white border border-gray-100 rounded-xl px-3 py-2">
+                  <div className="text-[12px] font-medium text-gray-700 min-w-[130px]">{dayName(ds)} · {fmtCell(ds)}</div>
+                  <button onClick={() => setConflictDay(ds)} className="text-[12px] px-3 py-1 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1"><i className="ti ti-alert-triangle" style={{ fontSize: 13 }} /> התנגשויות ציוד</button>
+                  <button onClick={() => setCrewDayFor(ds)} className="text-[12px] px-3 py-1 rounded-lg border border-gray-200 text-gray-600 hover:border-[#E0197D] hover:text-[#E0197D] flex items-center gap-1"><i className="ti ti-users" style={{ fontSize: 13 }} /> צוות היום</button>
+                  <button onClick={() => { setDayNoteFor(ds); setDayNoteDraft(note || '') }} className="text-[12px] px-3 py-1 rounded-lg border border-gray-200 text-gray-600 hover:border-[#E0197D] hover:text-[#E0197D] flex items-center gap-1"><i className="ti ti-note" style={{ fontSize: 13 }} /> הערות יום {note && <span className="w-1.5 h-1.5 rounded-full bg-[#E0197D]" />}</button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* edit production modal */}
+      {editProd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setEditProd(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5" dir="rtl" onClick={e => e.stopPropagation()}>
+            <div className="text-[15px] font-semibold text-gray-900 mb-3">עריכת הפקה</div>
+            <input value={editName} onChange={e => setEditName(e.target.value)} autoFocus placeholder="שם ההפקה *"
+              className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2" />
+            <input value={editArtist} onChange={e => setEditArtist(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveEdit() }} placeholder="אמן / הרכב"
+              className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-3" />
+            <div className="flex gap-2">
+              <button onClick={saveEdit} disabled={!editName.trim()} className="flex-1 bg-[#E0197D] text-white text-[13px] py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">שמור</button>
+              <button onClick={() => setEditProd(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-[13px] text-gray-500">ביטול</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* equipment conflicts for a day */}
+      {conflictDay && (() => {
+        const list = dayGearConflicts(conflictDay)
+        const conflicts = list.filter(x => x.over).length
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setConflictDay(null)}>
+            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+                <button onClick={() => setConflictDay(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
+                <div className="text-[15px] font-semibold text-gray-900">התנגשויות ציוד — {dayName(conflictDay)} {fmtCell(conflictDay)}</div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                {list.length === 0 ? (
+                  <div className="text-center text-gray-400 py-10 text-[13px]">אין ציוד משובץ ליום זה</div>
+                ) : (
+                  <>
+                    <div className={`text-[12px] mb-3 ${conflicts ? 'text-red-600 font-semibold' : 'text-green-700'}`}>
+                      {conflicts ? `${conflicts} פריטים חורגים מהמלאי` : 'אין חריגות מלאי ✓'}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {list.map(row => (
+                        <div key={row.item.id} className={`rounded-lg border px-3 py-2 ${row.over ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              {row.over && <i className="ti ti-alert-triangle text-red-500" style={{ fontSize: 14 }} />}
+                              <span className="text-[13px] font-medium text-gray-800">{row.item.name}</span>
+                            </div>
+                            <span className={`text-[12px] ${row.over ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
+                              סה״כ {row.total}{row.stock != null ? ` / מלאי ${row.stock}` : ''}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-gray-400 mt-1 text-right">{row.entries.map(e => `${e.name} (${e.qty})`).join(' · ')}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* crew of a day */}
+      {crewDayFor && (() => {
+        const byName = dayCrew(crewDayFor)
+        const names = Object.keys(byName).sort((a, b) => a.localeCompare(b, 'he'))
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setCrewDayFor(null)}>
+            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+                <button onClick={() => setCrewDayFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
+                <div className="text-[15px] font-semibold text-gray-900">צוות היום — {dayName(crewDayFor)} {fmtCell(crewDayFor)} <span className="text-[12px] text-gray-400 font-normal">({names.length})</span></div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                {names.length === 0 ? (
+                  <div className="text-center text-gray-400 py-10 text-[13px]">אין צוות משובץ ליום זה</div>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {names.map(name => {
+                      const roles = byName[name]
+                      const multi = roles.length > 1
+                      return (
+                        <div key={name} className={`rounded-lg border px-3 py-2 ${multi ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
+                          <div className="text-[13px] font-medium text-gray-800 flex items-center gap-2">
+                            {name}
+                            {multi && <span className="text-[10px] bg-amber-200 text-amber-800 rounded-full px-1.5">×{roles.length}</span>}
+                          </div>
+                          {roles.map((r, i) => (
+                            <div key={i} className="text-[11px] text-gray-500 mt-0.5">{r.role} · {r.prod}{(r.note || '').trim() ? ` — ${r.note}` : ''}</div>
+                          ))}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* general notes for a day */}
+      {dayNoteFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setDayNoteFor(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-lg p-5" dir="rtl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <button onClick={() => setDayNoteFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
+              <div className="text-[15px] font-semibold text-gray-900">הערות יום — {dayName(dayNoteFor)} {fmtCell(dayNoteFor)}</div>
+            </div>
+            <textarea value={dayNoteDraft} onChange={e => setDayNoteDraft(e.target.value)} rows={8} autoFocus placeholder="הערות כלליות ליום זה..."
+              className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y" />
+            <div className="flex gap-2 mt-3">
+              <button onClick={() => { saveDayNote(dayNoteFor, dayNoteDraft); setDayNoteFor(null) }} className="flex-1 bg-[#E0197D] text-white text-[13px] py-2 rounded-lg hover:bg-[#A0106A]">שמור</button>
+              <button onClick={() => setDayNoteFor(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-[13px] text-gray-500">ביטול</button>
             </div>
           </div>
         </div>
