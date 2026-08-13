@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V2
+// HAZIRA-CULT-V3
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -309,34 +309,13 @@ export default function CultPage() {
                     placeholder="+ שם" className="text-[12px] px-2 py-1 border border-dashed border-gray-300 rounded-lg outline-none focus:border-[#E0197D] w-24 text-right" />
                   {(crew[row.key] || []).map(tag => {
                     const st = cultStatus(tag.status)
-                    const editing = crewEditing && crewEditing.row === row.key && crewEditing.id === tag.id
                     return (
-                      <div key={tag.id} className="relative">
-                        <button onClick={() => setCrewEditing(editing ? null : { row: row.key, id: tag.id })}
-                          style={{ backgroundColor: st.bg, color: st.text }}
-                          className="text-[12px] rounded-lg px-2.5 py-1 flex items-center gap-1">
-                          {tag.name}
-                          {(tag.note || '').trim() && <i className="ti ti-message-dots" style={{ fontSize: 11 }} />}
-                        </button>
-                        {editing && (
-                          <div className="absolute z-30 mt-1 right-0 bg-white border border-gray-200 rounded-xl shadow-lg p-2 w-64">
-                            <div className="flex gap-1 flex-wrap mb-2">
-                              {CULT_STATUSES.map(s => (
-                                <button key={s.value} onClick={() => updateTag(row.key, tag.id, { status: s.value })}
-                                  style={{ backgroundColor: s.bg, color: s.text, outline: tag.status === s.value ? '2px solid #E0197D' : 'none', outlineOffset: '1px' }}
-                                  className="text-[10px] rounded px-1.5 py-0.5">{s.label}</button>
-                              ))}
-                            </div>
-                            <textarea value={tag.note || ''} onChange={e => updateTag(row.key, tag.id, { note: e.target.value })}
-                              placeholder="הערה..." rows={2}
-                              className="w-full text-[12px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y mb-1" />
-                            <div className="flex justify-between">
-                              <button onClick={() => deleteTag(row.key, tag.id)} className="text-[11px] text-red-500 hover:underline">מחק</button>
-                              <button onClick={() => setCrewEditing(null)} className="text-[11px] text-gray-500 hover:underline">סגור</button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      <button key={tag.id} onClick={() => setCrewEditing({ row: row.key, id: tag.id })}
+                        style={{ backgroundColor: st.bg, color: st.text }}
+                        className="text-[12px] rounded-lg px-2.5 py-1 flex items-center gap-1">
+                        {tag.name}
+                        {(tag.note || '').trim() && <i className="ti ti-message-dots" style={{ fontSize: 11 }} />}
+                      </button>
                     )
                   })}
                 </div>
@@ -345,6 +324,36 @@ export default function CultPage() {
           </div>
         </div>
       )}
+
+      {/* crew tag editor (status + note) */}
+      {crewFor && crewEditing && (() => {
+        const tag = (crew[crewEditing.row] || []).find(t => t.id === crewEditing.id)
+        if (!tag) return null
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setCrewEditing(null)}>
+            <div className="bg-white rounded-2xl w-full max-w-xs p-4" dir="rtl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-3">
+                <button onClick={() => setCrewEditing(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 16 }} /></button>
+                <div className="text-[14px] font-semibold text-gray-800">{tag.name}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5 mb-3">
+                {CULT_STATUSES.map(s => (
+                  <button key={s.value} onClick={() => updateTag(crewEditing.row, tag.id, { status: s.value })}
+                    style={{ backgroundColor: s.bg, color: s.text, outline: tag.status === s.value ? '2px solid #E0197D' : 'none', outlineOffset: '1px' }}
+                    className="text-[11px] rounded-lg px-1 py-1.5">{s.label}</button>
+                ))}
+              </div>
+              <textarea value={tag.note || ''} onChange={e => updateTag(crewEditing.row, tag.id, { note: e.target.value })}
+                placeholder="הערה..." rows={3}
+                className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y mb-3" />
+              <div className="flex justify-between items-center">
+                <button onClick={() => deleteTag(crewEditing.row, tag.id)} className="text-[12px] text-red-500 hover:underline flex items-center gap-1"><i className="ti ti-trash" style={{ fontSize: 13 }} /> מחק</button>
+                <button onClick={() => setCrewEditing(null)} className="text-[13px] bg-[#E0197D] text-white px-4 py-1.5 rounded-lg hover:bg-[#A0106A]">סיום</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
