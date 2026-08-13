@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V3
+// HAZIRA-CULT-V4
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -55,6 +55,13 @@ export default function CultPage() {
   const [crew, setCrew] = useState({ operation: [], setup: [], strike: [] })
   const [crewAdd, setCrewAdd] = useState({ operation: '', setup: '', strike: '' })
   const [crewEditing, setCrewEditing] = useState(null) // { row, id }
+  const [categories, setCategories] = useState([])
+  const [subcats, setSubcats] = useState([])
+  const [allItems, setAllItems] = useState([])
+  const [gearFor, setGearFor] = useState(null)          // production whose gear window is open
+  const [gear, setGear] = useState([])                  // [{ equipment_item_id, quantity }]
+  const [gearOpenCat, setGearOpenCat] = useState(null)
+  const [gearOpenSub, setGearOpenSub] = useState(null)
 
   useEffect(() => { init() }, [])
 
@@ -67,6 +74,12 @@ export default function CultPage() {
     setConfig(cfg)
     const { data: p } = await supabase.from('cult_productions').select('*').order('sort_order')
     setProds(p || [])
+    const [{ data: cats }, { data: subs }, { data: items }] = await Promise.all([
+      supabase.from('equipment_categories').select('*').order('sort_order'),
+      supabase.from('equipment_subcategories').select('*').order('sort_order'),
+      supabase.from('equipment_items').select('*').order('name'),
+    ])
+    setCategories(cats || []); setSubcats(subs || []); setAllItems(items || [])
     setChecking(false)
   }
 
@@ -138,6 +151,26 @@ export default function CultPage() {
     mutateCrew({ ...crew, [row]: crew[row].filter(t => t.id !== id) })
     setCrewEditing(null)
   }
+
+  // ---- gear window (equipment spec) ----
+  function openGear(prod) {
+    setGearFor(prod)
+    setGear(prod.aspects?.gear || [])
+    setGearOpenCat(null); setGearOpenSub(null)
+  }
+  async function saveGear(next) {
+    const aspects = { ...(gearFor.aspects || {}), gear: next }
+    await supabase.from('cult_productions').update({ aspects }).eq('id', gearFor.id)
+    setProds(prev => prev.map(p => p.id === gearFor.id ? { ...p, aspects } : p))
+    setGearFor(gf => gf ? { ...gf, aspects } : gf)
+  }
+  const inGear = itemId => gear.some(g => g.equipment_item_id === itemId)
+  function toggleGear(item) {
+    const exists = gear.some(g => g.equipment_item_id === item.id)
+    const next = exists ? gear.filter(g => g.equipment_item_id !== item.id) : [...gear, { equipment_item_id: item.id, quantity: '1' }]
+    setGear(next); saveGear(next)
+  }
+  function gearQtyLocal(itemId, qty) { setGear(prev => prev.map(g => g.equipment_item_id === itemId ? { ...g, quantity: qty } : g)) }
 
   if (checking) return <div dir="rtl" className="p-8 text-center text-gray-400">טוען...</div>
   if (!allowed) return (
@@ -228,9 +261,11 @@ export default function CultPage() {
                                 {ASPECTS.map(a => {
                                   const has = a.key === 'crew'
                                     ? ['operation','setup','strike'].some(k => (((p.aspects||{}).crew||{})[k]||[]).length)
+                                    : a.key === 'gear'
+                                    ? ((p.aspects||{}).gear||[]).length
                                     : ((p.aspects || {})[a.key] || '').trim()
                                   return (
-                                    <button key={a.key} onClick={() => { if (a.key === 'crew') { openCrew(p) } else { setAspectEdit({ prod: p, key: a.key }); setAspectDraft((p.aspects || {})[a.key] || '') } setMenuFor(null) }}
+                                    <button key={a.key} onClick={() => { if (a.key === 'crew') { openCrew(p) } else if (a.key === 'gear') { openGear(p) } else { setAspectEdit({ prod: p, key: a.key }); setAspectDraft((p.aspects || {})[a.key] || '') } setMenuFor(null) }}
                                       className="w-full text-right px-2 py-1.5 rounded-lg text-[13px] text-gray-700 hover:bg-[#FCE4F3] flex items-center gap-2 flex-row-reverse">
                                       <i className={`ti ${a.icon}`} style={{ fontSize: 14 }} />
                                       <span className="flex-1">{a.label}</span>
@@ -349,6 +384,102 @@ export default function CultPage() {
               <div className="flex justify-between items-center">
                 <button onClick={() => deleteTag(crewEditing.row, tag.id)} className="text-[12px] text-red-500 hover:underline flex items-center gap-1"><i className="ti ti-trash" style={{ fontSize: 13 }} /> מחק</button>
                 <button onClick={() => setCrewEditing(null)} className="text-[13px] bg-[#E0197D] text-white px-4 py-1.5 rounded-lg hover:bg-[#A0106A]">סיום</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+      {/* gear window — equipment spec (like building a spec in Specs area) */}
+      {gearFor && (() => {
+        const gearDisplay = gear.map(g => {
+          const item = allItems.find(i => i.id === g.equipment_item_id)
+          const sub = subcats.find(s => s.id === item?.subcategory_id)
+          const cat = categories.find(c => c.id === sub?.category_id)
+          return item ? { ...g, item, sub, cat } : null
+        }).filter(Boolean)
+        const gearByCat = categories.map(cat => ({ cat, items: gearDisplay.filter(s => s.cat?.id === cat.id) })).filter(x => x.items.length)
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setGearFor(null)}>
+            <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+                <button onClick={() => setGearFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
+                <div className="text-[15px] font-semibold text-gray-900">ציוד — {gearFor.name} <span className="text-[12px] text-gray-400 font-normal">({gear.length} פריטים)</span></div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 flex flex-col md:flex-row gap-4">
+                {/* catalog */}
+                <div className="w-full md:w-72 flex-shrink-0 bg-white border border-gray-100 rounded-xl overflow-hidden self-start">
+                  <div className="text-[11px] font-semibold text-gray-500 px-3 py-2.5 bg-gray-50 border-b border-gray-100">לקט ציוד</div>
+                  {categories.map(cat => {
+                    const catSubs = subcats.filter(s => s.category_id === cat.id)
+                    const isOpen = gearOpenCat === cat.id
+                    return (
+                      <div key={cat.id}>
+                        <button onClick={() => setGearOpenCat(isOpen ? null : cat.id)}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 text-[12px] font-medium border-b border-gray-50 flex-row-reverse ${isOpen ? 'text-[#E0197D] bg-[#FCE4F3]' : 'text-gray-700 hover:bg-gray-50'}`}>
+                          <span>{cat.name}</span>
+                          <i className={`ti ${isOpen ? 'ti-chevron-up' : 'ti-chevron-down'} text-gray-400`} style={{ fontSize: 11 }} />
+                        </button>
+                        {isOpen && catSubs.map(sub => {
+                          const items = allItems.filter(i => i.subcategory_id === sub.id)
+                          const isSubOpen = gearOpenSub === sub.id
+                          return (
+                            <div key={sub.id}>
+                              <button onClick={() => setGearOpenSub(isSubOpen ? null : sub.id)}
+                                className={`w-full flex items-center justify-between px-5 py-2 text-[11px] border-b border-gray-50 flex-row-reverse ${isSubOpen ? 'text-[#E0197D]' : 'text-gray-500 hover:bg-gray-50'}`}>
+                                <span>{sub.name}</span>
+                                <i className={`ti ${isSubOpen ? 'ti-chevron-up' : 'ti-chevron-down'} text-gray-300`} style={{ fontSize: 10 }} />
+                              </button>
+                              {isSubOpen && items.map(item => {
+                                const on = inGear(item.id)
+                                return (
+                                  <button key={item.id} onClick={() => toggleGear(item)}
+                                    className={`w-full flex items-center gap-2 px-6 py-1.5 text-[11px] border-b border-gray-50 flex-row-reverse text-right transition-colors ${on ? 'bg-[#E1F5EE] text-[#085041]' : 'text-gray-600 hover:bg-gray-50'}`}>
+                                    <i className={`ti ${on ? 'ti-circle-check' : 'ti-circle-plus'} flex-shrink-0`} style={{ fontSize: 13, color: on ? '#22c55e' : '#E0197D' }} />
+                                    <span className="flex-1 truncate">{item.name}</span>
+                                    {item.units && <span className="text-gray-400">×{item.units}</span>}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })}
+                </div>
+                {/* selected spec */}
+                <div className="flex-1 min-w-0 bg-white border border-gray-100 rounded-xl overflow-hidden self-start">
+                  {gearDisplay.length === 0 ? (
+                    <div className="text-center text-[13px] text-gray-400 py-10">
+                      <div className="mb-1">אין פריטים</div>
+                      <div className="text-[12px] text-gray-300">בחר פריטים מהקטלוג משמאל</div>
+                    </div>
+                  ) : gearByCat.map(({ cat, items }) => (
+                    <div key={cat.id}>
+                      <div className="px-4 py-2 bg-[#FCE4F3] text-[11px] font-semibold text-[#E0197D] text-right">{cat.name}</div>
+                      {items.map(s => (
+                        <div key={s.equipment_item_id} className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 flex-row-reverse group hover:bg-gray-50">
+                          <span className="flex-1 text-[13px] text-right text-gray-800">{s.item.name}</span>
+                          {s.sub && <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{s.sub.name}</span>}
+                          <div className="flex flex-col items-center gap-0.5">
+                            <input type="number" min="1" max={s.item.units ? parseInt(s.item.units) : undefined}
+                              value={s.quantity || ''}
+                              onChange={e => gearQtyLocal(s.equipment_item_id, e.target.value)}
+                              onBlur={() => saveGear(gear)}
+                              placeholder="כמות"
+                              className={`w-16 text-[11px] px-2 py-1 border rounded-lg bg-white outline-none text-center ${s.item.units && parseInt(s.quantity) > parseInt(s.item.units) ? 'border-red-400 bg-red-50 text-red-600' : 'border-gray-200 focus:border-[#E0197D]'}`} />
+                            {s.item.units && (
+                              <span className={`text-[9px] ${parseInt(s.quantity) > parseInt(s.item.units) ? 'text-red-500 font-bold' : 'text-gray-400'}`}>מלאי: {s.item.units}</span>
+                            )}
+                          </div>
+                          <button onClick={() => toggleGear(s.item)} className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                            <i className="ti ti-x" style={{ fontSize: 12 }} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
