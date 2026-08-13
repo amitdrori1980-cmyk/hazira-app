@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V4
+// HAZIRA-CULT-V5
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -62,6 +62,8 @@ export default function CultPage() {
   const [gear, setGear] = useState([])                  // [{ equipment_item_id, quantity }]
   const [gearOpenCat, setGearOpenCat] = useState(null)
   const [gearOpenSub, setGearOpenSub] = useState(null)
+  const [timesFor, setTimesFor] = useState(null)   // production whose times (rundown) window is open
+  const [times, setTimes] = useState([])           // [{ id, time, what, who, notes }]
 
   useEffect(() => { init() }, [])
 
@@ -172,6 +174,33 @@ export default function CultPage() {
   }
   function gearQtyLocal(itemId, qty) { setGear(prev => prev.map(g => g.equipment_item_id === itemId ? { ...g, quantity: qty } : g)) }
 
+  // ---- times window (rundown) ----
+  function openTimes(prod) {
+    setTimesFor(prod)
+    setTimes(prod.aspects?.times || [])
+  }
+  async function saveTimes(next) {
+    const aspects = { ...(timesFor.aspects || {}), times: next }
+    await supabase.from('cult_productions').update({ aspects }).eq('id', timesFor.id)
+    setProds(prev => prev.map(p => p.id === timesFor.id ? { ...p, aspects } : p))
+    setTimesFor(tf => tf ? { ...tf, aspects } : tf)
+  }
+  function addTimeRow() {
+    const next = [...times, { id: newTagId(), time: '', what: '', who: '', notes: '' }]
+    setTimes(next); saveTimes(next)
+  }
+  function updateTimeLocal(id, field, val) { setTimes(prev => prev.map(r => r.id === id ? { ...r, [field]: val } : r)) }
+  function deleteTimeRow(id) {
+    const next = times.filter(r => r.id !== id)
+    setTimes(next); saveTimes(next)
+  }
+  function moveTimeRow(index, dir) {
+    const next = [...times]; const j = index + dir
+    if (j < 0 || j >= next.length) return
+    ;[next[index], next[j]] = [next[j], next[index]]
+    setTimes(next); saveTimes(next)
+  }
+
   if (checking) return <div dir="rtl" className="p-8 text-center text-gray-400">טוען...</div>
   if (!allowed) return (
     <div dir="rtl" className="p-10 text-center">
@@ -263,9 +292,11 @@ export default function CultPage() {
                                     ? ['operation','setup','strike'].some(k => (((p.aspects||{}).crew||{})[k]||[]).length)
                                     : a.key === 'gear'
                                     ? ((p.aspects||{}).gear||[]).length
+                                    : a.key === 'times'
+                                    ? ((p.aspects||{}).times||[]).length
                                     : ((p.aspects || {})[a.key] || '').trim()
                                   return (
-                                    <button key={a.key} onClick={() => { if (a.key === 'crew') { openCrew(p) } else if (a.key === 'gear') { openGear(p) } else { setAspectEdit({ prod: p, key: a.key }); setAspectDraft((p.aspects || {})[a.key] || '') } setMenuFor(null) }}
+                                    <button key={a.key} onClick={() => { if (a.key === 'crew') { openCrew(p) } else if (a.key === 'gear') { openGear(p) } else if (a.key === 'times') { openTimes(p) } else { setAspectEdit({ prod: p, key: a.key }); setAspectDraft((p.aspects || {})[a.key] || '') } setMenuFor(null) }}
                                       className="w-full text-right px-2 py-1.5 rounded-lg text-[13px] text-gray-700 hover:bg-[#FCE4F3] flex items-center gap-2 flex-row-reverse">
                                       <i className={`ti ${a.icon}`} style={{ fontSize: 14 }} />
                                       <span className="flex-1">{a.label}</span>
@@ -485,6 +516,51 @@ export default function CultPage() {
           </div>
         )
       })()}
+      {/* times window — rundown (like building a rundown in Rundowns area) */}
+      {timesFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setTimesFor(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+              <button onClick={() => setTimesFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
+              <div className="text-[15px] font-semibold text-gray-900">זמנים — {timesFor.name}</div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="border border-gray-100 rounded-xl overflow-hidden">
+                <div className="grid gap-0 bg-[#E0197D] text-white text-[12px] font-semibold grid-cols-[100px_2fr_1.5fr_1fr_36px]">
+                  <div className="px-3 py-2.5 text-right">שעה</div>
+                  <div className="px-3 py-2.5 text-right border-r border-red-700">מה</div>
+                  <div className="px-3 py-2.5 text-right border-r border-red-700">מי</div>
+                  <div className="px-3 py-2.5 text-right border-r border-red-700">הערות</div>
+                  <div className="px-2 py-2.5" />
+                </div>
+                {times.length === 0 && (
+                  <div className="text-center text-[13px] text-gray-400 py-8">לחץ על "הוסף שורה" כדי להתחיל</div>
+                )}
+                {times.map((row, index) => (
+                  <div key={row.id} className={`grid gap-0 border-b border-gray-50 group grid-cols-[100px_2fr_1.5fr_1fr_36px] ${index % 2 === 0 ? 'bg-white' : 'bg-[#FFF8F8]'}`}>
+                    <textarea value={row.time || ''} onChange={e => updateTimeLocal(row.id, 'time', e.target.value)} onBlur={() => saveTimes(times)} wrap="off"
+                      className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 font-mono resize-none w-full leading-5 whitespace-nowrap" rows={1} />
+                    <textarea value={row.what || ''} onChange={e => updateTimeLocal(row.id, 'what', e.target.value)} onBlur={() => saveTimes(times)}
+                      className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 resize-none w-full leading-5" rows={Math.max(1, Math.ceil((row.what || '').length / 30))} />
+                    <textarea value={row.who || ''} onChange={e => updateTimeLocal(row.id, 'who', e.target.value)} onBlur={() => saveTimes(times)}
+                      className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 resize-none w-full leading-5" rows={Math.max(1, Math.ceil((row.who || '').length / 20))} />
+                    <textarea value={row.notes || ''} onChange={e => updateTimeLocal(row.id, 'notes', e.target.value)} onBlur={() => saveTimes(times)}
+                      className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 text-gray-500 resize-none w-full leading-5" rows={Math.max(1, Math.ceil((row.notes || '').length / 20))} />
+                    <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => moveTimeRow(index, -1)} disabled={index === 0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5"><i className="ti ti-chevron-up" style={{ fontSize: 11 }} /></button>
+                      <button onClick={() => deleteTimeRow(row.id)} className="text-gray-300 hover:text-red-500 p-0.5"><i className="ti ti-trash" style={{ fontSize: 11 }} /></button>
+                      <button onClick={() => moveTimeRow(index, 1)} disabled={index === times.length - 1} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5"><i className="ti ti-chevron-down" style={{ fontSize: 11 }} /></button>
+                    </div>
+                  </div>
+                ))}
+                <button onClick={addTimeRow} className="w-full py-3 text-[13px] text-gray-400 hover:text-[#E0197D] hover:bg-[#FCE4F3] transition-colors flex items-center justify-center gap-1">
+                  <i className="ti ti-plus" style={{ fontSize: 13 }} /> הוסף שורה
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
