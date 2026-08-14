@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V18
+// HAZIRA-CULT-V19
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -352,19 +352,19 @@ export default function CultPage() {
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <input value={config.title || ''} onChange={e => setConfig(c => ({ ...c, title: e.target.value }))} onBlur={e => saveConfig({ title: e.target.value })}
           className="text-xl md:text-2xl font-bold text-[#E0197D] bg-transparent outline-none border-b border-transparent focus:border-[#E0197D] flex-1 min-w-[200px]" />
-        <span className="text-[11px] text-gray-400 border border-gray-200 rounded-full px-2 py-0.5">בפיתוח · גלוי רק לך</span>
+        <span className="text-[11px] text-gray-400 border border-[#EFC0D9] rounded-full px-2 py-0.5">בפיתוח · גלוי רק לך</span>
       </div>
 
-      <div className="bg-white border border-gray-100 rounded-xl p-3 mb-4 flex items-end gap-3 flex-wrap">
+      <div className="bg-white border border-[#F5D3E7] rounded-xl p-3 mb-4 flex items-end gap-3 flex-wrap">
         <div>
           <label className="text-[11px] text-gray-400 block mb-1">מתאריך</label>
           <input type="date" value={config.date_from || ''} onChange={e => saveConfig({ date_from: e.target.value || null })}
-            className="text-[13px] px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
+            className="text-[13px] px-2 py-1.5 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
         </div>
         <div>
           <label className="text-[11px] text-gray-400 block mb-1">עד תאריך</label>
           <input type="date" value={config.date_to || ''} onChange={e => saveConfig({ date_to: e.target.value || null })}
-            className="text-[13px] px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
+            className="text-[13px] px-2 py-1.5 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
         </div>
         <div className="flex-1 min-w-[200px] flex items-end justify-between gap-2 flex-wrap">
           <div>
@@ -382,7 +382,7 @@ export default function CultPage() {
       </div>
 
       {showVenues && (
-        <div className="bg-white border border-gray-100 rounded-xl p-3 mb-4">
+        <div className="bg-white border border-[#F5D3E7] rounded-xl p-3 mb-4">
           <label className="text-[11px] text-gray-400 block mb-1.5">ניהול אולמות (לבורר בכרטיס)</label>
           <div className="flex items-center gap-1.5 flex-wrap">
             {venues.map(v => (
@@ -392,23 +392,23 @@ export default function CultPage() {
               </span>
             ))}
             <input value={newVenue} onChange={e => setNewVenue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addConfigVenue() }}
-              placeholder="+ אולם" className="text-[12px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] w-24" />
+              placeholder="+ אולם" className="text-[12px] px-2 py-1 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] w-24" />
           </div>
         </div>
       )}
 
       {/* grid */}
       {(!config.date_from || !config.date_to) ? (
-        <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">בחר טווח תאריכים כדי להציג את הלוח</div>
+        <div className="bg-white border border-[#F5D3E7] rounded-xl p-8 text-center text-[13px] text-gray-400">בחר טווח תאריכים כדי להציג את הלוח</div>
       ) : (
-        <div className="overflow-x-auto border border-gray-300 rounded-xl">
+        <div className="overflow-x-auto border border-[#E7A9C8] rounded-xl">
           <table className="border-collapse w-full">
             <thead>
               <tr className="bg-[#B6CFD0]">
                 {dates.map(ds => {
                   const we = isWeekend(ds)
                   return (
-                    <th key={ds} className={`border border-gray-300 ${we ? 'px-1 py-2 w-9 min-w-[34px]' : 'px-3 py-2 min-w-[160px]'}`}>
+                    <th key={ds} className={`border border-[#E7A9C8] ${we ? 'px-1 py-2 w-9 min-w-[34px]' : 'px-3 py-2 min-w-[160px]'}`}>
                       {we ? (
                         <>
                           <div className="text-[11px] font-bold text-gray-500">{dayName(ds).replace('יום ', '')}׳</div>
@@ -430,7 +430,7 @@ export default function CultPage() {
                 {dates.map(ds => {
                   const we = isWeekend(ds)
                   return (
-                    <td key={ds} className={`border border-gray-200 align-top ${we ? 'p-0.5 w-9 min-w-[34px] bg-gray-50/50' : 'p-1.5 min-w-[160px]'}`}>
+                    <td key={ds} className={`border border-[#EFC0D9] align-top ${we ? 'p-0.5 w-9 min-w-[34px] bg-gray-50/50' : 'p-1.5 min-w-[160px]'}`}>
                       <div className="flex flex-col gap-1">
                         {cellProds(ds).map(p => {
                           const k = kindOf(p)
@@ -454,7 +454,7 @@ export default function CultPage() {
                               {p.artist && <div className="text-[11px] text-gray-500 leading-tight">{p.artist}</div>}
                             </button>
                             {menuFor === p.id && (
-                              <div className="absolute z-20 mt-1 right-0 bg-white border border-gray-200 rounded-xl shadow-lg p-1 w-48">
+                              <div className="absolute z-20 mt-1 right-0 bg-white border border-[#EFC0D9] rounded-xl shadow-lg p-1 w-48">
                                 <div className="px-2 py-1 flex items-center justify-between">
                                   <div className="flex gap-1">
                                     <button onClick={() => { openEdit(p); setMenuFor(null) }} className="text-gray-300 hover:text-[#E0197D]"><i className="ti ti-pencil" style={{ fontSize: 13 }} /></button>
@@ -486,7 +486,7 @@ export default function CultPage() {
                         })}
                         <button onClick={() => { setAddCell({ date: ds }); setAddName(''); setAddArtist(''); setAddVenue(''); setAddTime(''); setAddKind(kindFilter === 'action' ? 'action' : 'production') }}
                           title={we ? 'הוסף הפקה' : undefined}
-                          className={`text-gray-400 hover:text-[#E0197D] border border-dashed border-gray-200 hover:border-[#E0197D] rounded-lg flex items-center justify-center gap-1 ${we ? 'py-0.5 text-[10px]' : 'py-1 text-[11px]'}`}>
+                          className={`text-gray-400 hover:text-[#E0197D] border border-dashed border-[#EFC0D9] hover:border-[#E0197D] rounded-lg flex items-center justify-center gap-1 ${we ? 'py-0.5 text-[10px]' : 'py-1 text-[11px]'}`}>
                           <i className="ti ti-plus" style={{ fontSize: 12 }} />{!we && ' הפקה'}
                         </button>
                       </div>
@@ -498,16 +498,16 @@ export default function CultPage() {
               <tr>
                 {dates.map(ds => {
                   const we = isWeekend(ds)
-                  if (we) return <td key={ds} className="border border-gray-200 border-t-2 border-t-[#B6CFD0] bg-gray-50/50" />
+                  if (we) return <td key={ds} className="border border-[#EFC0D9] border-t-2 border-t-[#B6CFD0] bg-gray-50/50" />
                   const names = Object.keys(dayCrew(ds))
                   const opNames = dayOpCrew(ds)
                   return (
-                    <td key={ds} className="border border-gray-200 border-t-2 border-t-[#B6CFD0] align-top p-1.5 min-w-[160px] bg-[#F6FBFB]">
+                    <td key={ds} className="border border-[#EFC0D9] border-t-2 border-t-[#B6CFD0] align-top p-1.5 min-w-[160px] bg-[#F6FBFB]">
                       <button onClick={() => setCrewDayFor({ ds, mode: 'crew' })} className="w-full text-right mb-1.5">
                         <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1"><i className="ti ti-users" style={{ fontSize: 11 }} /> צוות ({names.length})</div>
                         <div className="text-[11px] text-gray-700 leading-snug break-words">{names.length ? names.join(', ') : <span className="text-gray-300">—</span>}</div>
                       </button>
-                      <button onClick={() => openDayOpCrew(ds)} className="w-full text-right pt-1.5 border-t border-gray-100 hover:bg-[#FCE4F3] rounded-b">
+                      <button onClick={() => openDayOpCrew(ds)} className="w-full text-right pt-1.5 border-t border-[#F5D3E7] hover:bg-[#FCE4F3] rounded-b">
                         <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1"><i className="ti ti-briefcase" style={{ fontSize: 11 }} /> צוות תפעול ({opNames.length})</div>
                         <div className="text-[11px] text-gray-700 leading-snug break-words">{opNames.length ? opNames.join(', ') : <span className="text-gray-300">— לחץ לשיבוץ</span>}</div>
                       </button>
@@ -518,12 +518,12 @@ export default function CultPage() {
               <tr>
                 {dates.map(ds => {
                   const we = isWeekend(ds)
-                  if (we) return <td key={ds} className="border border-gray-200 bg-gray-50/50" />
+                  if (we) return <td key={ds} className="border border-[#EFC0D9] bg-gray-50/50" />
                   return (
-                    <td key={ds} className="border border-gray-200 align-top p-1 min-w-[160px]">
+                    <td key={ds} className="border border-[#EFC0D9] align-top p-1 min-w-[160px]">
                       <textarea defaultValue={(config.day_notes || {})[ds] || ''} onBlur={e => saveDayNote(ds, e.target.value)}
                         placeholder="הערות יום…" rows={2}
-                        className="w-full text-[11px] px-2 py-1 border border-gray-100 rounded-lg bg-[#FFFDF5] outline-none focus:border-[#E0197D] text-right resize-y" />
+                        className="w-full text-[11px] px-2 py-1 border border-[#F5D3E7] rounded-lg bg-[#FFFDF5] outline-none focus:border-[#E0197D] text-right resize-y" />
                     </td>
                   )
                 })}
@@ -531,9 +531,9 @@ export default function CultPage() {
               <tr>
                 {dates.map(ds => {
                   const we = isWeekend(ds)
-                  if (we) return <td key={ds} className="border border-gray-200 bg-gray-50/50" />
+                  if (we) return <td key={ds} className="border border-[#EFC0D9] bg-gray-50/50" />
                   return (
-                    <td key={ds} className="border border-gray-200 p-1.5 min-w-[160px]">
+                    <td key={ds} className="border border-[#EFC0D9] p-1.5 min-w-[160px]">
                       <button onClick={() => setConflictDay(ds)} className="w-full text-[11px] px-2 py-1 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center justify-center gap-1">
                         <i className="ti ti-alert-triangle" style={{ fontSize: 12 }} /> התנגשויות
                       </button>
@@ -552,28 +552,28 @@ export default function CultPage() {
           <div className="bg-white rounded-2xl w-full max-w-sm p-5" dir="rtl" onClick={e => e.stopPropagation()}>
             <div className="text-[15px] font-semibold text-gray-900 mb-1">{KIND[addKind].label} חדשה</div>
             <div className="text-[12px] text-gray-400 mb-3">{fmtCell(addCell.date)}</div>
-            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden mb-3 text-[13px]">
+            <div className="flex items-center border border-[#EFC0D9] rounded-lg overflow-hidden mb-3 text-[13px]">
               {['production', 'action'].map(kk => (
                 <button key={kk} onClick={() => setAddKind(kk)}
                   className={`flex-1 py-1.5 ${addKind === kk ? (kk === 'action' ? 'bg-[#2563EB] text-white' : 'bg-[#E0197D] text-white') : 'bg-white text-gray-500'}`}>{KIND[kk].label}</button>
               ))}
             </div>
             <input value={addName} onChange={e => setAddName(e.target.value)} autoFocus placeholder="כותרת *"
-              className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2" />
+              className="w-full text-[13px] px-3 py-2 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2" />
             <input value={addArtist} onChange={e => setAddArtist(e.target.value)} placeholder="אמן / הרכב"
-              className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2" />
+              className="w-full text-[13px] px-3 py-2 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2" />
             <div className="flex gap-2 mb-3">
               <select value={addVenue} onChange={e => setAddVenue(e.target.value)}
-                className="flex-1 text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right">
+                className="flex-1 text-[13px] px-3 py-2 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right">
                 <option value="">אולם…</option>
                 {venues.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
               <input type="time" value={addTime} onChange={e => setAddTime(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') createProduction() }}
-                className="w-28 text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
+                className="w-28 text-[13px] px-3 py-2 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
             </div>
             <div className="flex gap-2">
               <button onClick={createProduction} disabled={!addName.trim()} className="flex-1 bg-[#E0197D] text-white text-[13px] py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">הוסף</button>
-              <button onClick={() => setAddCell(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-[13px] text-gray-500">ביטול</button>
+              <button onClick={() => setAddCell(null)} className="px-4 py-2 border border-[#EFC0D9] rounded-lg text-[13px] text-gray-500">ביטול</button>
             </div>
           </div>
         </div>
@@ -589,10 +589,10 @@ export default function CultPage() {
             </div>
             <div className="text-[11px] text-gray-400 mb-3 text-right">{ASPECTS.find(a => a.key === aspectEdit.key)?.hint}</div>
             <textarea value={aspectDraft} onChange={e => setAspectDraft(e.target.value)} rows={8} autoFocus
-              placeholder="תוכן..." className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y" />
+              placeholder="תוכן..." className="w-full text-[13px] px-3 py-2 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y" />
             <div className="flex gap-2 mt-3">
               <button onClick={saveAspect} className="flex-1 bg-[#E0197D] text-white text-[13px] py-2 rounded-lg hover:bg-[#A0106A]">שמור</button>
-              <button onClick={() => setAspectEdit(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-[13px] text-gray-500">ביטול</button>
+              <button onClick={() => setAspectEdit(null)} className="px-4 py-2 border border-[#EFC0D9] rounded-lg text-[13px] text-gray-500">ביטול</button>
             </div>
           </div>
         </div>
@@ -612,7 +612,7 @@ export default function CultPage() {
                   <div className="flex items-center gap-1">
                     <input value={crewAdd[row.key] || ''} onChange={e => setCrewAdd(a => ({ ...a, [row.key]: e.target.value }))}
                       onKeyDown={e => { if (e.key === 'Enter') addCrew(row.key) }}
-                      placeholder="שם" className="text-[12px] px-2 py-1 border border-dashed border-gray-300 rounded-lg outline-none focus:border-[#E0197D] w-24 text-right" />
+                      placeholder="שם" className="text-[12px] px-2 py-1 border border-dashed border-[#E7A9C8] rounded-lg outline-none focus:border-[#E0197D] w-24 text-right" />
                     <button onClick={() => addCrew(row.key)} disabled={!(crewAdd[row.key] || '').trim()}
                       className="text-[#E0197D] hover:bg-[#FCE4F3] rounded-lg p-1 disabled:opacity-30" title="הוסף">
                       <i className="ti ti-plus" style={{ fontSize: 16 }} /></button>
@@ -650,12 +650,12 @@ export default function CultPage() {
               <div className="relative mb-3">
                 <button onClick={() => setStatusMenuOpen(o => !o)}
                   style={{ backgroundColor: cultStatus(tag.status).bg, color: cultStatus(tag.status).text }}
-                  className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg outline-none text-right font-medium flex items-center justify-between">
+                  className="w-full text-[13px] px-3 py-2 border border-[#EFC0D9] rounded-lg outline-none text-right font-medium flex items-center justify-between">
                   <i className={`ti ${statusMenuOpen ? 'ti-chevron-up' : 'ti-chevron-down'}`} style={{ fontSize: 14 }} />
                   <span>{cultStatus(tag.status).label}</span>
                 </button>
                 {statusMenuOpen && (
-                  <div className="absolute z-10 top-full mt-1 right-0 left-0 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                  <div className="absolute z-10 top-full mt-1 right-0 left-0 bg-white border border-[#EFC0D9] rounded-lg shadow-lg overflow-hidden">
                     {CULT_STATUSES.map(s => (
                       <button key={s.value} onClick={() => { updateTag(crewEditing.row, tag.id, { status: s.value }); setStatusMenuOpen(false) }}
                         style={{ backgroundColor: s.bg, color: s.text }}
@@ -669,7 +669,7 @@ export default function CultPage() {
               </div>
               <textarea value={tag.note || ''} onChange={e => updateTag(crewEditing.row, tag.id, { note: e.target.value })}
                 placeholder="הערה..." rows={3}
-                className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y mb-3" />
+                className="w-full text-[13px] px-3 py-2 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y mb-3" />
               <div className="flex justify-between items-center">
                 <button onClick={() => deleteTag(crewEditing.row, tag.id)} className="text-[12px] text-red-500 hover:underline flex items-center gap-1"><i className="ti ti-trash" style={{ fontSize: 13 }} /> מחק</button>
                 <button onClick={() => setCrewEditing(null)} className="text-[13px] bg-[#E0197D] text-white px-4 py-1.5 rounded-lg hover:bg-[#A0106A]">סיום</button>
@@ -690,14 +690,14 @@ export default function CultPage() {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setGearFor(null)}>
             <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
                 <button onClick={() => setGearFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
                 <div className="text-[15px] font-semibold text-gray-900">ציוד — {gearFor.name} <span className="text-[12px] text-gray-400 font-normal">({gear.length} פריטים)</span></div>
               </div>
               <div className="flex-1 overflow-y-auto p-4 flex flex-col md:flex-row gap-4">
                 {/* catalog */}
-                <div className="w-full md:w-72 flex-shrink-0 bg-white border border-gray-100 rounded-xl overflow-hidden self-start">
-                  <div className="text-[11px] font-semibold text-gray-500 px-3 py-2.5 bg-gray-50 border-b border-gray-100">לקט ציוד</div>
+                <div className="w-full md:w-72 flex-shrink-0 bg-white border border-[#F5D3E7] rounded-xl overflow-hidden self-start">
+                  <div className="text-[11px] font-semibold text-gray-500 px-3 py-2.5 bg-gray-50 border-b border-[#F5D3E7]">לקט ציוד</div>
                   {categories.map(cat => {
                     const catSubs = subcats.filter(s => s.category_id === cat.id)
                     const isOpen = gearOpenCat === cat.id
@@ -737,7 +737,7 @@ export default function CultPage() {
                   })}
                 </div>
                 {/* selected spec */}
-                <div className="flex-1 min-w-0 bg-white border border-gray-100 rounded-xl overflow-hidden self-start">
+                <div className="flex-1 min-w-0 bg-white border border-[#F5D3E7] rounded-xl overflow-hidden self-start">
                   {gearDisplay.length === 0 ? (
                     <div className="text-center text-[13px] text-gray-400 py-10">
                       <div className="mb-1">אין פריטים</div>
@@ -756,7 +756,7 @@ export default function CultPage() {
                               onChange={e => gearQtyLocal(s.equipment_item_id, e.target.value)}
                               onBlur={() => saveGear(gear)}
                               placeholder="כמות"
-                              className={`w-16 text-[11px] px-2 py-1 border rounded-lg bg-white outline-none text-center ${s.item.units && parseInt(s.quantity) > parseInt(s.item.units) ? 'border-red-400 bg-red-50 text-red-600' : 'border-gray-200 focus:border-[#E0197D]'}`} />
+                              className={`w-16 text-[11px] px-2 py-1 border rounded-lg bg-white outline-none text-center ${s.item.units && parseInt(s.quantity) > parseInt(s.item.units) ? 'border-red-400 bg-red-50 text-red-600' : 'border-[#EFC0D9] focus:border-[#E0197D]'}`} />
                             {s.item.units && (
                               <span className={`text-[9px] ${parseInt(s.quantity) > parseInt(s.item.units) ? 'text-red-500 font-bold' : 'text-gray-400'}`}>מלאי: {s.item.units}</span>
                             )}
@@ -778,12 +778,12 @@ export default function CultPage() {
       {timesFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setTimesFor(null)}>
           <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
               <button onClick={() => setTimesFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
               <div className="text-[15px] font-semibold text-gray-900">זמנים — {timesFor.name}</div>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
-              <div className="border border-gray-100 rounded-xl overflow-hidden">
+              <div className="border border-[#F5D3E7] rounded-xl overflow-hidden">
                 <div className="grid gap-0 bg-[#E0197D] text-white text-[12px] font-semibold grid-cols-[100px_2fr_1.5fr_1fr_36px]">
                   <div className="px-3 py-2.5 text-right">שעה</div>
                   <div className="px-3 py-2.5 text-right border-r border-red-700">מה</div>
@@ -797,13 +797,13 @@ export default function CultPage() {
                 {times.map((row, index) => (
                   <div key={row.id} className={`grid gap-0 border-b border-gray-50 group grid-cols-[100px_2fr_1.5fr_1fr_36px] ${index % 2 === 0 ? 'bg-white' : 'bg-[#FFF8F8]'}`}>
                     <textarea value={row.time || ''} onChange={e => updateTimeLocal(row.id, 'time', e.target.value)} onBlur={() => saveTimes(times)} wrap="off"
-                      className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 font-mono resize-none w-full leading-5 whitespace-nowrap" rows={1} />
+                      className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-[#F5D3E7] font-mono resize-none w-full leading-5 whitespace-nowrap" rows={1} />
                     <textarea value={row.what || ''} onChange={e => updateTimeLocal(row.id, 'what', e.target.value)} onBlur={() => saveTimes(times)}
-                      className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 resize-none w-full leading-5" rows={Math.max(1, Math.ceil((row.what || '').length / 30))} />
+                      className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-[#F5D3E7] resize-none w-full leading-5" rows={Math.max(1, Math.ceil((row.what || '').length / 30))} />
                     <textarea value={row.who || ''} onChange={e => updateTimeLocal(row.id, 'who', e.target.value)} onBlur={() => saveTimes(times)}
-                      className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 resize-none w-full leading-5" rows={Math.max(1, Math.ceil((row.who || '').length / 20))} />
+                      className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-[#F5D3E7] resize-none w-full leading-5" rows={Math.max(1, Math.ceil((row.who || '').length / 20))} />
                     <textarea value={row.notes || ''} onChange={e => updateTimeLocal(row.id, 'notes', e.target.value)} onBlur={() => saveTimes(times)}
-                      className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-gray-100 text-gray-500 resize-none w-full leading-5" rows={Math.max(1, Math.ceil((row.notes || '').length / 20))} />
+                      className="px-3 py-2 text-[13px] bg-transparent outline-none text-right border-l border-[#F5D3E7] text-gray-500 resize-none w-full leading-5" rows={Math.max(1, Math.ceil((row.notes || '').length / 20))} />
                     <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => moveTimeRow(index, -1)} disabled={index === 0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 p-0.5"><i className="ti ti-chevron-up" style={{ fontSize: 11 }} /></button>
                       <button onClick={() => deleteTimeRow(row.id)} className="text-gray-300 hover:text-red-500 p-0.5"><i className="ti ti-trash" style={{ fontSize: 11 }} /></button>
@@ -825,28 +825,28 @@ export default function CultPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setEditProd(null)}>
           <div className="bg-white rounded-2xl w-full max-w-sm p-5" dir="rtl" onClick={e => e.stopPropagation()}>
             <div className="text-[15px] font-semibold text-gray-900 mb-3">עריכת {KIND[editKind].label}</div>
-            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden mb-3 text-[13px]">
+            <div className="flex items-center border border-[#EFC0D9] rounded-lg overflow-hidden mb-3 text-[13px]">
               {['production', 'action'].map(kk => (
                 <button key={kk} onClick={() => setEditKind(kk)}
                   className={`flex-1 py-1.5 ${editKind === kk ? (kk === 'action' ? 'bg-[#2563EB] text-white' : 'bg-[#E0197D] text-white') : 'bg-white text-gray-500'}`}>{KIND[kk].label}</button>
               ))}
             </div>
             <input value={editName} onChange={e => setEditName(e.target.value)} autoFocus placeholder="כותרת *"
-              className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2" />
+              className="w-full text-[13px] px-3 py-2 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2" />
             <input value={editArtist} onChange={e => setEditArtist(e.target.value)} placeholder="אמן / הרכב"
-              className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2" />
+              className="w-full text-[13px] px-3 py-2 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2" />
             <div className="flex gap-2 mb-3">
               <select value={editVenue} onChange={e => setEditVenue(e.target.value)}
-                className="flex-1 text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right">
+                className="flex-1 text-[13px] px-3 py-2 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right">
                 <option value="">אולם…</option>
                 {venues.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
               <input type="time" value={editTime} onChange={e => setEditTime(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveEdit() }}
-                className="w-28 text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
+                className="w-28 text-[13px] px-3 py-2 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
             </div>
             <div className="flex gap-2">
               <button onClick={saveEdit} disabled={!editName.trim()} className="flex-1 bg-[#E0197D] text-white text-[13px] py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">שמור</button>
-              <button onClick={() => setEditProd(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-[13px] text-gray-500">ביטול</button>
+              <button onClick={() => setEditProd(null)} className="px-4 py-2 border border-[#EFC0D9] rounded-lg text-[13px] text-gray-500">ביטול</button>
             </div>
           </div>
         </div>
@@ -859,7 +859,7 @@ export default function CultPage() {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setConflictDay(null)}>
             <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
                 <button onClick={() => setConflictDay(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
                 <div className="text-[15px] font-semibold text-gray-900">התנגשויות ציוד — {dayName(conflictDay)} {fmtCell(conflictDay)}</div>
               </div>
@@ -873,7 +873,7 @@ export default function CultPage() {
                     </div>
                     <div className="flex flex-col gap-1.5">
                       {list.map(row => (
-                        <div key={row.item.id} className={`rounded-lg border px-3 py-2 ${row.over ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
+                        <div key={row.item.id} className={`rounded-lg border px-3 py-2 ${row.over ? 'bg-red-50 border-red-200' : 'bg-white border-[#F5D3E7]'}`}>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
                               {row.over && <i className="ti ti-alert-triangle text-red-500" style={{ fontSize: 14 }} />}
@@ -904,7 +904,7 @@ export default function CultPage() {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setCrewDayFor(null)}>
             <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
                 <button onClick={() => setCrewDayFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
                 <div className="text-[15px] font-semibold text-gray-900">{def.label} — {dayName(cd.ds)} {fmtCell(cd.ds)} <span className="text-[12px] text-gray-400 font-normal">({names.length})</span></div>
               </div>
@@ -917,7 +917,7 @@ export default function CultPage() {
                       const roles = byName[name]
                       const multi = roles.length > 1
                       return (
-                        <div key={name} className={`rounded-lg border px-3 py-2 ${multi ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
+                        <div key={name} className={`rounded-lg border px-3 py-2 ${multi ? 'bg-amber-50 border-amber-200' : 'bg-white border-[#F5D3E7]'}`}>
                           <div className="text-[13px] font-medium text-gray-800 flex items-center gap-2">
                             {name}
                             {multi && <span className="text-[10px] bg-amber-200 text-amber-800 rounded-full px-1.5">×{roles.length}</span>}
@@ -945,10 +945,10 @@ export default function CultPage() {
               <div className="text-[15px] font-semibold text-gray-900">הערות יום — {dayName(dayNoteFor)} {fmtCell(dayNoteFor)}</div>
             </div>
             <textarea value={dayNoteDraft} onChange={e => setDayNoteDraft(e.target.value)} rows={8} autoFocus placeholder="הערות כלליות ליום זה..."
-              className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y" />
+              className="w-full text-[13px] px-3 py-2 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y" />
             <div className="flex gap-2 mt-3">
               <button onClick={() => { saveDayNote(dayNoteFor, dayNoteDraft); setDayNoteFor(null) }} className="flex-1 bg-[#E0197D] text-white text-[13px] py-2 rounded-lg hover:bg-[#A0106A]">שמור</button>
-              <button onClick={() => setDayNoteFor(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-[13px] text-gray-500">ביטול</button>
+              <button onClick={() => setDayNoteFor(null)} className="px-4 py-2 border border-[#EFC0D9] rounded-lg text-[13px] text-gray-500">ביטול</button>
             </div>
           </div>
         </div>
