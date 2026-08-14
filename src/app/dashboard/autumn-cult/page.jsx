@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V10
+// HAZIRA-CULT-V11
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -89,21 +89,35 @@ export default function CultPage() {
   useEffect(() => { init() }, [])
 
   async function init() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user || user.id !== DEV_ID) { setAllowed(false); setChecking(false); return }
-    setAllowed(true)
-    let { data: cfg } = await supabase.from('cult_config').select('*').eq('id', 1).maybeSingle()
-    if (!cfg) { const { data } = await supabase.from('cult_config').upsert({ id: 1 }).select().single(); cfg = data }
-    setConfig(cfg)
-    const { data: p } = await supabase.from('cult_productions').select('*').order('sort_order')
-    setProds(p || [])
-    const [{ data: cats }, { data: subs }, { data: items }] = await Promise.all([
-      supabase.from('equipment_categories').select('*').order('sort_order'),
-      supabase.from('equipment_subcategories').select('*').order('sort_order'),
-      supabase.from('equipment_items').select('*').order('name'),
-    ])
-    setCategories(cats || []); setSubcats(subs || []); setAllItems(items || [])
-    setChecking(false)
+    try {
+      const res = await supabase.auth.getUser().catch(() => null)
+      const user = res?.data?.user
+      if (!user || user.id !== DEV_ID) { setAllowed(false); setChecking(false); return }
+      setAllowed(true)
+      let cfg = null
+      try {
+        const r = await supabase.from('cult_config').select('*').eq('id', 1).maybeSingle()
+        cfg = r.data
+        if (!cfg) { const up = await supabase.from('cult_config').upsert({ id: 1 }).select().single(); cfg = up.data }
+      } catch (e) {}
+      setConfig(cfg || { id: 1, title: 'פולחן הסתיו 2026', venues: [], day_notes: {}, date_from: null, date_to: null })
+      try {
+        const { data: p } = await supabase.from('cult_productions').select('*').order('sort_order')
+        setProds(p || [])
+      } catch (e) { setProds([]) }
+      try {
+        const [{ data: cats }, { data: subs }, { data: items }] = await Promise.all([
+          supabase.from('equipment_categories').select('*').order('sort_order'),
+          supabase.from('equipment_subcategories').select('*').order('sort_order'),
+          supabase.from('equipment_items').select('*').order('name'),
+        ])
+        setCategories(cats || []); setSubcats(subs || []); setAllItems(items || [])
+      } catch (e) {}
+    } catch (e) {
+      setAllowed(false)
+    } finally {
+      setChecking(false)
+    }
   }
 
   async function saveConfig(patch) {
@@ -270,6 +284,7 @@ export default function CultPage() {
       <div className="text-gray-400 text-sm mt-1">האזור הזה בפיתוח וזמין רק למנהל המערכת.</div>
     </div>
   )
+  if (!config) return <div dir="rtl" className="p-8 text-center text-gray-400">טוען...</div>
 
   const dates = dateRange(config?.date_from, config?.date_to)
   const venues = config?.venues || []
