@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V19
+// HAZIRA-CULT-V20
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -302,10 +302,14 @@ export default function CultPage() {
     return byName
   }
   function dayCrew(ds) { return dayCrewByKey(ds, 'crew', CREW_ROWS) }
+  function dayCrewConfirmed(ds) {
+    const byName = dayCrewByKey(ds, 'crew', CREW_ROWS)
+    return Object.keys(byName).filter(n => byName[n].some(e => e.status === 'yellow'))
+  }
   function dayOpCrew(ds) {
     const c = (config.op_crew || {})[ds] || {}
     const names = []
-    OP_ROWS.forEach(r => (c[r.key] || []).forEach(t => { if (t.name && !names.includes(t.name)) names.push(t.name) }))
+    OP_ROWS.forEach(r => (c[r.key] || []).forEach(t => { if (t.name && t.status === 'yellow' && !names.includes(t.name)) names.push(t.name) }))
     return names
   }
   async function saveDayNote(ds, val) {
@@ -499,7 +503,7 @@ export default function CultPage() {
                 {dates.map(ds => {
                   const we = isWeekend(ds)
                   if (we) return <td key={ds} className="border border-[#EFC0D9] border-t-2 border-t-[#B6CFD0] bg-gray-50/50" />
-                  const names = Object.keys(dayCrew(ds))
+                  const names = dayCrewConfirmed(ds)
                   const opNames = dayOpCrew(ds)
                   return (
                     <td key={ds} className="border border-[#EFC0D9] border-t-2 border-t-[#B6CFD0] align-top p-1.5 min-w-[160px] bg-[#F6FBFB]">
