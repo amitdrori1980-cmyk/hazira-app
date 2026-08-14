@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V22
+// HAZIRA-CULT-V23
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -106,6 +106,8 @@ export default function CultPage() {
   const [gear, setGear] = useState([])                  // [{ equipment_item_id, quantity }]
   const [gearOpenCat, setGearOpenCat] = useState(null)
   const [gearOpenSub, setGearOpenSub] = useState(null)
+  const [manualName, setManualName] = useState('')
+  const [manualQty, setManualQty] = useState('')
   const [timesFor, setTimesFor] = useState(null)   // production whose times (rundown) window is open
   const [times, setTimes] = useState([])           // [{ id, time, what, who, notes }]
   const [editProd, setEditProd] = useState(null)
@@ -260,7 +262,18 @@ export default function CultPage() {
     const next = exists ? gear.filter(g => g.equipment_item_id !== item.id) : [...gear, { equipment_item_id: item.id, quantity: '1' }]
     setGear(next); saveGear(next)
   }
-  function gearQtyLocal(itemId, qty) { setGear(prev => prev.map(g => g.equipment_item_id === itemId ? { ...g, quantity: qty } : g)) }
+  const gearMatch = (g, entry) => entry.manual ? (g.manual && g.id === entry.id) : (!g.manual && g.equipment_item_id === entry.equipment_item_id)
+  function updateGearQty(entry, qty) { setGear(prev => prev.map(g => gearMatch(g, entry) ? { ...g, quantity: qty } : g)) }
+  function removeGearEntry(entry) {
+    const next = gear.filter(g => !gearMatch(g, entry))
+    setGear(next); saveGear(next)
+  }
+  function addManualGear() {
+    const name = (manualName || '').trim(); if (!name) return
+    const next = [...gear, { manual: true, id: newTagId(), name, quantity: (manualQty || '1') }]
+    setGear(next); saveGear(next)
+    setManualName(''); setManualQty('')
+  }
 
   // ---- times window (rundown) ----
   function openTimes(prod) {
@@ -717,12 +730,14 @@ export default function CultPage() {
       {/* gear window — equipment spec (like building a spec in Specs area) */}
       {gearFor && (() => {
         const gearDisplay = gear.map(g => {
+          if (g.manual) return { ...g, manual: true, name: g.name }
           const item = allItems.find(i => i.id === g.equipment_item_id)
           const sub = subcats.find(s => s.id === item?.subcategory_id)
           const cat = categories.find(c => c.id === sub?.category_id)
           return item ? { ...g, item, sub, cat } : null
         }).filter(Boolean)
-        const gearByCat = categories.map(cat => ({ cat, items: gearDisplay.filter(s => s.cat?.id === cat.id) })).filter(x => x.items.length)
+        const manualItems = gearDisplay.filter(s => s.manual)
+        const gearByCat = categories.map(cat => ({ cat, items: gearDisplay.filter(s => !s.manual && s.cat?.id === cat.id) })).filter(x => x.items.length)
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setGearFor(null)}>
             <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
@@ -774,12 +789,22 @@ export default function CultPage() {
                 </div>
                 {/* selected spec */}
                 <div className="flex-1 min-w-0 bg-white border border-[#F5D3E7] rounded-xl overflow-hidden self-start">
+                  {/* add manual item */}
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 border-b border-[#F5D3E7]">
+                    <input value={manualName} onChange={e => setManualName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addManualGear() }}
+                      placeholder="פריט ידני (לא ברשימה)" className="flex-1 text-[12px] px-2 py-1.5 border border-[#EFC0D9] rounded-lg bg-white outline-none focus:border-[#E0197D] text-right" />
+                    <input type="number" min="1" value={manualQty} onChange={e => setManualQty(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addManualGear() }}
+                      placeholder="כמות" className="w-16 text-[12px] px-2 py-1.5 border border-[#EFC0D9] rounded-lg bg-white outline-none focus:border-[#E0197D] text-center" />
+                    <button onClick={addManualGear} disabled={!manualName.trim()} className="bg-[#E0197D] text-white rounded-lg p-1.5 hover:bg-[#A0106A] disabled:opacity-30" title="הוסף פריט ידני">
+                      <i className="ti ti-plus" style={{ fontSize: 15 }} /></button>
+                  </div>
                   {gearDisplay.length === 0 ? (
                     <div className="text-center text-[13px] text-gray-400 py-10">
                       <div className="mb-1">אין פריטים</div>
-                      <div className="text-[12px] text-gray-300">בחר פריטים מהקטלוג משמאל</div>
+                      <div className="text-[12px] text-gray-300">בחר מהקטלוג משמאל או הוסף פריט ידני למעלה</div>
                     </div>
-                  ) : gearByCat.map(({ cat, items }) => (
+                  ) : (<>
+                    {gearByCat.map(({ cat, items }) => (
                     <div key={cat.id}>
                       <div className="px-4 py-2 bg-[#FCE4F3] text-[11px] font-semibold text-[#E0197D] text-right">{cat.name}</div>
                       {items.map(s => (
@@ -789,7 +814,7 @@ export default function CultPage() {
                           <div className="flex flex-col items-center gap-0.5">
                             <input type="number" min="1" max={s.item.units ? parseInt(s.item.units) : undefined}
                               value={s.quantity || ''}
-                              onChange={e => gearQtyLocal(s.equipment_item_id, e.target.value)}
+                              onChange={e => updateGearQty(s, e.target.value)}
                               onBlur={() => saveGear(gear)}
                               placeholder="כמות"
                               className={`w-16 text-[11px] px-2 py-1 border rounded-lg bg-white outline-none text-center ${s.item.units && parseInt(s.quantity) > parseInt(s.item.units) ? 'border-red-400 bg-red-50 text-red-600' : 'border-[#EFC0D9] focus:border-[#E0197D]'}`} />
@@ -803,7 +828,24 @@ export default function CultPage() {
                         </div>
                       ))}
                     </div>
-                  ))}
+                    ))}
+                    {manualItems.length > 0 && (
+                      <div>
+                        <div className="px-4 py-2 bg-[#FCE4F3] text-[11px] font-semibold text-[#E0197D] text-right">ידני / אחר</div>
+                        {manualItems.map(s => (
+                          <div key={'m:' + s.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 flex-row-reverse group hover:bg-gray-50">
+                            <span className="flex-1 text-[13px] text-right text-gray-800">{s.name}</span>
+                            <input type="number" min="1" value={s.quantity || ''}
+                              onChange={e => updateGearQty(s, e.target.value)} onBlur={() => saveGear(gear)}
+                              placeholder="כמות" className="w-16 text-[11px] px-2 py-1 border border-[#EFC0D9] rounded-lg bg-white outline-none text-center focus:border-[#E0197D]" />
+                            <button onClick={() => removeGearEntry(s)} className="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                              <i className="ti ti-x" style={{ fontSize: 12 }} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>)}
                 </div>
               </div>
             </div>
