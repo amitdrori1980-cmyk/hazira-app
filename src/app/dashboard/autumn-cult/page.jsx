@@ -1,6 +1,6 @@
 'use client'
-// HAZIRA-CULT-V9
-import { useEffect, useState } from 'react'
+// HAZIRA-CULT-V10
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 const DEV_ID = '1ad454b6-4087-49c8-86c6-3b6582dc1327'
@@ -274,8 +274,26 @@ export default function CultPage() {
   const dates = dateRange(config?.date_from, config?.date_to)
   const venues = config?.venues || []
   const timeToMin = t => { if (!t) return 99999; const m = String(t).match(/(\d{1,2}):(\d{2})/); return m ? parseInt(m[1]) * 60 + parseInt(m[2]) : 99999 }
-  const cellProds = date => prods.filter(p => p.date === date && (kindFilter === 'all' || (p.kind || 'production') === kindFilter)).sort((a, b) => timeToMin(a.time) - timeToMin(b.time))
+  const sortKey = p => (p.manual_order != null ? p.manual_order : timeToMin(p.time))
+  const cellProds = date => prods.filter(p => p.date === date && (kindFilter === 'all' || (p.kind || 'production') === kindFilter)).sort((a, b) => sortKey(a) - sortKey(b))
   const isWeekend = ds => { const dow = new Date(ds + 'T00:00:00').getDay(); return dow === 5 || dow === 6 }
+
+  const dragId = useRef(null)
+  function onCardDrop(date, targetId) {
+    const id = dragId.current
+    dragId.current = null
+    if (!id || id === targetId) return
+    const dragged = prods.find(p => p.id === id)
+    if (!dragged || dragged.date !== date) return // גרירה רק בתוך אותו יום
+    const col = prods.filter(p => p.date === date).sort((a, b) => sortKey(a) - sortKey(b))
+    const ids = col.map(p => p.id).filter(x => x !== id)
+    const ti = ids.indexOf(targetId)
+    if (ti < 0) return
+    ids.splice(ti, 0, id)
+    const orderMap = {}; ids.forEach((pid, i) => { orderMap[pid] = i })
+    setProds(prev => prev.map(p => p.id in orderMap ? { ...p, manual_order: orderMap[p.id] } : p))
+    Promise.all(ids.map((pid, i) => supabase.from('cult_productions').update({ manual_order: i }).eq('id', pid)))
+  }
 
   return (
     <div dir="rtl" className="p-4 md:p-6 max-w-full">
@@ -366,10 +384,12 @@ export default function CultPage() {
                         {cellProds(ds).map(p => {
                           const k = kindOf(p)
                           return (
-                          <div key={p.id} className="relative">
+                          <div key={p.id} className="relative"
+                            draggable onDragStart={() => { dragId.current = p.id }} onDragEnd={() => { dragId.current = null }}
+                            onDragOver={e => e.preventDefault()} onDrop={() => onCardDrop(ds, p.id)}>
                             <button onClick={() => setMenuFor(menuFor === p.id ? null : p.id)}
                               style={{ backgroundColor: k.bg, borderColor: k.border }}
-                              className="w-full text-right border rounded-lg px-2 py-1.5 hover:brightness-95 transition">
+                              className="w-full text-right border rounded-lg px-2 py-1.5 hover:brightness-95 transition cursor-grab active:cursor-grabbing">
                               {(p.time || p.venue) && (
                                 <div className="flex items-center justify-between gap-1 mb-0.5">
                                   {p.time && <span className="text-[11px] font-mono font-bold text-[#A0106A]">{p.time}</span>}
