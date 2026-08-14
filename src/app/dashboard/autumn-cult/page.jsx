@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V17
+// HAZIRA-CULT-V18
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -75,6 +75,7 @@ export default function CultPage() {
   const [crew, setCrew] = useState({})
   const [crewAdd, setCrewAdd] = useState({ operation: '', setup: '', strike: '' })
   const [crewEditing, setCrewEditing] = useState(null) // { row, id }
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false)
   const [categories, setCategories] = useState([])
   const [subcats, setSubcats] = useState([])
   const [allItems, setAllItems] = useState([])
@@ -619,7 +620,7 @@ export default function CultPage() {
                   {(crew[row.key] || []).map(tag => {
                     const st = cultStatus(tag.status)
                     return (
-                      <button key={tag.id} onClick={() => setCrewEditing({ row: row.key, id: tag.id })}
+                      <button key={tag.id} onClick={() => { setCrewEditing({ row: row.key, id: tag.id }); setStatusMenuOpen(false) }}
                         style={{ backgroundColor: st.bg, color: st.text }}
                         className="text-[12px] rounded-lg px-2.5 py-1 flex items-center gap-1">
                         {tag.name}
@@ -646,11 +647,26 @@ export default function CultPage() {
                 <div className="text-[14px] font-semibold text-gray-800">{tag.name}</div>
               </div>
               <label className="text-[11px] text-gray-400 block mb-1 text-right">סטטוס</label>
-              <select value={tag.status || 'white'} onChange={e => updateTag(crewEditing.row, tag.id, { status: e.target.value })}
-                style={{ backgroundColor: cultStatus(tag.status).bg, color: cultStatus(tag.status).text }}
-                className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-[#E0197D] text-right mb-3 font-medium">
-                {CULT_STATUSES.map(s => <option key={s.value} value={s.value} style={{ backgroundColor: '#fff', color: '#111' }}>{s.label}</option>)}
-              </select>
+              <div className="relative mb-3">
+                <button onClick={() => setStatusMenuOpen(o => !o)}
+                  style={{ backgroundColor: cultStatus(tag.status).bg, color: cultStatus(tag.status).text }}
+                  className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg outline-none text-right font-medium flex items-center justify-between">
+                  <i className={`ti ${statusMenuOpen ? 'ti-chevron-up' : 'ti-chevron-down'}`} style={{ fontSize: 14 }} />
+                  <span>{cultStatus(tag.status).label}</span>
+                </button>
+                {statusMenuOpen && (
+                  <div className="absolute z-10 top-full mt-1 right-0 left-0 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                    {CULT_STATUSES.map(s => (
+                      <button key={s.value} onClick={() => { updateTag(crewEditing.row, tag.id, { status: s.value }); setStatusMenuOpen(false) }}
+                        style={{ backgroundColor: s.bg, color: s.text }}
+                        className="w-full text-right px-3 py-2 text-[13px] font-medium hover:brightness-95 flex items-center justify-between gap-2">
+                        {tag.status === s.value ? <i className="ti ti-check" style={{ fontSize: 13 }} /> : <span className="w-3" />}
+                        <span className="flex-1">{s.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <textarea value={tag.note || ''} onChange={e => updateTag(crewEditing.row, tag.id, { note: e.target.value })}
                 placeholder="הערה..." rows={3}
                 className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y mb-3" />
