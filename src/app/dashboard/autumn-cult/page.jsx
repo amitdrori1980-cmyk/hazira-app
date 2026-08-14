@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V21
+// HAZIRA-CULT-V22
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -559,7 +559,7 @@ export default function CultPage() {
                     <td key={ds} className="border border-[#EFC0D9] align-top p-1 min-w-[160px]">
                       <textarea defaultValue={(config.day_notes || {})[ds] || ''} onBlur={e => saveDayNote(ds, e.target.value)}
                         placeholder="הערות יום…" rows={2}
-                        className="w-full text-[11px] px-2 py-1 border border-[#F5D3E7] rounded-lg bg-[#FFFDF5] outline-none focus:border-[#E0197D] text-right resize-y" />
+                        className="w-full text-[11px] px-2 py-1 border border-[#F5D3E7] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y" />
                     </td>
                   )
                 })}
