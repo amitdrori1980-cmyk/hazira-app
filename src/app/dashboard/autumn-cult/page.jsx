@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V12
+// HAZIRA-CULT-V13
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -31,7 +31,7 @@ const newTagId = () => Math.random().toString(36).slice(2) + Date.now().toString
 
 const KIND = {
   production: { label: 'הפקה',  bg: '#FBEAF3', border: 'rgba(224,25,125,0.35)' },
-  action:     { label: 'פעולה', bg: '#FEF9C3', border: 'rgba(202,138,4,0.5)' },
+  action:     { label: 'פעולה', bg: '#DBEAFE', border: 'rgba(37,99,235,0.45)' },
 }
 const kindOf = p => KIND[p?.kind] || KIND.production
 
@@ -86,6 +86,7 @@ export default function CultPage() {
   const [dayNoteFor, setDayNoteFor] = useState(null)
   const [dayNoteDraft, setDayNoteDraft] = useState('')
   const dragId = useRef(null)
+  const [dragOverId, setDragOverId] = useState(null)
 
   useEffect(() => { init() }, [])
 
@@ -400,8 +401,11 @@ export default function CultPage() {
                           const k = kindOf(p)
                           return (
                           <div key={p.id} className="relative"
-                            draggable onDragStart={() => { dragId.current = p.id }} onDragEnd={() => { dragId.current = null }}
-                            onDragOver={e => e.preventDefault()} onDrop={() => onCardDrop(ds, p.id)}>
+                            draggable onDragStart={() => { dragId.current = p.id }} onDragEnd={() => { dragId.current = null; setDragOverId(null) }}
+                            onDragOver={e => { e.preventDefault(); if (dragId.current && dragId.current !== p.id) setDragOverId(p.id) }}
+                            onDragLeave={() => setDragOverId(prev => (prev === p.id ? null : prev))}
+                            onDrop={() => { onCardDrop(ds, p.id); setDragOverId(null) }}>
+                            {dragOverId === p.id && <div className="h-0.5 bg-[#E0197D] rounded-full mb-1" />}
                             <button onClick={() => setMenuFor(menuFor === p.id ? null : p.id)}
                               style={{ backgroundColor: k.bg, borderColor: k.border }}
                               className="w-full text-right border rounded-lg px-2 py-1.5 hover:brightness-95 transition cursor-grab active:cursor-grabbing">
@@ -469,7 +473,7 @@ export default function CultPage() {
             <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden mb-3 text-[13px]">
               {['production', 'action'].map(kk => (
                 <button key={kk} onClick={() => setAddKind(kk)}
-                  className={`flex-1 py-1.5 ${addKind === kk ? (kk === 'action' ? 'bg-[#EAB308] text-white' : 'bg-[#E0197D] text-white') : 'bg-white text-gray-500'}`}>{KIND[kk].label}</button>
+                  className={`flex-1 py-1.5 ${addKind === kk ? (kk === 'action' ? 'bg-[#2563EB] text-white' : 'bg-[#E0197D] text-white') : 'bg-white text-gray-500'}`}>{KIND[kk].label}</button>
               ))}
             </div>
             <input value={addName} onChange={e => setAddName(e.target.value)} autoFocus placeholder="כותרת *"
@@ -742,7 +746,7 @@ export default function CultPage() {
             <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden mb-3 text-[13px]">
               {['production', 'action'].map(kk => (
                 <button key={kk} onClick={() => setEditKind(kk)}
-                  className={`flex-1 py-1.5 ${editKind === kk ? (kk === 'action' ? 'bg-[#EAB308] text-white' : 'bg-[#E0197D] text-white') : 'bg-white text-gray-500'}`}>{KIND[kk].label}</button>
+                  className={`flex-1 py-1.5 ${editKind === kk ? (kk === 'action' ? 'bg-[#2563EB] text-white' : 'bg-[#E0197D] text-white') : 'bg-white text-gray-500'}`}>{KIND[kk].label}</button>
               ))}
             </div>
             <input value={editName} onChange={e => setEditName(e.target.value)} autoFocus placeholder="כותרת *"
