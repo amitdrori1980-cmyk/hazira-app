@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V11
+// HAZIRA-CULT-V12
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -85,6 +85,7 @@ export default function CultPage() {
   const [crewDayFor, setCrewDayFor] = useState(null)
   const [dayNoteFor, setDayNoteFor] = useState(null)
   const [dayNoteDraft, setDayNoteDraft] = useState('')
+  const dragId = useRef(null)
 
   useEffect(() => { init() }, [])
 
@@ -293,7 +294,6 @@ export default function CultPage() {
   const cellProds = date => prods.filter(p => p.date === date && (kindFilter === 'all' || (p.kind || 'production') === kindFilter)).sort((a, b) => sortKey(a) - sortKey(b))
   const isWeekend = ds => { const dow = new Date(ds + 'T00:00:00').getDay(); return dow === 5 || dow === 6 }
 
-  const dragId = useRef(null)
   function onCardDrop(date, targetId) {
     const id = dragId.current
     dragId.current = null
