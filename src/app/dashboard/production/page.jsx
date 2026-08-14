@@ -10,6 +10,7 @@ import ProjectPlansMode from './ProjectPlansMode'
 // HAZIRA-PRODINQ-IMPORTNOTES-V37
 // HAZIRA-PRODINQ-SLOTS14-V38
 // HAZIRA-PRODINQ-BULKIMPORT-V39
+// HAZIRA-PRODINQ-MOBILE-V40
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -725,7 +726,7 @@ function ProductionInquiries() {
             <div className="flex flex-col md:flex-row md:items-center gap-3 px-4 py-3 md:flex-row-reverse">
               <div className="flex-1 min-w-0 text-right w-full">
                 {editingEvent === ev.id ? (
-                  <div className="flex gap-2 flex-row-reverse" onClick={e=>e.stopPropagation()}>
+                  <div className="flex flex-wrap gap-2 flex-row-reverse" onClick={e=>e.stopPropagation()}>
                     <input value={editEventVal.event_name||''} onChange={e=>setEditEventVal(p=>({...p,event_name:e.target.value}))}
                       className="text-sm font-medium px-2 py-1 border border-[#E0197D] rounded-lg outline-none text-right flex-1"/>
                     <input type="date" value={editEventVal.date||''} onChange={e=>setEditEventVal(p=>({...p,date:e.target.value}))}
@@ -756,7 +757,7 @@ function ProductionInquiries() {
                     </div>
                     {/* רשימת אנשים גלויה תמיד — שם ניטרלי + נקודת צבע לסטטוס, לחיצה פותחת תפריט */}
                     <div className="flex flex-wrap items-end gap-2 mt-1.5">
-                    <div dir="rtl" className="grid grid-cols-7 gap-1.5 flex-1 min-w-0" onClick={e => e.stopPropagation()}>
+                    <div dir="rtl" className="flex flex-wrap gap-1.5 md:grid md:grid-cols-7 flex-1 min-w-0" onClick={e => e.stopPropagation()}>
                       {evSlots.map((slot, idx) => {
                         if (!slot.name.trim() && idx !== firstEmptyHdr) return null
                         const st = getStatus(slot.status)
