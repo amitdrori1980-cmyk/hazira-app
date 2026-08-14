@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V20
+// HAZIRA-CULT-V21
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -43,6 +43,29 @@ const KIND = {
   action:     { label: 'פעולה', bg: '#DBEAFE', border: 'rgba(37,99,235,0.45)' },
 }
 const kindOf = p => KIND[p?.kind] || KIND.production
+
+function StatusPicker({ status, onPick }) {
+  const [open, setOpen] = useState(false)
+  const st = cultStatus(status)
+  return (
+    <div className="relative flex-shrink-0">
+      <button onClick={() => setOpen(o => !o)} style={{ backgroundColor: st.bg, color: st.text }}
+        className="text-[11px] rounded-lg px-2 py-1 flex items-center gap-1 font-medium">
+        <i className={`ti ${open ? 'ti-chevron-up' : 'ti-chevron-down'}`} style={{ fontSize: 11 }} />
+        {st.label}
+      </button>
+      {open && (
+        <div className="absolute z-10 top-full mt-1 left-0 bg-white border border-[#EFC0D9] rounded-lg shadow-lg overflow-hidden min-w-[96px]">
+          {CULT_STATUSES.map(s => (
+            <button key={s.value} onClick={() => { onPick(s.value); setOpen(false) }}
+              style={{ backgroundColor: s.bg, color: s.text }}
+              className="w-full text-right px-3 py-1.5 text-[11px] font-medium hover:brightness-95">{s.label}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function fmtCell(ds) { if (!ds) return ''; const [y, m, d] = ds.split('-'); return `${d}/${m}/${y}` }
 function dayName(ds) { const [y, m, d] = ds.split('-').map(Number); const dt = new Date(y, m - 1, d); return 'יום ' + HE_DAYS[dt.getDay()] }
@@ -296,10 +319,19 @@ export default function CultPage() {
       rows.forEach(r => (c[r.key] || []).forEach(t => {
         if (!t.name) return
         if (!byName[t.name]) byName[t.name] = []
-        byName[t.name].push({ role: r.label, prod: p.name, status: t.status, note: t.note })
+        byName[t.name].push({ role: r.label, prod: p.name, prodId: p.id, rowKey: r.key, tagId: t.id, status: t.status, note: t.note })
       }))
     })
     return byName
+  }
+  async function setProdCrewTagStatus(prodId, rowKey, tagId, status) {
+    const prod = prods.find(p => p.id === prodId)
+    if (!prod) return
+    const crewObj = prod.aspects?.crew || {}
+    const rowArr = (crewObj[rowKey] || []).map(t => t.id === tagId ? { ...t, status } : t)
+    const aspects = { ...(prod.aspects || {}), crew: { ...crewObj, [rowKey]: rowArr } }
+    setProds(prev => prev.map(p => p.id === prodId ? { ...p, aspects } : p))
+    await supabase.from('cult_productions').update({ aspects }).eq('id', prodId)
   }
   function dayCrew(ds) { return dayCrewByKey(ds, 'crew', CREW_ROWS) }
   function dayCrewConfirmed(ds) {
@@ -927,7 +959,10 @@ export default function CultPage() {
                             {multi && <span className="text-[10px] bg-amber-200 text-amber-800 rounded-full px-1.5">×{roles.length}</span>}
                           </div>
                           {roles.map((r, i) => (
-                            <div key={i} className="text-[11px] text-gray-500 mt-0.5">{r.role} · {r.prod}{(r.note || '').trim() ? ` — ${r.note}` : ''}</div>
+                            <div key={i} className="flex items-center justify-between gap-2 mt-1">
+                              <StatusPicker status={r.status} onPick={st => setProdCrewTagStatus(r.prodId, r.rowKey, r.tagId, st)} />
+                              <div className="text-[11px] text-gray-500 text-right flex-1">{r.role} · {r.prod}{(r.note || '').trim() ? ` — ${r.note}` : ''}</div>
+                            </div>
                           ))}
                         </div>
                       )
