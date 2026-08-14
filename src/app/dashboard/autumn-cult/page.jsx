@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V7
+// HAZIRA-CULT-V8
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -45,9 +45,11 @@ export default function CultPage() {
   const [config, setConfig] = useState(null)
   const [prods, setProds] = useState([])
   const [newVenue, setNewVenue] = useState('')
-  const [addCell, setAddCell] = useState(null)   // { venue, date }
+  const [addCell, setAddCell] = useState(null)   // { date }
   const [addName, setAddName] = useState('')
   const [addArtist, setAddArtist] = useState('')
+  const [addVenue, setAddVenue] = useState('')
+  const [addTime, setAddTime] = useState('')
   const [menuFor, setMenuFor] = useState(null)   // production id whose aspect-menu is open
   const [aspectEdit, setAspectEdit] = useState(null) // { prod, key }
   const [aspectDraft, setAspectDraft] = useState('')
@@ -67,6 +69,8 @@ export default function CultPage() {
   const [editProd, setEditProd] = useState(null)
   const [editName, setEditName] = useState('')
   const [editArtist, setEditArtist] = useState('')
+  const [editVenue, setEditVenue] = useState('')
+  const [editTime, setEditTime] = useState('')
   const [conflictDay, setConflictDay] = useState(null)
   const [crewDayFor, setCrewDayFor] = useState(null)
   const [dayNoteFor, setDayNoteFor] = useState(null)
@@ -97,7 +101,7 @@ export default function CultPage() {
     setConfig(next)
     await supabase.from('cult_config').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', 1)
   }
-  function addVenue() {
+  function addConfigVenue() {
     const v = newVenue.trim(); if (!v) return
     if ((config.venues || []).includes(v)) { setNewVenue(''); return }
     saveConfig({ venues: [...(config.venues || []), v] }); setNewVenue('')
@@ -110,10 +114,10 @@ export default function CultPage() {
   async function createProduction() {
     if (!addName.trim() || !addCell) return
     const { data } = await supabase.from('cult_productions')
-      .insert({ name: addName.trim(), artist: addArtist.trim(), venue: addCell.venue, date: addCell.date, sort_order: prods.length, aspects: {} })
+      .insert({ name: addName.trim(), artist: addArtist.trim(), venue: addVenue || null, time: addTime || null, date: addCell.date, sort_order: prods.length, aspects: {} })
       .select().single()
     if (data) setProds(prev => [...prev, data])
-    setAddCell(null); setAddName(''); setAddArtist('')
+    setAddCell(null); setAddName(''); setAddArtist(''); setAddVenue(''); setAddTime('')
   }
   async function updateProduction(id, patch) {
     setProds(prev => prev.map(p => p.id === id ? { ...p, ...patch } : p))
@@ -209,10 +213,10 @@ export default function CultPage() {
   }
 
   // ---- edit production ----
-  function openEdit(p) { setEditProd(p); setEditName(p.name || ''); setEditArtist(p.artist || '') }
+  function openEdit(p) { setEditProd(p); setEditName(p.name || ''); setEditArtist(p.artist || ''); setEditVenue(p.venue || ''); setEditTime(p.time || '') }
   async function saveEdit() {
     if (!editProd) return
-    await updateProduction(editProd.id, { name: editName.trim(), artist: editArtist.trim() })
+    await updateProduction(editProd.id, { name: editName.trim(), artist: editArtist.trim(), venue: editVenue || null, time: editTime || null })
     setEditProd(null)
   }
 
@@ -259,7 +263,8 @@ export default function CultPage() {
 
   const dates = dateRange(config?.date_from, config?.date_to)
   const venues = config?.venues || []
-  const cellProds = (venue, date) => prods.filter(p => p.venue === venue && p.date === date)
+  const timeToMin = t => { if (!t) return 99999; const m = String(t).match(/(\d{1,2}):(\d{2})/); return m ? parseInt(m[1]) * 60 + parseInt(m[2]) : 99999 }
+  const cellProds = date => prods.filter(p => p.date === date).sort((a, b) => timeToMin(a.time) - timeToMin(b.time))
   const isWeekend = ds => { const dow = new Date(ds + 'T00:00:00').getDay(); return dow === 5 || dow === 6 }
 
   return (
@@ -291,7 +296,7 @@ export default function CultPage() {
                 <button onClick={() => removeVenue(v)} className="hover:text-red-500"><i className="ti ti-x" style={{ fontSize: 12 }} /></button>
               </span>
             ))}
-            <input value={newVenue} onChange={e => setNewVenue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addVenue() }}
+            <input value={newVenue} onChange={e => setNewVenue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addConfigVenue() }}
               placeholder="+ אולם" className="text-[12px] px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] w-24" />
           </div>
         </div>
@@ -300,18 +305,15 @@ export default function CultPage() {
       {/* grid */}
       {(!config.date_from || !config.date_to) ? (
         <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">בחר טווח תאריכים כדי להציג את הלוח</div>
-      ) : venues.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">הוסף אולמות כדי להציג את הלוח</div>
       ) : (
         <div className="overflow-x-auto border border-gray-300 rounded-xl">
           <table className="border-collapse w-full">
             <thead>
               <tr className="bg-[#B6CFD0]">
-                <th className="sticky right-0 z-10 bg-[#B6CFD0] border border-gray-300 px-3 py-2 text-[12px] font-bold text-gray-800 min-w-[90px]">אולם</th>
                 {dates.map(ds => {
                   const we = isWeekend(ds)
                   return (
-                    <th key={ds} className={`border border-gray-300 ${we ? 'px-1 py-2 w-9 min-w-[34px]' : 'px-3 py-2 min-w-[150px]'}`}>
+                    <th key={ds} className={`border border-gray-300 ${we ? 'px-1 py-2 w-9 min-w-[34px]' : 'px-3 py-2 min-w-[160px]'}`}>
                       {we ? (
                         <>
                           <div className="text-[11px] font-bold text-gray-500">{dayName(ds).replace('יום ', '')}׳</div>
@@ -329,18 +331,22 @@ export default function CultPage() {
               </tr>
             </thead>
             <tbody>
-              {venues.map(venue => (
-                <tr key={venue}>
-                  <th className="sticky right-0 z-10 bg-white border border-gray-300 px-3 py-2 text-[12px] font-bold text-gray-800 text-right">{venue}</th>
-                  {dates.map(ds => {
-                    const we = isWeekend(ds)
-                    return (
-                    <td key={ds} className={`border border-gray-200 align-top ${we ? 'p-0.5 w-9 min-w-[34px] bg-gray-50/50' : 'p-1.5 min-w-[150px]'}`}>
+              <tr>
+                {dates.map(ds => {
+                  const we = isWeekend(ds)
+                  return (
+                    <td key={ds} className={`border border-gray-200 align-top ${we ? 'p-0.5 w-9 min-w-[34px] bg-gray-50/50' : 'p-1.5 min-w-[160px]'}`}>
                       <div className="flex flex-col gap-1">
-                        {cellProds(venue, ds).map(p => (
+                        {cellProds(ds).map(p => (
                           <div key={p.id} className="relative">
                             <button onClick={() => setMenuFor(menuFor === p.id ? null : p.id)}
                               className="w-full text-right bg-[#FBEAF3] hover:bg-[#F7D6E8] border border-[#E0197D]/30 rounded-lg px-2 py-1.5">
+                              {(p.time || p.venue) && (
+                                <div className="flex items-center justify-between gap-1 mb-0.5">
+                                  {p.time && <span className="text-[11px] font-mono font-bold text-[#A0106A]">{p.time}</span>}
+                                  {p.venue && <span className="text-[10px] bg-[#B6CFD0] text-gray-700 rounded px-1.5 py-0.5 mr-auto">{p.venue}</span>}
+                                </div>
+                              )}
                               <div className="text-[12px] font-medium text-gray-800 leading-tight">{p.name || '(ללא שם)'}</div>
                               {p.artist && <div className="text-[11px] text-gray-500 leading-tight">{p.artist}</div>}
                             </button>
@@ -374,17 +380,16 @@ export default function CultPage() {
                             )}
                           </div>
                         ))}
-                        <button onClick={() => { setAddCell({ venue, date: ds }); setAddName(''); setAddArtist('') }}
+                        <button onClick={() => { setAddCell({ date: ds }); setAddName(''); setAddArtist(''); setAddVenue(''); setAddTime('') }}
                           title={we ? 'הוסף הפקה' : undefined}
                           className={`text-gray-400 hover:text-[#E0197D] border border-dashed border-gray-200 hover:border-[#E0197D] rounded-lg flex items-center justify-center gap-1 ${we ? 'py-0.5 text-[10px]' : 'py-1 text-[11px]'}`}>
                           <i className="ti ti-plus" style={{ fontSize: 12 }} />{!we && ' הפקה'}
                         </button>
                       </div>
                     </td>
-                    )
-                  })}
-                </tr>
-              ))}
+                  )
+                })}
+              </tr>
             </tbody>
           </table>
         </div>
@@ -395,11 +400,20 @@ export default function CultPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setAddCell(null)}>
           <div className="bg-white rounded-2xl w-full max-w-sm p-5" dir="rtl" onClick={e => e.stopPropagation()}>
             <div className="text-[15px] font-semibold text-gray-900 mb-1">הפקה חדשה</div>
-            <div className="text-[12px] text-gray-400 mb-3">{addCell.venue} · {fmtCell(addCell.date)}</div>
+            <div className="text-[12px] text-gray-400 mb-3">{fmtCell(addCell.date)}</div>
             <input value={addName} onChange={e => setAddName(e.target.value)} autoFocus placeholder="שם ההפקה *"
               className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2" />
-            <input value={addArtist} onChange={e => setAddArtist(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') createProduction() }} placeholder="אמן / הרכב"
-              className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-3" />
+            <input value={addArtist} onChange={e => setAddArtist(e.target.value)} placeholder="אמן / הרכב"
+              className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2" />
+            <div className="flex gap-2 mb-3">
+              <select value={addVenue} onChange={e => setAddVenue(e.target.value)}
+                className="flex-1 text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right">
+                <option value="">אולם…</option>
+                {venues.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+              <input type="time" value={addTime} onChange={e => setAddTime(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') createProduction() }}
+                className="w-28 text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
+            </div>
             <div className="flex gap-2">
               <button onClick={createProduction} disabled={!addName.trim()} className="flex-1 bg-[#E0197D] text-white text-[13px] py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">הוסף</button>
               <button onClick={() => setAddCell(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-[13px] text-gray-500">ביטול</button>
@@ -656,8 +670,17 @@ export default function CultPage() {
             <div className="text-[15px] font-semibold text-gray-900 mb-3">עריכת הפקה</div>
             <input value={editName} onChange={e => setEditName(e.target.value)} autoFocus placeholder="שם ההפקה *"
               className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2" />
-            <input value={editArtist} onChange={e => setEditArtist(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveEdit() }} placeholder="אמן / הרכב"
-              className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-3" />
+            <input value={editArtist} onChange={e => setEditArtist(e.target.value)} placeholder="אמן / הרכב"
+              className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right mb-2" />
+            <div className="flex gap-2 mb-3">
+              <select value={editVenue} onChange={e => setEditVenue(e.target.value)}
+                className="flex-1 text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right">
+                <option value="">אולם…</option>
+                {venues.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+              <input type="time" value={editTime} onChange={e => setEditTime(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveEdit() }}
+                className="w-28 text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]" />
+            </div>
             <div className="flex gap-2">
               <button onClick={saveEdit} disabled={!editName.trim()} className="flex-1 bg-[#E0197D] text-white text-[13px] py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">שמור</button>
               <button onClick={() => setEditProd(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-[13px] text-gray-500">ביטול</button>
