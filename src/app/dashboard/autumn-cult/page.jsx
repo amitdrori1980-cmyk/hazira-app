@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V13
+// HAZIRA-CULT-V14
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -459,6 +459,48 @@ export default function CultPage() {
                   )
                 })}
               </tr>
+              {/* daily summary — aligned columns under each day */}
+              <tr>
+                {dates.map(ds => {
+                  const we = isWeekend(ds)
+                  if (we) return <td key={ds} className="border border-gray-200 border-t-2 border-t-[#B6CFD0] bg-gray-50/50" />
+                  const names = Object.keys(dayCrew(ds))
+                  return (
+                    <td key={ds} className="border border-gray-200 border-t-2 border-t-[#B6CFD0] align-top p-1.5 min-w-[160px] bg-[#F6FBFB]">
+                      <button onClick={() => setCrewDayFor(ds)} className="w-full text-right">
+                        <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1"><i className="ti ti-users" style={{ fontSize: 11 }} /> צוות ({names.length})</div>
+                        <div className="text-[11px] text-gray-700 leading-snug break-words">{names.length ? names.join(', ') : <span className="text-gray-300">—</span>}</div>
+                      </button>
+                    </td>
+                  )
+                })}
+              </tr>
+              <tr>
+                {dates.map(ds => {
+                  const we = isWeekend(ds)
+                  if (we) return <td key={ds} className="border border-gray-200 bg-gray-50/50" />
+                  return (
+                    <td key={ds} className="border border-gray-200 align-top p-1 min-w-[160px]">
+                      <textarea defaultValue={(config.day_notes || {})[ds] || ''} onBlur={e => saveDayNote(ds, e.target.value)}
+                        placeholder="הערות יום…" rows={2}
+                        className="w-full text-[11px] px-2 py-1 border border-gray-100 rounded-lg bg-[#FFFDF5] outline-none focus:border-[#E0197D] text-right resize-y" />
+                    </td>
+                  )
+                })}
+              </tr>
+              <tr>
+                {dates.map(ds => {
+                  const we = isWeekend(ds)
+                  if (we) return <td key={ds} className="border border-gray-200 bg-gray-50/50" />
+                  return (
+                    <td key={ds} className="border border-gray-200 p-1.5 min-w-[160px]">
+                      <button onClick={() => setConflictDay(ds)} className="w-full text-[11px] px-2 py-1 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center justify-center gap-1">
+                        <i className="ti ti-alert-triangle" style={{ fontSize: 12 }} /> התנגשויות
+                      </button>
+                    </td>
+                  )
+                })}
+              </tr>
             </tbody>
           </table>
         </div>
@@ -719,25 +761,6 @@ export default function CultPage() {
         </div>
       )}
       {/* daily summary rows */}
-      {dates.length > 0 && venues.length > 0 && (
-        <div className="mt-6">
-          <div className="text-[13px] font-semibold text-gray-600 mb-2">סיכום יומי</div>
-          <div className="flex flex-col gap-1.5">
-            {dates.filter(ds => !isWeekend(ds)).map(ds => {
-              const note = (config.day_notes || {})[ds]
-              return (
-                <div key={ds} className="flex items-center gap-2 flex-wrap bg-white border border-gray-100 rounded-xl px-3 py-2">
-                  <div className="text-[12px] font-medium text-gray-700 min-w-[130px]">{dayName(ds)} · {fmtCell(ds)}</div>
-                  <button onClick={() => setConflictDay(ds)} className="text-[12px] px-3 py-1 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1"><i className="ti ti-alert-triangle" style={{ fontSize: 13 }} /> התנגשויות ציוד</button>
-                  <button onClick={() => setCrewDayFor(ds)} className="text-[12px] px-3 py-1 rounded-lg border border-gray-200 text-gray-600 hover:border-[#E0197D] hover:text-[#E0197D] flex items-center gap-1"><i className="ti ti-users" style={{ fontSize: 13 }} /> צוות היום</button>
-                  <button onClick={() => { setDayNoteFor(ds); setDayNoteDraft(note || '') }} className="text-[12px] px-3 py-1 rounded-lg border border-gray-200 text-gray-600 hover:border-[#E0197D] hover:text-[#E0197D] flex items-center gap-1"><i className="ti ti-note" style={{ fontSize: 13 }} /> הערות יום {note && <span className="w-1.5 h-1.5 rounded-full bg-[#E0197D]" />}</button>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
       {/* edit production modal */}
       {editProd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setEditProd(null)}>
