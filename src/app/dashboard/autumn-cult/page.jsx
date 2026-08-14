@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V15
+// HAZIRA-CULT-V16
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -9,7 +9,6 @@ const HE_DAYS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש']
 const ASPECTS = [
   { key: 'times',  label: 'זמנים',      icon: 'ti-clock', hint: 'לו״ז זמנים (פורמט מלא בשלב הבא)' },
   { key: 'crew',   label: 'צוות',        icon: 'ti-users' },
-  { key: 'opcrew', label: 'צוות תפעול',  icon: 'ti-briefcase' },
   { key: 'gear',   label: 'ציוד',        icon: 'ti-plug', hint: 'רשימת ציוד + סטטוס (בשלב הבא)' },
   { key: 'notes',  label: 'הערות',       icon: 'ti-note', hint: 'פתקית / מפרט (בשלב הבא)' },
 ]
@@ -72,8 +71,7 @@ export default function CultPage() {
   const [menuFor, setMenuFor] = useState(null)   // production id whose aspect-menu is open
   const [aspectEdit, setAspectEdit] = useState(null) // { prod, key }
   const [aspectDraft, setAspectDraft] = useState('')
-  const [crewFor, setCrewFor] = useState(null)       // production whose crew window is open
-  const [crewMode, setCrewMode] = useState('crew')   // 'crew' | 'opcrew'
+  const [crewCtx, setCrewCtx] = useState(null)       // { kind:'prod', prod } | { kind:'day', ds }
   const [crew, setCrew] = useState({})
   const [crewAdd, setCrewAdd] = useState({ operation: '', setup: '', strike: '' })
   const [crewEditing, setCrewEditing] = useState(null) // { row, id }
@@ -175,21 +173,36 @@ export default function CultPage() {
   }
 
   // ---- crew window ----
-  function openCrew(prod, mode = 'crew') {
-    const def = CREW_MODES[mode]
-    setCrewMode(mode)
-    setCrewFor(prod)
-    const c = prod.aspects?.[def.key] || {}
-    setCrew(Object.fromEntries(def.rows.map(r => [r.key, c[r.key] || []])))
-    setCrewAdd(Object.fromEntries(def.rows.map(r => [r.key, ''])))
+  const crewDefOf = ctx => (ctx && ctx.kind === 'day' ? { rows: OP_ROWS, label: 'צוות תפעול' } : { rows: CREW_ROWS, label: 'צוות' })
+  function openCrew(prod) {
+    const ctx = { kind: 'prod', prod }
+    setCrewCtx(ctx)
+    const c = prod.aspects?.crew || {}
+    setCrew(Object.fromEntries(CREW_ROWS.map(r => [r.key, c[r.key] || []])))
+    setCrewAdd(Object.fromEntries(CREW_ROWS.map(r => [r.key, ''])))
+    setCrewEditing(null)
+  }
+  function openDayOpCrew(ds) {
+    const ctx = { kind: 'day', ds }
+    setCrewCtx(ctx)
+    const c = (config.op_crew || {})[ds] || {}
+    setCrew(Object.fromEntries(OP_ROWS.map(r => [r.key, c[r.key] || []])))
+    setCrewAdd(Object.fromEntries(OP_ROWS.map(r => [r.key, ''])))
     setCrewEditing(null)
   }
   async function saveCrew(next) {
-    const key = CREW_MODES[crewMode].key
-    const aspects = { ...(crewFor.aspects || {}), [key]: next }
-    await supabase.from('cult_productions').update({ aspects }).eq('id', crewFor.id)
-    setProds(prev => prev.map(p => p.id === crewFor.id ? { ...p, aspects } : p))
-    setCrewFor(cf => cf ? { ...cf, aspects } : cf)
+    if (!crewCtx) return
+    if (crewCtx.kind === 'day') {
+      const oc = { ...(config.op_crew || {}), [crewCtx.ds]: next }
+      setConfig(c => ({ ...c, op_crew: oc }))
+      await supabase.from('cult_config').update({ op_crew: oc, updated_at: new Date().toISOString() }).eq('id', 1)
+    } else {
+      const prod = crewCtx.prod
+      const aspects = { ...(prod.aspects || {}), crew: next }
+      await supabase.from('cult_productions').update({ aspects }).eq('id', prod.id)
+      setProds(prev => prev.map(p => p.id === prod.id ? { ...p, aspects } : p))
+      setCrewCtx(cc => (cc && cc.kind === 'prod' ? { ...cc, prod: { ...cc.prod, aspects } } : cc))
+    }
   }
   function mutateCrew(next) { setCrew(next); saveCrew(next) }
   function addCrew(row) {
@@ -288,7 +301,12 @@ export default function CultPage() {
     return byName
   }
   function dayCrew(ds) { return dayCrewByKey(ds, 'crew', CREW_ROWS) }
-  function dayOpCrew(ds) { return dayCrewByKey(ds, 'opcrew', OP_ROWS) }
+  function dayOpCrew(ds) {
+    const c = (config.op_crew || {})[ds] || {}
+    const names = []
+    OP_ROWS.forEach(r => (c[r.key] || []).forEach(t => { if (t.name && !names.includes(t.name)) names.push(t.name) }))
+    return names
+  }
   async function saveDayNote(ds, val) {
     const dn = { ...(config.day_notes || {}), [ds]: val }
     setConfig(c => ({ ...c, day_notes: dn }))
@@ -446,15 +464,13 @@ export default function CultPage() {
                                 {ASPECTS.map(a => {
                                   const has = a.key === 'crew'
                                     ? ['operation','setup','strike'].some(k => (((p.aspects||{}).crew||{})[k]||[]).length)
-                                    : a.key === 'opcrew'
-                                    ? ['night_mgmt','bar','cashier'].some(k => (((p.aspects||{}).opcrew||{})[k]||[]).length)
                                     : a.key === 'gear'
                                     ? ((p.aspects||{}).gear||[]).length
                                     : a.key === 'times'
                                     ? ((p.aspects||{}).times||[]).length
                                     : ((p.aspects || {})[a.key] || '').trim()
                                   return (
-                                    <button key={a.key} onClick={() => { if (a.key === 'crew') { openCrew(p, 'crew') } else if (a.key === 'opcrew') { openCrew(p, 'opcrew') } else if (a.key === 'gear') { openGear(p) } else if (a.key === 'times') { openTimes(p) } else { setAspectEdit({ prod: p, key: a.key }); setAspectDraft((p.aspects || {})[a.key] || '') } setMenuFor(null) }}
+                                    <button key={a.key} onClick={() => { if (a.key === 'crew') { openCrew(p) } else if (a.key === 'gear') { openGear(p) } else if (a.key === 'times') { openTimes(p) } else { setAspectEdit({ prod: p, key: a.key }); setAspectDraft((p.aspects || {})[a.key] || '') } setMenuFor(null) }}
                                       className="w-full text-right px-2 py-1.5 rounded-lg text-[13px] text-gray-700 hover:bg-[#FCE4F3] flex items-center gap-2 flex-row-reverse">
                                       <i className={`ti ${a.icon}`} style={{ fontSize: 14 }} />
                                       <span className="flex-1">{a.label}</span>
@@ -483,16 +499,16 @@ export default function CultPage() {
                   const we = isWeekend(ds)
                   if (we) return <td key={ds} className="border border-gray-200 border-t-2 border-t-[#B6CFD0] bg-gray-50/50" />
                   const names = Object.keys(dayCrew(ds))
-                  const opNames = Object.keys(dayOpCrew(ds))
+                  const opNames = dayOpCrew(ds)
                   return (
                     <td key={ds} className="border border-gray-200 border-t-2 border-t-[#B6CFD0] align-top p-1.5 min-w-[160px] bg-[#F6FBFB]">
                       <button onClick={() => setCrewDayFor({ ds, mode: 'crew' })} className="w-full text-right mb-1.5">
                         <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1"><i className="ti ti-users" style={{ fontSize: 11 }} /> צוות ({names.length})</div>
                         <div className="text-[11px] text-gray-700 leading-snug break-words">{names.length ? names.join(', ') : <span className="text-gray-300">—</span>}</div>
                       </button>
-                      <button onClick={() => setCrewDayFor({ ds, mode: 'opcrew' })} className="w-full text-right pt-1.5 border-t border-gray-100">
+                      <button onClick={() => openDayOpCrew(ds)} className="w-full text-right pt-1.5 border-t border-gray-100 hover:bg-[#FCE4F3] rounded-b">
                         <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1"><i className="ti ti-briefcase" style={{ fontSize: 11 }} /> צוות תפעול ({opNames.length})</div>
-                        <div className="text-[11px] text-gray-700 leading-snug break-words">{opNames.length ? opNames.join(', ') : <span className="text-gray-300">—</span>}</div>
+                        <div className="text-[11px] text-gray-700 leading-snug break-words">{opNames.length ? opNames.join(', ') : <span className="text-gray-300">— לחץ לשיבוץ</span>}</div>
                       </button>
                     </td>
                   )
@@ -581,14 +597,14 @@ export default function CultPage() {
         </div>
       )}
       {/* crew window */}
-      {crewFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => { setCrewFor(null); setCrewEditing(null) }}>
+      {crewCtx && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => { setCrewCtx(null); setCrewEditing(null) }}>
           <div className="bg-white rounded-2xl w-full max-w-2xl p-5 max-h-[85vh] overflow-y-auto" dir="rtl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <button onClick={() => { setCrewFor(null); setCrewEditing(null) }} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
-              <div className="text-[15px] font-semibold text-gray-900">{CREW_MODES[crewMode].label} — {crewFor.name}</div>
+              <button onClick={() => { setCrewCtx(null); setCrewEditing(null) }} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
+              <div className="text-[15px] font-semibold text-gray-900">{crewDefOf(crewCtx).label} — {crewCtx.kind === 'day' ? `${dayName(crewCtx.ds)} ${fmtCell(crewCtx.ds)}` : crewCtx.prod.name}</div>
             </div>
-            {CREW_MODES[crewMode].rows.map(row => (
+            {crewDefOf(crewCtx).rows.map(row => (
               <div key={row.key} className="mb-4">
                 <div className="text-[12px] font-semibold text-gray-600 mb-1.5 text-right">{row.label}</div>
                 <div className="flex flex-wrap gap-1.5 items-center justify-end">
@@ -614,7 +630,7 @@ export default function CultPage() {
       )}
 
       {/* crew tag editor (status + note) */}
-      {crewFor && crewEditing && (() => {
+      {crewCtx && crewEditing && (() => {
         const tag = (crew[crewEditing.row] || []).find(t => t.id === crewEditing.id)
         if (!tag) return null
         return (
