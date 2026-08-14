@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V23
+// HAZIRA-CULT-V24
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -43,6 +43,32 @@ const KIND = {
   action:     { label: 'פעולה', bg: '#DBEAFE', border: 'rgba(37,99,235,0.45)' },
 }
 const kindOf = p => KIND[p?.kind] || KIND.production
+
+const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+function printExport(title, bodyHtml) {
+  const win = window.open('', '_blank', 'width=980,height=1000')
+  if (!win) { alert('חלון הייצוא נחסם — אפשר חלונות קופצים לאתר'); return }
+  win.document.write(`<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="utf-8"><title>${esc(title)}</title>
+<style>
+  *{font-family:Arial,"Helvetica Neue",sans-serif;box-sizing:border-box}
+  body{margin:26px;color:#222}
+  .hdr{display:flex;align-items:center;gap:12px;border-bottom:3px solid #E0197D;padding-bottom:10px;margin-bottom:18px}
+  .brand{font-size:28px;font-weight:800;color:#E0197D;letter-spacing:1px;display:flex;align-items:center;gap:8px}
+  .brand img{height:42px}
+  .title{font-size:16px;font-weight:700;margin-right:auto;color:#333}
+  table{width:100%;border-collapse:collapse;margin-bottom:16px}
+  th,td{border:1px solid #E0197D44;padding:7px 9px;text-align:right;font-size:12px;vertical-align:top}
+  th{background:#FCE4F3;color:#A0106A}
+  h2{font-size:14px;color:#E0197D;margin:16px 0 6px;border-bottom:1px solid #F5D3E7;padding-bottom:3px}
+  .muted{color:#888;font-size:11px}
+  @media print{body{margin:12px}}
+</style></head><body>
+<div class="hdr"><div class="brand"><img src="${location.origin}/logo.png" onerror="this.remove()"/>הזירה</div><div class="title">${esc(title)}</div></div>
+${bodyHtml}
+<script>setTimeout(function(){window.print()},450)</script>
+</body></html>`)
+  win.document.close(); win.focus()
+}
 
 function StatusPicker({ status, onPick }) {
   const [open, setOpen] = useState(false)
@@ -363,6 +389,45 @@ export default function CultPage() {
     await supabase.from('cult_config').update({ day_notes: dn, updated_at: new Date().toISOString() }).eq('id', 1)
   }
 
+  // ---- PDF exports ----
+  function exportBoard() {
+    const ds2 = dateRange(config?.date_from, config?.date_to)
+    const rows = ds2.map(d => {
+      const dayProds = prods.filter(p => p.date === d).sort((a, b) => sortKey(a) - sortKey(b))
+      const ph = dayProds.length ? dayProds.map(p => `${esc(p.time || '')} ${p.venue ? '· ' + esc(p.venue) : ''} — <b>${esc(p.name)}</b>${p.artist ? ' / ' + esc(p.artist) : ''}`).join('<br>') : '<span class="muted">—</span>'
+      const crew = dayCrewConfirmed(d).join(', ') || '—'
+      const op = dayOpCrew(d).join(', ') || '—'
+      const note = (config.day_notes || {})[d] || ''
+      return `<tr><td><b>${dayName(d)}</b><br>${fmtCell(d)}</td><td>${ph}</td><td>${esc(crew)}</td><td>${esc(op)}</td><td>${esc(note)}</td></tr>`
+    }).join('')
+    printExport(config.title || 'פולחן הסתיו', `<table><thead><tr><th>יום</th><th>הפקות</th><th>צוות (אישרו)</th><th>צוות תפעול</th><th>הערות</th></tr></thead><tbody>${rows}</tbody></table>`)
+  }
+  function exportCrew() {
+    if (!crewCtx) return
+    const def = crewDefOf(crewCtx)
+    const title = `${def.label} — ${crewCtx.kind === 'day' ? dayName(crewCtx.ds) + ' ' + fmtCell(crewCtx.ds) : crewCtx.prod.name}`
+    const html = def.rows.map(r => {
+      const items = (crew[r.key] || []).map(t => `${esc(t.name)} <span class="muted">(${cultStatus(t.status).label})</span>${(t.note || '').trim() ? ' — ' + esc(t.note) : ''}`).join('<br>') || '<span class="muted">—</span>'
+      return `<h2>${esc(r.label)}</h2><div>${items}</div>`
+    }).join('')
+    printExport(title, html)
+  }
+  function exportGear() {
+    if (!gearFor) return
+    const rows = gear.map(g => {
+      if (g.manual) return `<tr><td>${esc(g.name)}</td><td>${esc(g.quantity || '')}</td><td class="muted">ידני</td></tr>`
+      const item = allItems.find(i => i.id === g.equipment_item_id); if (!item) return ''
+      const sub = subcats.find(s => s.id === item.subcategory_id)
+      return `<tr><td>${esc(item.name)}</td><td>${esc(g.quantity || '')}</td><td class="muted">${esc(sub?.name || '')}</td></tr>`
+    }).join('')
+    printExport(`ציוד — ${gearFor.name}`, `<table><thead><tr><th>פריט</th><th>כמות</th><th>קטגוריה</th></tr></thead><tbody>${rows}</tbody></table>`)
+  }
+  function exportTimes() {
+    if (!timesFor) return
+    const rows = times.map(r => `<tr><td>${esc(r.time || '')}</td><td>${esc(r.what || '')}</td><td>${esc(r.who || '')}</td><td>${esc(r.notes || '')}</td></tr>`).join('')
+    printExport(`זמנים — ${timesFor.name}`, `<table><thead><tr><th>שעה</th><th>מה</th><th>מי</th><th>הערות</th></tr></thead><tbody>${rows}</tbody></table>`)
+  }
+
   if (checking) return <div dir="rtl" className="p-8 text-center text-gray-400">טוען...</div>
   if (!allowed) return (
     <div dir="rtl" className="p-10 text-center">
@@ -402,6 +467,9 @@ export default function CultPage() {
         <input value={config.title || ''} onChange={e => setConfig(c => ({ ...c, title: e.target.value }))} onBlur={e => saveConfig({ title: e.target.value })}
           className="text-xl md:text-2xl font-bold text-[#E0197D] bg-transparent outline-none border-b border-transparent focus:border-[#E0197D] flex-1 min-w-[200px]" />
         <span className="text-[11px] text-gray-400 border border-[#EFC0D9] rounded-full px-2 py-0.5">בפיתוח · גלוי רק לך</span>
+        <button onClick={exportBoard} className="text-[12px] px-3 py-1.5 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1">
+          <i className="ti ti-file-type-pdf" style={{ fontSize: 14 }} /> ייצוא PDF
+        </button>
       </div>
 
       <div className="bg-white border border-[#F5D3E7] rounded-xl p-3 mb-4 flex items-end gap-3 flex-wrap">
@@ -450,7 +518,7 @@ export default function CultPage() {
       {(!config.date_from || !config.date_to) ? (
         <div className="bg-white border border-[#F5D3E7] rounded-xl p-8 text-center text-[13px] text-gray-400">בחר טווח תאריכים כדי להציג את הלוח</div>
       ) : (
-        <div className="overflow-x-auto border border-[#E7A9C8] rounded-xl">
+        <div className="overflow-x-auto border-2 border-black rounded-xl">
           <table className="border-collapse w-full">
             <thead>
               <tr className="bg-[#B6CFD0]">
@@ -652,7 +720,10 @@ export default function CultPage() {
           <div className="bg-white rounded-2xl w-full max-w-2xl p-5 max-h-[85vh] overflow-y-auto" dir="rtl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <button onClick={() => { setCrewCtx(null); setCrewEditing(null) }} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
-              <div className="text-[15px] font-semibold text-gray-900">{crewDefOf(crewCtx).label} — {crewCtx.kind === 'day' ? `${dayName(crewCtx.ds)} ${fmtCell(crewCtx.ds)}` : crewCtx.prod.name}</div>
+              <div className="flex items-center gap-3">
+                <button onClick={exportCrew} className="text-[#E0197D] hover:text-[#A0106A]" title="ייצוא PDF"><i className="ti ti-file-type-pdf" style={{ fontSize: 16 }} /></button>
+                <div className="text-[15px] font-semibold text-gray-900">{crewDefOf(crewCtx).label} — {crewCtx.kind === 'day' ? `${dayName(crewCtx.ds)} ${fmtCell(crewCtx.ds)}` : crewCtx.prod.name}</div>
+              </div>
             </div>
             {crewDefOf(crewCtx).rows.map(row => (
               <div key={row.key} className="mb-4">
@@ -743,7 +814,10 @@ export default function CultPage() {
             <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
                 <button onClick={() => setGearFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
-                <div className="text-[15px] font-semibold text-gray-900">ציוד — {gearFor.name} <span className="text-[12px] text-gray-400 font-normal">({gear.length} פריטים)</span></div>
+                <div className="flex items-center gap-3">
+                  <button onClick={exportGear} className="text-[#E0197D] hover:text-[#A0106A]" title="ייצוא PDF"><i className="ti ti-file-type-pdf" style={{ fontSize: 16 }} /></button>
+                  <div className="text-[15px] font-semibold text-gray-900">ציוד — {gearFor.name} <span className="text-[12px] text-gray-400 font-normal">({gear.length} פריטים)</span></div>
+                </div>
               </div>
               <div className="flex-1 overflow-y-auto p-4 flex flex-col md:flex-row gap-4">
                 {/* catalog */}
@@ -858,7 +932,10 @@ export default function CultPage() {
           <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[88vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
               <button onClick={() => setTimesFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
-              <div className="text-[15px] font-semibold text-gray-900">זמנים — {timesFor.name}</div>
+              <div className="flex items-center gap-3">
+                <button onClick={exportTimes} className="text-[#E0197D] hover:text-[#A0106A]" title="ייצוא PDF"><i className="ti ti-file-type-pdf" style={{ fontSize: 16 }} /></button>
+                <div className="text-[15px] font-semibold text-gray-900">זמנים — {timesFor.name}</div>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
               <div className="border border-[#F5D3E7] rounded-xl overflow-hidden">
