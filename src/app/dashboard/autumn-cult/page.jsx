@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V30
+// HAZIRA-CULT-V31
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -153,6 +153,7 @@ export default function CultPage() {
   const [crewDayFor, setCrewDayFor] = useState(null)
   const [dayNoteFor, setDayNoteFor] = useState(null)
   const [dayNoteDraft, setDayNoteDraft] = useState('')
+  const [crewExportOpen, setCrewExportOpen] = useState(false)
   const dragId = useRef(null)
   const [dragOverId, setDragOverId] = useState(null)
 
@@ -467,6 +468,54 @@ export default function CultPage() {
     printExport(`זמנים — ${timesFor.name}`, `<table><thead><tr><th>שעה</th><th>מה</th><th>מי</th><th>הערות</th></tr></thead><tbody>${rows}</tbody></table>`)
   }
 
+  // ---- personal schedule (per crew member) ----
+  function allCrewNames() {
+    const set = new Set()
+    prods.forEach(p => {
+      const c = p.aspects?.crew || {}
+      CREW_ROWS.forEach(r => (c[r.key] || []).forEach(t => { if ((t.name || '').trim()) set.add(t.name.trim()) }))
+    })
+    Object.values(config.op_crew || {}).forEach(day => {
+      OP_ROWS.forEach(r => ((day || {})[r.key] || []).forEach(t => { if ((t.name || '').trim()) set.add(t.name.trim()) }))
+    })
+    return [...set].sort((a, b) => a.localeCompare(b, 'he'))
+  }
+  function crewSchedule(name) {
+    const items = []
+    prods.forEach(p => {
+      const c = p.aspects?.crew || {}
+      CREW_ROWS.forEach(r => {
+        if ((c[r.key] || []).some(t => (t.name || '').trim() === name)) {
+          items.push({ date: p.date, time: p.time || '', sort: timeToMin(p.time), label: r.label, detail: `${p.name}${p.venue ? ' · ' + p.venue : ''}` })
+        }
+      })
+      ;(p.aspects?.times || []).forEach(row => {
+        if ((row.who || '').includes(name)) {
+          items.push({ date: p.date, time: row.time || '', sort: timeToMin(row.time), label: 'לו״ז', detail: `${row.what || ''}${p.name ? ' · ' + p.name : ''}` })
+        }
+      })
+    })
+    Object.entries(config.op_crew || {}).forEach(([date, day]) => {
+      OP_ROWS.forEach(r => {
+        if (((day || {})[r.key] || []).some(t => (t.name || '').trim() === name)) {
+          items.push({ date, time: '', sort: 99999, label: r.label, detail: 'תפעול' })
+        }
+      })
+    })
+    return items
+  }
+  function exportCrewTimeline(name) {
+    const items = crewSchedule(name)
+    const byDate = {}
+    items.forEach(it => { (byDate[it.date] = byDate[it.date] || []).push(it) })
+    const dts = Object.keys(byDate).sort()
+    const body = dts.length ? dts.map(d => {
+      const rows = byDate[d].sort((a, b) => a.sort - b.sort).map(it => `<tr><td style="width:64px">${esc(it.time || '—')}</td><td><b>${esc(it.label)}</b></td><td>${esc(it.detail)}</td></tr>`).join('')
+      return `<h2>${dayName(d)} · ${fmtCell(d)}</h2><table><thead><tr><th>שעה</th><th>תפקיד</th><th>פרטים</th></tr></thead><tbody>${rows}</tbody></table>`
+    }).join('') : '<div class="muted">אין שיבוצים לאיש צוות זה</div>'
+    printExport(`לו״ז אישי — ${name}`, body)
+  }
+
   if (checking) return <div dir="rtl" className="p-8 text-center text-gray-400">טוען...</div>
   if (!allowed) return (
     <div dir="rtl" className="p-10 text-center">
@@ -508,6 +557,9 @@ export default function CultPage() {
         <span className="text-[11px] text-gray-400 border border-[#EFC0D9] rounded-full px-2 py-0.5">בפיתוח · גלוי רק לך</span>
         <button onClick={exportBoard} className="text-[12px] px-3 py-1.5 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1">
           <i className="ti ti-file-type-pdf" style={{ fontSize: 14 }} /> ייצוא PDF
+        </button>
+        <button onClick={() => setCrewExportOpen(true)} className="text-[12px] px-3 py-1.5 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1">
+          <i className="ti ti-user-check" style={{ fontSize: 14 }} /> לו״ז אישי
         </button>
       </div>
 
@@ -1016,6 +1068,37 @@ export default function CultPage() {
           </div>
         </div>
       )}
+
+      {/* personal schedule export picker */}
+      {crewExportOpen && (() => {
+        const names = allCrewNames()
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setCrewExportOpen(false)}>
+            <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
+                <button onClick={() => setCrewExportOpen(false)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
+                <div className="text-[15px] font-semibold text-gray-900">לו״ז אישי — ייצוא PDF</div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="text-[12px] text-gray-400 mb-3 text-right">בחר איש צוות — ייווצר PDF עם כל השיבוצים שלו לפי יום ושעה</div>
+                {names.length === 0 ? (
+                  <div className="text-center text-[13px] text-gray-400 py-6">עדיין אין אנשי צוות משובצים</div>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {names.map(n => (
+                      <button key={n} onClick={() => exportCrewTimeline(n)}
+                        className="flex items-center justify-between gap-2 border border-[#F5D3E7] rounded-lg px-3 py-2 hover:bg-[#FCE4F3] text-right">
+                        <i className="ti ti-file-type-pdf text-[#E0197D]" style={{ fontSize: 16 }} />
+                        <span className="flex-1 text-[13px] text-gray-800">{n}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* files window — attach PDFs */}
       {filesFor && (
