@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V31
+// HAZIRA-CULT-V32
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -59,11 +59,14 @@ function printExport(title, bodyHtml) {
   .brand img{height:52px}
   .title{font-size:16px;font-weight:700;margin-right:auto;color:#333}
   table{width:100%;border-collapse:collapse;margin-bottom:16px}
-  th,td{border:1px solid #E0197D44;padding:7px 9px;text-align:right;font-size:12px;vertical-align:top}
+  table.fixed{table-layout:fixed}
+  th,td{border:1px solid #E0197D44;padding:7px 9px;text-align:right;font-size:12px;vertical-align:top;word-wrap:break-word}
   th{background:#FCE4F3;color:#A0106A}
   th.act{background:#DBEAFE;color:#1e40af}
   td.prod{background:#FDF2F8}
   td.act{background:#EFF6FF}
+  td.dayhdr{background:#B6CFD0;color:#0f3b3b;font-weight:800;font-size:13px}
+  td.tcol{font-family:"Courier New",monospace;white-space:nowrap;font-weight:700}
   h2{font-size:14px;color:#E0197D;margin:16px 0 6px;border-bottom:1px solid #F5D3E7;padding-bottom:3px}
   .muted{color:#888;font-size:11px}
   @media print{body{margin:12px}}
@@ -509,10 +512,18 @@ export default function CultPage() {
     const byDate = {}
     items.forEach(it => { (byDate[it.date] = byDate[it.date] || []).push(it) })
     const dts = Object.keys(byDate).sort()
-    const body = dts.length ? dts.map(d => {
-      const rows = byDate[d].sort((a, b) => a.sort - b.sort).map(it => `<tr><td style="width:64px">${esc(it.time || '—')}</td><td><b>${esc(it.label)}</b></td><td>${esc(it.detail)}</td></tr>`).join('')
-      return `<h2>${dayName(d)} · ${fmtCell(d)}</h2><table><thead><tr><th>שעה</th><th>תפקיד</th><th>פרטים</th></tr></thead><tbody>${rows}</tbody></table>`
-    }).join('') : '<div class="muted">אין שיבוצים לאיש צוות זה</div>'
+    let rows = ''
+    if (!dts.length) {
+      rows = '<tr><td colspan="3" class="muted">אין שיבוצים לאיש צוות זה</td></tr>'
+    } else {
+      dts.forEach(d => {
+        rows += `<tr><td colspan="3" class="dayhdr">${dayName(d)} · ${fmtCell(d)}</td></tr>`
+        byDate[d].sort((a, b) => a.sort - b.sort).forEach(it => {
+          rows += `<tr><td class="tcol">${esc(it.time || '—')}</td><td>${esc(it.label)}</td><td>${esc(it.detail)}</td></tr>`
+        })
+      })
+    }
+    const body = `<table class="fixed"><colgroup><col style="width:64px"><col style="width:120px"><col></colgroup><thead><tr><th>שעה</th><th>תפקיד</th><th>פרטים</th></tr></thead><tbody>${rows}</tbody></table>`
     printExport(`לו״ז אישי — ${name}`, body)
   }
 
