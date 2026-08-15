@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V27
+// HAZIRA-CULT-V28
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -531,7 +531,7 @@ export default function CultPage() {
                 {dates.map(ds => {
                   const we = isWeekend(ds)
                   return (
-                    <th key={ds} className={`border border-[#E7A9C8] ${we ? 'px-1 py-2 w-9 min-w-[34px]' : 'px-3 py-2 min-w-[160px]'}`}>
+                    <th key={ds} className={`border border-black ${we ? 'px-1 py-2 w-9 min-w-[34px]' : 'px-3 py-2 min-w-[160px]'}`}>
                       {we ? (
                         <>
                           <div className="text-[11px] font-bold text-gray-500">{dayName(ds).replace('יום ', '')}׳</div>
@@ -553,7 +553,7 @@ export default function CultPage() {
                 {dates.map(ds => {
                   const we = isWeekend(ds)
                   return (
-                    <td key={ds} className={`border border-[#EFC0D9] align-top ${we ? 'p-0.5 w-9 min-w-[34px] bg-gray-50/50' : 'p-1.5 min-w-[160px]'}`}>
+                    <td key={ds} className={`border border-black align-top ${we ? 'p-0.5 w-9 min-w-[34px] bg-gray-50/50' : 'p-1.5 min-w-[160px]'}`}>
                       <div className="flex flex-col gap-1">
                         {cellProds(ds).map(p => {
                           const k = kindOf(p)
@@ -621,11 +621,11 @@ export default function CultPage() {
               <tr>
                 {dates.map(ds => {
                   const we = isWeekend(ds)
-                  if (we) return <td key={ds} className="border border-[#EFC0D9] border-t-2 border-t-[#B6CFD0] bg-gray-50/50" />
+                  if (we) return <td key={ds} className="border border-black border-t-2 border-t-[#B6CFD0] bg-gray-50/50" />
                   const names = dayCrewConfirmed(ds)
                   const opNames = dayOpCrew(ds)
                   return (
-                    <td key={ds} className="border border-[#EFC0D9] border-t-2 border-t-[#B6CFD0] align-top p-1.5 min-w-[160px] bg-[#F6FBFB]">
+                    <td key={ds} className="border border-black border-t-2 border-t-[#B6CFD0] align-top p-1.5 min-w-[160px] bg-[#F6FBFB]">
                       <button onClick={() => setCrewDayFor({ ds, mode: 'crew' })} className="w-full text-right mb-1.5">
                         <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1"><i className="ti ti-users" style={{ fontSize: 11 }} /> צוות ({names.length})</div>
                         <div className="text-[11px] text-gray-700 leading-snug break-words">{names.length ? names.join(', ') : <span className="text-gray-300">—</span>}</div>
@@ -641,9 +641,9 @@ export default function CultPage() {
               <tr>
                 {dates.map(ds => {
                   const we = isWeekend(ds)
-                  if (we) return <td key={ds} className="border border-[#EFC0D9] bg-gray-50/50" />
+                  if (we) return <td key={ds} className="border border-black bg-gray-50/50" />
                   return (
-                    <td key={ds} className="border border-[#EFC0D9] align-top p-1 min-w-[160px]">
+                    <td key={ds} className="border border-black align-top p-1 min-w-[160px]">
                       <textarea defaultValue={(config.day_notes || {})[ds] || ''} onBlur={e => saveDayNote(ds, e.target.value)}
                         placeholder="הערות יום…" rows={2}
                         className="w-full text-[11px] px-2 py-1 border border-[#F5D3E7] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y" />
@@ -654,9 +654,9 @@ export default function CultPage() {
               <tr>
                 {dates.map(ds => {
                   const we = isWeekend(ds)
-                  if (we) return <td key={ds} className="border border-[#EFC0D9] bg-gray-50/50" />
+                  if (we) return <td key={ds} className="border border-black bg-gray-50/50" />
                   return (
-                    <td key={ds} className="border border-[#EFC0D9] p-1.5 min-w-[160px]">
+                    <td key={ds} className="border border-black p-1.5 min-w-[160px]">
                       <button onClick={() => setConflictDay(ds)} className="w-full text-[11px] px-2 py-1 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center justify-center gap-1">
                         <i className="ti ti-alert-triangle" style={{ fontSize: 12 }} /> התנגשויות
                       </button>
