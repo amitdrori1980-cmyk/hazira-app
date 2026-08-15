@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V28
+// HAZIRA-CULT-V29
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -266,6 +266,7 @@ export default function CultPage() {
     mutateCrew({ ...crew, [row]: [...(crew[row] || []), { id: newTagId(), name, status: 'white', note: '' }] })
     setCrewAdd(a => ({ ...a, [row]: '' }))
   }
+  function setTagNameLocal(row, id, name) { setCrew(c => ({ ...c, [row]: (c[row] || []).map(t => t.id === id ? { ...t, name } : t) })) }
   function updateTag(row, id, patch) {
     mutateCrew({ ...crew, [row]: crew[row].map(t => t.id === id ? { ...t, ...patch } : t) })
   }
@@ -735,25 +736,26 @@ export default function CultPage() {
               <div key={row.key} className="mb-4">
                 <div className="text-[12px] font-semibold text-gray-600 mb-1.5 text-right">{row.label}</div>
                 <div className="flex flex-wrap gap-1.5 items-center justify-end">
-                  <div className="flex items-center gap-1">
-                    <input value={crewAdd[row.key] || ''} onChange={e => setCrewAdd(a => ({ ...a, [row.key]: e.target.value }))}
-                      onKeyDown={e => { if (e.key === 'Enter') addCrew(row.key) }}
-                      placeholder="שם" className="text-[12px] px-2 py-1 border border-dashed border-[#E7A9C8] rounded-lg outline-none focus:border-[#E0197D] w-24 text-right" />
-                    <button onClick={() => addCrew(row.key)} disabled={!(crewAdd[row.key] || '').trim()}
-                      className="text-[#E0197D] hover:bg-[#FCE4F3] rounded-lg p-1 disabled:opacity-30" title="הוסף">
-                      <i className="ti ti-plus" style={{ fontSize: 16 }} /></button>
-                  </div>
                   {(crew[row.key] || []).map(tag => {
                     const st = cultStatus(tag.status)
                     return (
-                      <button key={tag.id} onClick={() => { setCrewEditing({ row: row.key, id: tag.id }); setStatusMenuOpen(false) }}
-                        style={{ backgroundColor: st.bg, color: st.text }}
-                        className="text-[12px] rounded-lg px-2.5 py-1 flex items-center gap-1">
-                        {tag.name}
-                        {(tag.note || '').trim() && <i className="ti ti-message-dots" style={{ fontSize: 11 }} />}
-                      </button>
+                      <div key={tag.id} style={{ backgroundColor: st.bg, borderColor: 'rgba(0,0,0,0.12)' }}
+                        className="flex items-center gap-1.5 rounded-full border px-2 py-1">
+                        <button onClick={() => { setCrewEditing({ row: row.key, id: tag.id }); setStatusMenuOpen(false) }} title={st.label}
+                          className="w-3.5 h-3.5 rounded-full ring-1 ring-black/10 flex-shrink-0" style={{ background: st.text }} />
+                        <input value={tag.name} onChange={e => setTagNameLocal(row.key, tag.id, e.target.value)} onBlur={() => saveCrew(crew)}
+                          placeholder="שם" style={{ color: st.text }}
+                          className="bg-transparent outline-none text-[12px] text-right w-16 focus:w-24 transition-all" />
+                        {(tag.note || '').trim() && <i className="ti ti-message-2 flex-shrink-0" style={{ fontSize: 12, color: st.text }} />}
+                      </div>
                     )
                   })}
+                  <div className="flex items-center gap-1.5 rounded-full border border-dashed border-[#E7A9C8] px-2 py-1">
+                    <span className="w-3.5 h-3.5 rounded-full bg-gray-200 flex-shrink-0" />
+                    <input value={crewAdd[row.key] || ''} onChange={e => setCrewAdd(a => ({ ...a, [row.key]: e.target.value }))}
+                      onKeyDown={e => { if (e.key === 'Enter') addCrew(row.key) }} onBlur={() => { if ((crewAdd[row.key] || '').trim()) addCrew(row.key) }}
+                      placeholder="+ שם" className="bg-transparent outline-none text-[12px] text-right w-16 focus:w-24 transition-all placeholder:text-gray-400" />
+                  </div>
                 </div>
               </div>
             ))}
