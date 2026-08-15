@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V26
+// HAZIRA-CULT-V27
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -60,6 +60,9 @@ function printExport(title, bodyHtml) {
   table{width:100%;border-collapse:collapse;margin-bottom:16px}
   th,td{border:1px solid #E0197D44;padding:7px 9px;text-align:right;font-size:12px;vertical-align:top}
   th{background:#FCE4F3;color:#A0106A}
+  th.act{background:#DBEAFE;color:#1e40af}
+  td.prod{background:#FDF2F8}
+  td.act{background:#EFF6FF}
   h2{font-size:14px;color:#E0197D;margin:16px 0 6px;border-bottom:1px solid #F5D3E7;padding-bottom:3px}
   .muted{color:#888;font-size:11px}
   @media print{body{margin:12px}}
@@ -393,15 +396,17 @@ export default function CultPage() {
   // ---- PDF exports ----
   function exportBoard() {
     const ds2 = dateRange(config?.date_from, config?.date_to)
+    const fmt = arr => arr.length ? arr.map(p => `${esc(p.time || '')} ${p.venue ? '· ' + esc(p.venue) : ''} — <b>${esc(p.name)}</b>${p.artist ? ' / ' + esc(p.artist) : ''}`).join('<br>') : '<span class="muted">—</span>'
     const rows = ds2.map(d => {
-      const dayProds = prods.filter(p => p.date === d).sort((a, b) => sortKey(a) - sortKey(b))
-      const ph = dayProds.length ? dayProds.map(p => `${esc(p.time || '')} ${p.venue ? '· ' + esc(p.venue) : ''} — <b>${esc(p.name)}</b>${p.artist ? ' / ' + esc(p.artist) : ''}`).join('<br>') : '<span class="muted">—</span>'
+      const dayCards = prods.filter(p => p.date === d).sort((a, b) => sortKey(a) - sortKey(b))
+      const prodList = dayCards.filter(p => (p.kind || 'production') === 'production')
+      const actList = dayCards.filter(p => p.kind === 'action')
       const crew = dayCrewConfirmed(d).join(', ') || '—'
       const op = dayOpCrew(d).join(', ') || '—'
       const note = (config.day_notes || {})[d] || ''
-      return `<tr><td><b>${dayName(d)}</b><br>${fmtCell(d)}</td><td>${ph}</td><td>${esc(crew)}</td><td>${esc(op)}</td><td>${esc(note)}</td></tr>`
+      return `<tr><td><b>${dayName(d)}</b><br>${fmtCell(d)}</td><td class="prod">${fmt(prodList)}</td><td class="act">${fmt(actList)}</td><td>${esc(crew)}</td><td>${esc(op)}</td><td>${esc(note)}</td></tr>`
     }).join('')
-    printExport(config.title || 'פולחן הסתיו', `<table><thead><tr><th>יום</th><th>הפקות</th><th>צוות (אישרו)</th><th>צוות תפעול</th><th>הערות</th></tr></thead><tbody>${rows}</tbody></table>`)
+    printExport(config.title || 'פולחן הסתיו', `<table><thead><tr><th>יום</th><th class="prod">הפקות</th><th class="act">פעולות</th><th>צוות (אישרו)</th><th>צוות תפעול</th><th>הערות</th></tr></thead><tbody>${rows}</tbody></table>`)
   }
   function exportCrew() {
     if (!crewCtx) return
