@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V29
+// HAZIRA-CULT-V30
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -10,6 +10,7 @@ const ASPECTS = [
   { key: 'times',  label: 'זמנים',      icon: 'ti-clock', hint: 'לו״ז זמנים (פורמט מלא בשלב הבא)' },
   { key: 'crew',   label: 'צוות',        icon: 'ti-users' },
   { key: 'gear',   label: 'ציוד',        icon: 'ti-plug', hint: 'רשימת ציוד + סטטוס (בשלב הבא)' },
+  { key: 'files',  label: 'קבצים',       icon: 'ti-folder' },
   { key: 'notes',  label: 'הערות',       icon: 'ti-note', hint: 'פתקית / מפרט (בשלב הבא)' },
 ]
 
@@ -140,6 +141,8 @@ export default function CultPage() {
   const [manualQty, setManualQty] = useState('')
   const [timesFor, setTimesFor] = useState(null)   // production whose times (rundown) window is open
   const [times, setTimes] = useState([])           // [{ id, time, what, who, notes }]
+  const [filesFor, setFilesFor] = useState(null)   // production whose files window is open
+  const [filesUploading, setFilesUploading] = useState(false)
   const [editProd, setEditProd] = useState(null)
   const [editName, setEditName] = useState('')
   const [editArtist, setEditArtist] = useState('')
@@ -310,6 +313,35 @@ export default function CultPage() {
   function openTimes(prod) {
     setTimesFor(prod)
     setTimes(prod.aspects?.times || [])
+  }
+
+  // ---- files window (attach PDFs) ----
+  function openFiles(prod) { setFilesFor(prod) }
+  async function uploadFile(file) {
+    if (!file || !filesFor) return
+    setFilesUploading(true)
+    try {
+      const safe = file.name.replace(/[^\w.\-]+/g, '_')
+      const path = `cult/${filesFor.id}/${Date.now()}-${safe}`
+      const { error } = await supabase.storage.from('cult-files').upload(path, file, { upsert: false, contentType: file.type || 'application/pdf' })
+      if (error) { alert('שגיאה בהעלאה: ' + error.message); setFilesUploading(false); return }
+      const { data } = supabase.storage.from('cult-files').getPublicUrl(path)
+      const files = [...(filesFor.aspects?.files || []), { id: newTagId(), name: file.name, path, url: data.publicUrl }]
+      const aspects = { ...(filesFor.aspects || {}), files }
+      await supabase.from('cult_productions').update({ aspects }).eq('id', filesFor.id)
+      setProds(prev => prev.map(p => p.id === filesFor.id ? { ...p, aspects } : p))
+      setFilesFor(ff => ff ? { ...ff, aspects } : ff)
+    } catch (e) { alert('שגיאה: ' + (e?.message || e)) }
+    setFilesUploading(false)
+  }
+  async function removeFile(entry) {
+    if (!window.confirm(`למחוק את "${entry.name}"?`)) return
+    await supabase.storage.from('cult-files').remove([entry.path]).catch(() => {})
+    const files = (filesFor.aspects?.files || []).filter(f => f.id !== entry.id)
+    const aspects = { ...(filesFor.aspects || {}), files }
+    await supabase.from('cult_productions').update({ aspects }).eq('id', filesFor.id)
+    setProds(prev => prev.map(p => p.id === filesFor.id ? { ...p, aspects } : p))
+    setFilesFor(ff => ff ? { ...ff, aspects } : ff)
   }
   async function saveTimes(next) {
     const aspects = { ...(timesFor.aspects || {}), times: next }
@@ -593,9 +625,11 @@ export default function CultPage() {
                                     ? ((p.aspects||{}).gear||[]).length
                                     : a.key === 'times'
                                     ? ((p.aspects||{}).times||[]).length
+                                    : a.key === 'files'
+                                    ? ((p.aspects||{}).files||[]).length
                                     : ((p.aspects || {})[a.key] || '').trim()
                                   return (
-                                    <button key={a.key} onClick={() => { if (a.key === 'crew') { openCrew(p) } else if (a.key === 'gear') { openGear(p) } else if (a.key === 'times') { openTimes(p) } else { setAspectEdit({ prod: p, key: a.key }); setAspectDraft((p.aspects || {})[a.key] || '') } setMenuFor(null) }}
+                                    <button key={a.key} onClick={() => { if (a.key === 'crew') { openCrew(p) } else if (a.key === 'gear') { openGear(p) } else if (a.key === 'times') { openTimes(p) } else if (a.key === 'files') { openFiles(p) } else { setAspectEdit({ prod: p, key: a.key }); setAspectDraft((p.aspects || {})[a.key] || '') } setMenuFor(null) }}
                                       className="w-full text-right px-2 py-1.5 rounded-lg text-[13px] text-gray-700 hover:bg-[#FCE4F3] flex items-center gap-2 flex-row-reverse">
                                       <i className={`ti ${a.icon}`} style={{ fontSize: 14 }} />
                                       <span className="flex-1">{a.label}</span>
@@ -982,8 +1016,41 @@ export default function CultPage() {
           </div>
         </div>
       )}
-      {/* daily summary rows */}
-      {/* edit production modal */}
+
+      {/* files window — attach PDFs */}
+      {filesFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setFilesFor(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
+              <button onClick={() => setFilesFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
+              <div className="text-[15px] font-semibold text-gray-900 flex items-center gap-2"><i className="ti ti-folder text-[#E0197D]" style={{ fontSize: 16 }} /> קבצים — {filesFor.name}</div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              <label className={`flex items-center justify-center gap-2 border-2 border-dashed border-[#E7A9C8] rounded-xl py-4 text-[13px] cursor-pointer hover:bg-[#FCE4F3] mb-4 ${filesUploading ? 'opacity-60 pointer-events-none' : 'text-[#E0197D]'}`}>
+                <i className="ti ti-upload" style={{ fontSize: 16 }} />
+                {filesUploading ? 'מעלה…' : 'העלה קובץ PDF'}
+                <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={filesUploading}
+                  onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; uploadFile(f) }} />
+              </label>
+              {(filesFor.aspects?.files || []).length === 0 ? (
+                <div className="text-center text-[13px] text-gray-400 py-6">אין קבצים מצורפים</div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {(filesFor.aspects?.files || []).map(f => (
+                    <div key={f.id} className="flex items-center gap-2 border border-[#F5D3E7] rounded-lg px-3 py-2">
+                      <i className="ti ti-file-type-pdf text-[#E0197D]" style={{ fontSize: 18 }} />
+                      <a href={f.url} target="_blank" rel="noreferrer" className="flex-1 text-[13px] text-gray-800 hover:text-[#E0197D] truncate text-right">{f.name}</a>
+                      <a href={f.url} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-[#E0197D]" title="פתח"><i className="ti ti-external-link" style={{ fontSize: 15 }} /></a>
+                      <button onClick={() => removeFile(f)} className="text-gray-300 hover:text-red-500" title="מחק"><i className="ti ti-trash" style={{ fontSize: 15 }} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {editProd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setEditProd(null)}>
           <div className="bg-white rounded-2xl w-full max-w-sm p-5" dir="rtl" onClick={e => e.stopPropagation()}>
