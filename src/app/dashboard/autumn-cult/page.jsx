@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V32
+// HAZIRA-CULT-V33
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -157,6 +157,8 @@ export default function CultPage() {
   const [dayNoteFor, setDayNoteFor] = useState(null)
   const [dayNoteDraft, setDayNoteDraft] = useState('')
   const [crewExportOpen, setCrewExportOpen] = useState(false)
+  const [dayMenuFor, setDayMenuFor] = useState(null)   // date whose day-aspect menu is open
+  const [whoWhenFor, setWhoWhenFor] = useState(null)   // date whose "who & when" window is open
   const dragId = useRef(null)
   const [dragOverId, setDragOverId] = useState(null)
 
@@ -430,6 +432,25 @@ export default function CultPage() {
     await supabase.from('cult_config').update({ day_notes: dn, updated_at: new Date().toISOString() }).eq('id', 1)
   }
 
+  // ---- "מי ומתי" (day-level: crew + arrival/end) ----
+  async function saveWhoWhen(ds, arr) {
+    const ww = { ...(config.who_when || {}), [ds]: arr }
+    setConfig(c => ({ ...c, who_when: ww }))
+    await supabase.from('cult_config').update({ who_when: ww, updated_at: new Date().toISOString() }).eq('id', 1)
+  }
+  function addWhoWhen(ds, name) {
+    const list = (config.who_when || {})[ds] || []
+    if (!name || list.some(r => r.name === name)) return
+    saveWhoWhen(ds, [...list, { name, arrival: '', end: '' }])
+  }
+  function updateWhoWhen(ds, index, field, val) {
+    const list = ((config.who_when || {})[ds] || []).map((r, i) => i === index ? { ...r, [field]: val } : r)
+    saveWhoWhen(ds, list)
+  }
+  function removeWhoWhen(ds, index) {
+    saveWhoWhen(ds, ((config.who_when || {})[ds] || []).filter((_, i) => i !== index))
+  }
+
   // ---- PDF exports ----
   function exportBoard() {
     const ds2 = dateRange(config?.date_from, config?.date_to)
@@ -626,18 +647,32 @@ export default function CultPage() {
               <tr className="bg-[#B6CFD0]">
                 {dates.map(ds => {
                   const we = isWeekend(ds)
+                  const hasWW = ((config.who_when || {})[ds] || []).length
                   return (
-                    <th key={ds} className={`border border-black ${we ? 'px-1 py-2 w-9 min-w-[34px]' : 'px-3 py-2 min-w-[160px]'}`}>
-                      {we ? (
-                        <>
-                          <div className="text-[11px] font-bold text-gray-500">{dayName(ds).replace('יום ', '')}׳</div>
-                          <div className="text-[9px] text-gray-400 whitespace-nowrap">{ds.split('-')[2]}/{ds.split('-')[1]}</div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="text-[12px] font-bold text-gray-800">{fmtCell(ds)}</div>
-                          <div className="text-[11px] text-gray-600">{dayName(ds)}</div>
-                        </>
+                    <th key={ds} className={`border border-black relative ${we ? 'px-1 py-2 w-9 min-w-[34px]' : 'px-2 py-2 min-w-[160px]'}`}>
+                      <button onClick={() => setDayMenuFor(dayMenuFor === ds ? null : ds)} className="w-full hover:bg-black/5 rounded-lg py-0.5 px-1 relative">
+                        {we ? (
+                          <>
+                            <div className="text-[11px] font-bold text-gray-500">{dayName(ds).replace('יום ', '')}׳</div>
+                            <div className="text-[9px] text-gray-400 whitespace-nowrap">{ds.split('-')[2]}/{ds.split('-')[1]}</div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="text-[12px] font-bold text-gray-800">{fmtCell(ds)}</div>
+                            <div className="text-[11px] text-gray-600 flex items-center justify-center gap-1">{dayName(ds)}<i className="ti ti-chevron-down text-gray-400" style={{ fontSize: 11 }} /></div>
+                          </>
+                        )}
+                        {hasWW ? <span className="absolute top-0 left-0 w-1.5 h-1.5 rounded-full bg-[#E0197D]" /> : null}
+                      </button>
+                      {dayMenuFor === ds && (
+                        <div className="absolute z-30 mt-1 right-1 bg-white border border-[#EFC0D9] rounded-xl shadow-lg p-1 w-44 text-right font-normal">
+                          <button onClick={() => { setWhoWhenFor(ds); setDayMenuFor(null) }}
+                            className="w-full text-right px-2 py-1.5 rounded-lg text-[13px] text-gray-700 hover:bg-[#FCE4F3] flex items-center gap-2 flex-row-reverse">
+                            <i className="ti ti-clock-hour-4" style={{ fontSize: 14 }} />
+                            <span className="flex-1">מי ומתי</span>
+                            {hasWW ? <span className="w-1.5 h-1.5 rounded-full bg-[#E0197D]" /> : null}
+                          </button>
+                        </div>
                       )}
                     </th>
                   )
@@ -1102,6 +1137,58 @@ export default function CultPage() {
                         <i className="ti ti-file-type-pdf text-[#E0197D]" style={{ fontSize: 16 }} />
                         <span className="flex-1 text-[13px] text-gray-800">{n}</span>
                       </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* who & when — day-level crew arrival/end */}
+      {whoWhenFor && (() => {
+        const ds = whoWhenFor
+        const list = (config.who_when || {})[ds] || []
+        const confirmed = [...new Set([...dayCrewConfirmed(ds), ...dayOpCrew(ds)])].sort((a, b) => a.localeCompare(b, 'he'))
+        const available = confirmed.filter(n => !list.some(r => r.name === n))
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setWhoWhenFor(null)}>
+            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
+                <button onClick={() => setWhoWhenFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
+                <div className="text-[15px] font-semibold text-gray-900 flex items-center gap-2"><i className="ti ti-clock-hour-4 text-[#E0197D]" style={{ fontSize: 16 }} /> מי ומתי — {dayName(ds)} {fmtCell(ds)}</div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="mb-3">
+                  {available.length > 0 ? (
+                    <select value="" onChange={e => { if (e.target.value) { addWhoWhen(ds, e.target.value); e.target.value = '' } }}
+                      className="w-full text-[13px] px-3 py-2 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right">
+                      <option value="">+ הוסף איש צוות (שאישר)…</option>
+                      {available.map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  ) : (
+                    <div className="text-[12px] text-gray-400 text-center py-2">
+                      {confirmed.length === 0 ? 'אין מי שאישר השתתפות ביום זה (סטטוס "אישר")' : 'כל מי שאישר כבר נבחר'}
+                    </div>
+                  )}
+                </div>
+                {list.length === 0 ? (
+                  <div className="text-center text-[13px] text-gray-400 py-6">בחר אנשי צוות והגדר שעת הגעה וסיום</div>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2 px-1 text-[10px] text-gray-400">
+                      <span className="flex-1">שם</span><span className="w-24 text-center">הגעה</span><span className="w-24 text-center">סיום</span><span className="w-5" />
+                    </div>
+                    {list.map((r, i) => (
+                      <div key={i} className="flex items-center gap-2 border border-[#F5D3E7] rounded-lg px-3 py-2">
+                        <span className="flex-1 text-[13px] text-gray-800">{r.name}</span>
+                        <input type="time" value={r.arrival || ''} onChange={e => updateWhoWhen(ds, i, 'arrival', e.target.value)}
+                          className="w-24 text-[12px] px-2 py-1 border border-[#EFC0D9] rounded-lg bg-white outline-none focus:border-[#E0197D] text-center" />
+                        <input type="time" value={r.end || ''} onChange={e => updateWhoWhen(ds, i, 'end', e.target.value)}
+                          className="w-24 text-[12px] px-2 py-1 border border-[#EFC0D9] rounded-lg bg-white outline-none focus:border-[#E0197D] text-center" />
+                        <button onClick={() => removeWhoWhen(ds, i)} className="text-gray-300 hover:text-red-500"><i className="ti ti-x" style={{ fontSize: 14 }} /></button>
+                      </div>
                     ))}
                   </div>
                 )}
