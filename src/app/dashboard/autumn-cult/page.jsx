@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V33
+// HAZIRA-CULT-V34
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -492,6 +492,64 @@ export default function CultPage() {
     printExport(`זמנים — ${timesFor.name}`, `<table><thead><tr><th>שעה</th><th>מה</th><th>מי</th><th>הערות</th></tr></thead><tbody>${rows}</tbody></table>`)
   }
 
+  // ---- Excel export/import (times + gear) ----
+  async function xlsxDownload(rows, header, sheetName, filename) {
+    try {
+      const XLSX = await import('xlsx')
+      const ws = XLSX.utils.json_to_sheet(rows, { header })
+      const wb = XLSX.utils.book_new()
+      wb.Workbook = { Views: [{ RTL: true }] }
+      XLSX.utils.book_append_sheet(wb, ws, sheetName)
+      XLSX.writeFile(wb, filename)
+    } catch (e) { alert('שגיאה בייצוא אקסל: ' + (e?.message || e)) }
+  }
+  async function xlsxRead(file) {
+    const XLSX = await import('xlsx')
+    const data = await file.arrayBuffer()
+    const wb = XLSX.read(data)
+    return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' })
+  }
+  function timesExportExcel() {
+    if (!timesFor) return
+    xlsxDownload(times.map(r => ({ 'שעה': r.time || '', 'מה': r.what || '', 'מי': r.who || '', 'הערות': r.notes || '' })), ['שעה', 'מה', 'מי', 'הערות'], 'זמנים', `זמנים - ${timesFor.name}.xlsx`)
+  }
+  async function timesImportExcel(file) {
+    if (!file || !timesFor) return
+    try {
+      const rows = await xlsxRead(file)
+      const add = rows.map(r => ({ id: newTagId(), time: String(r['שעה'] ?? r['time'] ?? '').trim(), what: String(r['מה'] ?? r['what'] ?? '').trim(), who: String(r['מי'] ?? r['who'] ?? '').trim(), notes: String(r['הערות'] ?? r['notes'] ?? '').trim() }))
+        .filter(r => r.time || r.what || r.who || r.notes)
+      if (!add.length) { alert('לא נמצאו שורות (צריך כותרות: שעה, מה, מי, הערות)'); return }
+      const next = [...times, ...add]; setTimes(next); saveTimes(next)
+    } catch (e) { alert('שגיאה בייבוא: ' + (e?.message || e)) }
+  }
+  function gearExportExcel() {
+    if (!gearFor) return
+    const rows = gear.map(g => {
+      if (g.manual) return { 'פריט': g.name, 'כמות': g.quantity || '', 'קטגוריה': 'ידני' }
+      const item = allItems.find(i => i.id === g.equipment_item_id)
+      const sub = subcats.find(s => s.id === item?.subcategory_id)
+      return { 'פריט': item?.name || '', 'כמות': g.quantity || '', 'קטגוריה': sub?.name || '' }
+    })
+    xlsxDownload(rows, ['פריט', 'כמות', 'קטגוריה'], 'ציוד', `ציוד - ${gearFor.name}.xlsx`)
+  }
+  async function gearImportExcel(file) {
+    if (!file || !gearFor) return
+    try {
+      const rows = await xlsxRead(file)
+      const add = []
+      rows.forEach(r => {
+        const name = String(r['פריט'] ?? r['שם'] ?? r['name'] ?? '').trim()
+        if (!name) return
+        const qty = String(r['כמות'] ?? r['quantity'] ?? '1').trim() || '1'
+        const item = allItems.find(i => (i.name || '').trim() === name)
+        add.push(item ? { equipment_item_id: item.id, quantity: qty } : { manual: true, id: newTagId(), name, quantity: qty })
+      })
+      if (!add.length) { alert('לא נמצאו פריטים (צריך כותרות: פריט, כמות)'); return }
+      const next = [...gear, ...add]; setGear(next); saveGear(next)
+    } catch (e) { alert('שגיאה בייבוא: ' + (e?.message || e)) }
+  }
+
   // ---- personal schedule (per crew member) ----
   function allCrewNames() {
     const set = new Set()
@@ -955,6 +1013,11 @@ export default function CultPage() {
               <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
                 <button onClick={() => setGearFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
                 <div className="flex items-center gap-3">
+                  <label className="text-[#0f766e] hover:text-[#0b5c56] cursor-pointer" title="ייבוא מאקסל">
+                    <i className="ti ti-file-import" style={{ fontSize: 16 }} />
+                    <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; gearImportExcel(f) }} />
+                  </label>
+                  <button onClick={gearExportExcel} className="text-[#166534] hover:text-[#0f4023]" title="ייצוא לאקסל"><i className="ti ti-file-spreadsheet" style={{ fontSize: 16 }} /></button>
                   <button onClick={exportGear} className="text-[#E0197D] hover:text-[#A0106A]" title="ייצוא PDF"><i className="ti ti-file-type-pdf" style={{ fontSize: 16 }} /></button>
                   <div className="text-[15px] font-semibold text-gray-900">ציוד — {gearFor.name} <span className="text-[12px] text-gray-400 font-normal">({gear.length} פריטים)</span></div>
                 </div>
@@ -1073,6 +1136,11 @@ export default function CultPage() {
             <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
               <button onClick={() => setTimesFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
               <div className="flex items-center gap-3">
+                <label className="text-[#0f766e] hover:text-[#0b5c56] cursor-pointer" title="ייבוא מאקסל">
+                  <i className="ti ti-file-import" style={{ fontSize: 16 }} />
+                  <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; timesImportExcel(f) }} />
+                </label>
+                <button onClick={timesExportExcel} className="text-[#166534] hover:text-[#0f4023]" title="ייצוא לאקסל"><i className="ti ti-file-spreadsheet" style={{ fontSize: 16 }} /></button>
                 <button onClick={exportTimes} className="text-[#E0197D] hover:text-[#A0106A]" title="ייצוא PDF"><i className="ti ti-file-type-pdf" style={{ fontSize: 16 }} /></button>
                 <div className="text-[15px] font-semibold text-gray-900">זמנים — {timesFor.name}</div>
               </div>
