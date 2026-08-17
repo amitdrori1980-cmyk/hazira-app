@@ -81,6 +81,12 @@ function resolveShowType(types) {
   const exact = list.find(t => t.label === 'מופע' || t.value === 'מופע')
   return exact ? exact.value : 'מופע'
 }
+// זיהוי מופע חסין: תמיד 'show' (הערך שנשמר בפועל) + כל סוג שתויותו 'מופע'
+function showTypeSet(types) {
+  const set = new Set(['show'])
+  ;(types || []).forEach(t => { if (t && (t.label === 'מופע' || t.value === 'מופע')) set.add(t.value) })
+  return set
+}
 
 // תכנית הפעולה — היסטים בימים מתאריך המופע (מהמוקדם למאוחר)
 const PLAN_ACTIONS = [
@@ -131,6 +137,7 @@ export default function MarketingPage() {
 }
 
 // HAZIRA-MKT-TASKS-V4
+// HAZIRA-MKT-SHOWTYPE-V5
 function MarketingTasks() {
   const [tasks, setTasks] = useState([])
   const [comments, setComments] = useState({})
@@ -703,9 +710,9 @@ function Dashboard() {
       supabase.from('events').select('id,title,date,end_date,type').order('date'),
       supabase.from('monitor_swaps').select('event_id'),
     ])
-    const showType = resolveShowType(types)
+    const showTypes = showTypeSet(types)
     const doneSet = new Set((done || []).map(d => String(d.event_id)))
-    const shows = (evs || []).filter(e => e.type === showType)
+    const shows = (evs || []).filter(e => showTypes.has(e.type))
     const endedShows = shows
       .filter(e => endOf(e) < todayStr)
       .sort((a, b) => endOf(b).localeCompare(endOf(a)))
@@ -789,14 +796,14 @@ function Monitor() {
       supabase.from('marketing_campaigns').select('id,title,start_date,end_date'),
       supabase.from('marketing_campaign_actions').select('id,campaign_id,date,label,free_text,done'),
     ])
-    const showType = resolveShowType(types)
+    const showTypes = showTypeSet(types)
     const map = {}
     const hidden = new Set()
     for (const r of (rows || [])) {
       map[`${r.event_id}::${r.action_key}`] = r
       if (r.action_key === '__event__' && r.deleted) hidden.add(String(r.event_id))
     }
-    const shows = (evs || []).filter(e => e.type === showType && !hidden.has(String(e.id)))
+    const shows = (evs || []).filter(e => showTypes.has(e.type) && !hidden.has(String(e.id)))
     function buildItems(evList) {
       const items = []
       for (const ev of evList) {
@@ -1025,9 +1032,9 @@ function Gantts() {
       supabase.from('events').select('id,title,date,type').order('date'),
       supabase.from('marketing_plan').select('event_id,action_key,custom_date,notes,done,custom_label,deleted,free_text'),
     ])
-    const showType = resolveShowType(types)
+    const showTypes = showTypeSet(types)
     const hidden = new Set((rows || []).filter(r => r.action_key === '__event__' && r.deleted).map(r => String(r.event_id)))
-    const allShowsList = (evs || []).filter(e => e.type === showType)
+    const allShowsList = (evs || []).filter(e => showTypes.has(e.type))
     const visible = allShowsList.filter(e => !hidden.has(String(e.id)))
     const upcoming = visible.filter(e => e.date >= todayStr)
     const pastEv = visible.filter(e => e.date < todayStr).sort((a, b) => b.date.localeCompare(a.date))
