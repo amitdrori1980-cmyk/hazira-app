@@ -12,6 +12,7 @@ import ProjectPlansMode from './ProjectPlansMode'
 // HAZIRA-PRODINQ-BULKIMPORT-V39
 // HAZIRA-PRODINQ-MOBILE-V40
 // HAZIRA-PRODINQ-UNIFIEDREVIEW-V41
+// HAZIRA-PRODINQ-CULTREVIEWBTN-V42
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -91,7 +92,14 @@ function ProductionInquiries() {
 
   useEffect(() => { load() }, [])
 
-  // פתיחה אוטומטית של אירוע מתוך ניהול אירועים (?inq=שם&date=...&venue=...)
+  // פתיחה אוטומטית של חלון הבדיקה המאוחד מתוך פולחן הסתיו (?review=1)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (new URLSearchParams(window.location.search).get('review') === '1') {
+      setReviewOpen(true); setReviewPerson(''); setReviewLink(null); setReviewResponses([])
+      loadReviewLinksList(); loadCultGreen()
+    }
+  }, [])
   useEffect(() => {
     if (loading || didAutoOpen) return
     const params = new URLSearchParams(window.location.search)
