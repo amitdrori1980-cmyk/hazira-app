@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-REVIEW-PUBLIC-V4
+// HAZIRA-REVIEW-PUBLIC-V5
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -31,7 +31,7 @@ export default function ReviewPage() {
       const its = l.items || []
       ;(rs || []).forEach(r => {
         let idx = -1
-        if (r.item_key) idx = its.findIndex(x => (x.eid + ':' + x.slot) === r.item_key)
+        if (r.item_key) idx = its.findIndex(x => (x.key || (x.eid + ':' + x.slot)) === r.item_key)
         if (idx < 0 && r.item_index != null) idx = r.item_index
         if (idx >= 0) map[idx] = { decision: r.decision || '', note: r.note || '', updated_at: r.updated_at || null }
       })
@@ -43,7 +43,7 @@ export default function ReviewPage() {
 
   function itemKey(idx) {
     const it = (link?.items || [])[idx]
-    return it ? (it.eid + ':' + it.slot) : ('idx:' + idx)
+    return it ? (it.key || (it.eid != null ? it.eid + ':' + it.slot : 'idx:' + idx)) : ('idx:' + idx)
   }
 
   async function setDecision(idx, decision) {

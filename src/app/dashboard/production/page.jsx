@@ -11,6 +11,7 @@ import ProjectPlansMode from './ProjectPlansMode'
 // HAZIRA-PRODINQ-SLOTS14-V38
 // HAZIRA-PRODINQ-BULKIMPORT-V39
 // HAZIRA-PRODINQ-MOBILE-V40
+// HAZIRA-PRODINQ-UNIFIEDREVIEW-V41
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -68,6 +69,7 @@ function ProductionInquiries() {
   const [reviewResponses, setReviewResponses] = useState([])
   const [reviewBusy, setReviewBusy] = useState(false)
   const [reviewLinksList, setReviewLinksList] = useState([])
+  const [cultGreenItems, setCultGreenItems] = useState([])
   const [notesDraft, setNotesDraft] = useState({})
   const dragId = useRef(null)
   const [draggingId, setDraggingId] = useState(null)
@@ -580,11 +582,35 @@ function ProductionInquiries() {
       const arr = slots[ev.id] || []
       arr.forEach(s => {
         if ((s.status === 'green' || s.status === 'teal') && s.name && s.name.trim()) {
-          items.push({ eid: ev.id, slot: s.slot, name: s.name.trim(), event_name: ev.event_name || '', date: ev.date || '', venue: ev.venue || '' })
+          items.push({ source: 'production', key: ev.id + ':' + s.slot, eid: ev.id, slot: s.slot, name: s.name.trim(), event_name: ev.event_name || '', date: ev.date || '', venue: ev.venue || '' })
         }
       })
     })
-    return items
+    return [...items, ...cultGreenItems]
+  }
+
+  // איסוף ירוקים מפולחן הסתיו (נעול ב-RLS למנהל בלבד; יחזור ריק לאחרים)
+  const CULT_CREW_ROWS = [
+    { key: 'operation', label: 'צוות הפעלה' },
+    { key: 'setup', label: 'צוות הקמה' },
+    { key: 'strike', label: 'צוות פירוק' },
+  ]
+  async function loadCultGreen() {
+    try {
+      const { data } = await supabase.from('cult_productions').select('id,name,date,venue,aspects')
+      const items = []
+      ;(data || []).forEach(p => {
+        const crew = p.aspects?.crew || {}
+        CULT_CREW_ROWS.forEach(r => {
+          (crew[r.key] || []).forEach(t => {
+            if ((t.status === 'green' || t.status === 'teal') && (t.name || '').trim()) {
+              items.push({ source: 'cult', prodId: p.id, rowKey: r.key, tagId: t.id, key: 'cult:' + p.id + ':' + t.id, name: t.name.trim(), event_name: p.name || '', date: p.date || '', venue: p.venue || '' })
+            }
+          })
+        })
+      })
+      setCultGreenItems(items)
+    } catch (e) { setCultGreenItems([]) }
   }
 
   function greenPeople() {
@@ -635,15 +661,19 @@ function ProductionInquiries() {
     }
     const { data: rs } = await supabase.from('review_responses').select('*').eq('token', lk.token)
     const respondedKeys = (rs || []).filter(r => r.decision && r.item_key).map(r => r.item_key)
+    const keyOf = i => (i.key || (i.eid + ':' + i.slot))
     const seen = new Set()
     const merged = []
     const pushKey = (k, obj) => { if (seen.has(k)) return; seen.add(k); merged.push(obj) }
-    liveGreen.forEach(i => pushKey(i.eid + ':' + i.slot, i))
+    liveGreen.forEach(i => pushKey(keyOf(i), i))
     respondedKeys.forEach(k => {
+      const existing = (lk.items || []).find(x => keyOf(x) === k)
+      if (existing) { pushKey(k, existing); return }
+      // legacy production reconstruction (eid:slot)
       const parts = k.split(':'); const eid = parts[0]; const slot = parseInt(parts[1], 10)
       const ev = (events || []).find(e => e.id === eid)
       const nm = (slots[eid] && slots[eid][slot] && slots[eid][slot].name) || name
-      pushKey(k, { eid, slot, name: nm, event_name: ev ? (ev.event_name || '') : '', date: ev ? (ev.date || '') : '', venue: ev ? (ev.venue || '') : '' })
+      pushKey(k, { source: 'production', key: k, eid, slot, name: nm, event_name: ev ? (ev.event_name || '') : '', date: ev ? (ev.date || '') : '', venue: ev ? (ev.venue || '') : '' })
     })
     await supabase.from('review_links').update({ items: merged }).eq('token', lk.token)
     lk = { ...lk, items: merged }
@@ -678,11 +708,22 @@ function ProductionInquiries() {
     let firstErr = null
     for (const r of (resp || [])) {
       let it = null
-      if (r.item_key) it = items.find(x => (x.eid + ':' + x.slot) === r.item_key)
+      if (r.item_key) it = items.find(x => ((x.key || (x.eid + ':' + x.slot)) === r.item_key))
       if (!it && r.item_index != null) it = items[r.item_index]
       if (!it) continue
       const status = r.decision === 'approve' ? 'yellow' : r.decision === 'reject' ? 'red' : null
       if (!status) continue
+      if (it.source === 'cult') {
+        const { data: cp, error: gerr } = await supabase.from('cult_productions').select('aspects').eq('id', it.prodId).single()
+        if (gerr || !cp) { if (!firstErr) firstErr = gerr?.message || 'cult load'; continue }
+        const crew = cp.aspects?.crew || {}
+        const rowArr = (crew[it.rowKey] || []).map(t => t.id === it.tagId ? { ...t, status, ...(r.note && r.note.trim() ? { note: r.note.trim() } : {}) } : t)
+        const aspects = { ...(cp.aspects || {}), crew: { ...crew, [it.rowKey]: rowArr } }
+        const { error } = await supabase.from('cult_productions').update({ aspects }).eq('id', it.prodId)
+        if (error) { if (!firstErr) firstErr = error.message; continue }
+        applied++
+        continue
+      }
       const payload = { production_event_id: it.eid, slot: it.slot, name: it.name, status }
       if (r.note && r.note.trim()) payload.note = r.note.trim()
       const { error } = await supabase.from('production_people').upsert(payload, { onConflict: 'production_event_id,slot' })
@@ -883,7 +924,7 @@ function ProductionInquiries() {
               className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
               <i className="ti ti-checkbox"/> בחר לייצוא
             </button>
-            <button onClick={() => { setReviewOpen(true); setReviewPerson(''); setReviewLink(null); setReviewResponses([]); loadReviewLinksList() }}
+            <button onClick={() => { setReviewOpen(true); setReviewPerson(''); setReviewLink(null); setReviewResponses([]); loadReviewLinksList(); loadCultGreen() }}
               className="bg-white border border-[#14b8a6] text-[#0f766e] text-sm px-4 py-2 rounded-lg hover:bg-[#ccfbf1] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
               <i className="ti ti-clipboard-check"/> שלח לבדיקה
             </button>
