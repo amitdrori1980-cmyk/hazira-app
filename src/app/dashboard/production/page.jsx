@@ -15,6 +15,7 @@ import ProjectPlansMode from './ProjectPlansMode'
 // HAZIRA-PRODINQ-CULTREVIEWBTN-V42
 // HAZIRA-PRODINQ-REVIEWGHOST-V43
 // HAZIRA-PRODINQ-CULTGHOST-V44
+// HAZIRA-PRODINQ-REVIEWDELROW-V45
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -722,6 +723,17 @@ function ProductionInquiries() {
     setReviewResponses(data || [])
   }
 
+  async function removeReviewItem(it, idx) {
+    if (!reviewLink) return
+    if (!window.confirm(`להסיר "${it.event_name || 'פריט זה'}" מרשימת הבדיקה?`)) return
+    const k = it.key || (it.eid != null ? it.eid + ':' + it.slot : null)
+    const nextItems = (reviewLink.items || []).filter((_, i) => i !== idx)
+    setReviewLink({ ...reviewLink, items: nextItems })
+    setReviewResponses(prev => prev.filter(r => (k ? r.item_key !== k : true)))
+    await supabase.from('review_links').update({ items: nextItems }).eq('token', reviewLink.token)
+    if (k) await supabase.from('review_responses').delete().eq('token', reviewLink.token).eq('item_key', k)
+  }
+
   async function applyReviewResponses() {
     if (!reviewLink) return
     setReviewBusy(true)
@@ -1023,7 +1035,10 @@ function ProductionInquiries() {
                     return (
                       <div key={idx} className="p-2.5 text-right">
                         <div className="flex items-center justify-between gap-2">
-                          <span className={`text-[11px] px-2 py-0.5 rounded-full ${decColor}`}>{decLabel}</span>
+                          <div className="flex items-center gap-1.5">
+                            <button onClick={() => removeReviewItem(it, idx)} className="text-gray-300 hover:text-red-500" title="הסר מהרשימה"><i className="ti ti-trash" style={{ fontSize: 14 }} /></button>
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full ${decColor}`}>{decLabel}</span>
+                          </div>
                           <span className="text-[13px] text-gray-800 flex-1">{it.event_name}{it.date ? ` · ${fmtDate(it.date)}` : ''}{it.venue ? ` · ${it.venue}` : ''}</span>
                         </div>
                         {r?.note && <div className="text-[12px] text-gray-500 mt-1">הערה: {r.note}</div>}
