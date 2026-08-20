@@ -15,6 +15,7 @@ const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלי�
 // HAZIRA-GCAL-TODAY-V14
 // HAZIRA-GCAL-BTNSTYLE-V16
 // HAZIRA-GCAL-VENUEDROPDOWN-V17
+// HAZIRA-GCAL-DAYNOTES-V18
 function conDisplayName(fullName, firstCount) {
   const key = (fullName || '').trim()
   if (CON_NAME_OVERRIDES[key]) return CON_NAME_OVERRIDES[key]
@@ -38,6 +39,7 @@ export default function CalendarPage() {
   const [calMonth, setCalMonth] = useState(new Date().getMonth())
   const [selectedDay, setSelectedDay] = useState(null)
   const [dayLinks, setDayLinks] = useState({}) // { 'YYYY-MM-DD': {date, schedule_id} }
+  const [dayNotes, setDayNotes] = useState({}) // { 'YYYY-MM-DD': 'note text' }
   const [schedules, setSchedules] = useState([]) // general_schedules for the picker
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerSearch, setPickerSearch] = useState('')
@@ -216,6 +218,8 @@ export default function CalendarPage() {
       setDayTasks(dtk || [])
       const { data: dl } = await supabase.from('day_links').select('*')
       const dlMap = {}; (dl || []).forEach(r => { if (!dlMap[r.date]) dlMap[r.date] = []; dlMap[r.date].push(r) }); setDayLinks(dlMap)
+      const { data: dn } = await supabase.from('calendar_day_notes').select('date, note')
+      const dnMap = {}; (dn || []).forEach(r => { if (r.note != null) dnMap[r.date] = r.note }); setDayNotes(dnMap)
       const { data: gs } = await supabase.from('general_schedules').select('id,title,venue').order('title')
       setSchedules(gs || [])
       const [{ data: profs }, { data: cm }, { data: ops }] = await Promise.all([
@@ -445,6 +449,16 @@ export default function CalendarPage() {
 
   const scheduleTitle = sid => { const s = schedules.find(x => x.id === sid); return s ? s.title : 'לוז' }
   const daySched = ds => dayLinks[ds] || []
+
+  async function saveDayNote(ds, val) {
+    const v = (val || '').trim()
+    setDayNotes(prev => { const n = { ...prev }; if (v) n[ds] = v; else delete n[ds]; return n })
+    if (v) {
+      await supabase.from('calendar_day_notes').upsert({ date: ds, note: v, updated_at: new Date().toISOString() }, { onConflict: 'date' })
+    } else {
+      await supabase.from('calendar_day_notes').delete().eq('date', ds)
+    }
+  }
 
   async function addDaySchedule(sid) {
     if (!selectedDay) return
@@ -819,6 +833,9 @@ export default function CalendarPage() {
                             <i className="ti ti-checklist" style={{ fontSize: 12 }} />{tasksForDay(c.ds).length} משימות
                           </div>
                         )}
+                        <input value={dayNotes[c.ds] ?? ''} onClick={ev => ev.stopPropagation()} onMouseDown={ev => ev.stopPropagation()}
+                          onChange={ev => setDayNotes(prev => ({ ...prev, [c.ds]: ev.target.value }))} onBlur={ev => saveDayNote(c.ds, ev.target.value)}
+                          placeholder="הערה…" className="mt-1 w-full text-[10px] md:text-[12px] px-1.5 py-1 rounded bg-white/70 border border-[#F3C9E2] outline-none focus:border-[#E0197D] text-right placeholder:text-gray-300" />
                       </div>
                     )
                   })}
@@ -888,6 +905,9 @@ export default function CalendarPage() {
                             <i className="ti ti-checklist" style={{ fontSize: 11 }} />{dTasks.length} משימות
                           </div>
                         )}
+                        <input value={dayNotes[c.ds] ?? ''} onClick={ev => ev.stopPropagation()} onMouseDown={ev => ev.stopPropagation()}
+                          onChange={ev => setDayNotes(prev => ({ ...prev, [c.ds]: ev.target.value }))} onBlur={ev => saveDayNote(c.ds, ev.target.value)}
+                          placeholder="הערה…" className="mt-1 w-full text-[9px] md:text-[11px] px-1 py-0.5 rounded bg-white/70 border border-[#F3C9E2] outline-none focus:border-[#E0197D] text-right placeholder:text-gray-300" />
                       </div>
                     )
                   })}
@@ -928,6 +948,13 @@ export default function CalendarPage() {
                 <i className="ti ti-plus" /> הוסף אירוע
               </button>
             )}
+          </div>
+
+          <div className="mb-4">
+            <label className="text-[12px] text-gray-500 mb-1 flex items-center gap-1"><i className="ti ti-note" style={{ fontSize: 14 }} /> הערת יום</label>
+            <textarea value={dayNotes[selectedDay] ?? ''} onChange={ev => setDayNotes(prev => ({ ...prev, [selectedDay]: ev.target.value }))} onBlur={ev => saveDayNote(selectedDay, ev.target.value)}
+              placeholder="הערה חופשית ליום זה…" rows={2}
+              className="w-full text-[14px] px-3 py-2 border border-[#F3C9E2] rounded-lg bg-[#FFF8FC] outline-none focus:border-[#E0197D] text-right resize-y" />
           </div>
           {/* לוזים ליום — קישור לכמה לוזים; פתיחה לכולם, עריכה למנהלים */}
           {(daySched(selectedDay).length > 0 || profile?.is_manager) && (
