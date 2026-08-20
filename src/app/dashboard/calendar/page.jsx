@@ -15,7 +15,7 @@ const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלי�
 // HAZIRA-GCAL-TODAY-V14
 // HAZIRA-GCAL-BTNSTYLE-V16
 // HAZIRA-GCAL-VENUEDROPDOWN-V17
-// HAZIRA-GCAL-DAYNOTES-V18
+// HAZIRA-GCAL-DAYNOTES-V19
 function conDisplayName(fullName, firstCount) {
   const key = (fullName || '').trim()
   if (CON_NAME_OVERRIDES[key]) return CON_NAME_OVERRIDES[key]
@@ -803,7 +803,7 @@ export default function CalendarPage() {
                       })
                     return (
                       <div key={ci} onClick={() => openDay(c.ds)}
-                        className={`min-h-[120px] md:min-h-[420px] rounded-lg p-1.5 md:p-2 cursor-pointer border transition-all ${
+                        className={`min-h-[120px] md:min-h-[420px] flex flex-col rounded-lg p-1.5 md:p-2 cursor-pointer border transition-all ${
                           isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
                           isToday ? 'bg-[#FCE4F3] border-transparent' :
                           'border-gray-100 bg-gray-50 hover:bg-gray-100'
@@ -833,9 +833,9 @@ export default function CalendarPage() {
                             <i className="ti ti-checklist" style={{ fontSize: 12 }} />{tasksForDay(c.ds).length} משימות
                           </div>
                         )}
-                        <input value={dayNotes[c.ds] ?? ''} onClick={ev => ev.stopPropagation()} onMouseDown={ev => ev.stopPropagation()}
+                        <textarea value={dayNotes[c.ds] ?? ''} onClick={ev => ev.stopPropagation()} onMouseDown={ev => ev.stopPropagation()} rows={1}
                           onChange={ev => setDayNotes(prev => ({ ...prev, [c.ds]: ev.target.value }))} onBlur={ev => saveDayNote(c.ds, ev.target.value)}
-                          placeholder="הערה…" className="mt-1 w-full text-[10px] md:text-[12px] px-1.5 py-1 rounded bg-white/70 border border-[#F3C9E2] outline-none focus:border-[#E0197D] text-right placeholder:text-gray-300" />
+                          placeholder="הערה…" className="mt-auto w-full text-[10px] md:text-[12px] px-1.5 py-1 rounded bg-white/70 border border-[#F3C9E2] outline-none focus:border-[#E0197D] text-right placeholder:text-gray-300 resize-none min-h-[24px]" />
                       </div>
                     )
                   })}
@@ -861,7 +861,7 @@ export default function CalendarPage() {
                     const dTasks = tasksForDay(c.ds)
                     return (
                       <div key={ci} onClick={() => openDay(c.ds)}
-                        className={`min-h-[72px] md:min-h-[150px] rounded-lg p-1.5 cursor-pointer border transition-all ${
+                        className={`min-h-[72px] md:min-h-[150px] flex flex-col rounded-lg p-1.5 cursor-pointer border transition-all ${
                           isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
                           isToday ? 'bg-[#FCE4F3] border-transparent' :
                           'border-gray-100 bg-gray-50 hover:bg-gray-100'
@@ -905,9 +905,9 @@ export default function CalendarPage() {
                             <i className="ti ti-checklist" style={{ fontSize: 11 }} />{dTasks.length} משימות
                           </div>
                         )}
-                        <input value={dayNotes[c.ds] ?? ''} onClick={ev => ev.stopPropagation()} onMouseDown={ev => ev.stopPropagation()}
+                        <textarea value={dayNotes[c.ds] ?? ''} onClick={ev => ev.stopPropagation()} onMouseDown={ev => ev.stopPropagation()} rows={1}
                           onChange={ev => setDayNotes(prev => ({ ...prev, [c.ds]: ev.target.value }))} onBlur={ev => saveDayNote(c.ds, ev.target.value)}
-                          placeholder="הערה…" className="mt-1 w-full text-[9px] md:text-[11px] px-1 py-0.5 rounded bg-white/70 border border-[#F3C9E2] outline-none focus:border-[#E0197D] text-right placeholder:text-gray-300" />
+                          placeholder="הערה…" className="mt-auto w-full text-[9px] md:text-[11px] px-1 py-0.5 rounded bg-white/70 border border-[#F3C9E2] outline-none focus:border-[#E0197D] text-right placeholder:text-gray-300 resize-none min-h-[20px]" />
                       </div>
                     )
                   })}
