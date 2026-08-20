@@ -14,6 +14,7 @@ import ProjectPlansMode from './ProjectPlansMode'
 // HAZIRA-PRODINQ-UNIFIEDREVIEW-V41
 // HAZIRA-PRODINQ-CULTREVIEWBTN-V42
 // HAZIRA-PRODINQ-REVIEWGHOST-V43
+// HAZIRA-PRODINQ-CULTGHOST-V44
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -673,20 +674,27 @@ function ProductionInquiries() {
     const respondedKeys = (rs || []).filter(r => r.decision && r.item_key).map(r => r.item_key)
     const keyOf = i => (i.key || (i.eid + ':' + i.slot))
     const eventExists = eid => (events || []).some(e => e.id === eid && !e.deleted_at)
+    // קיום הפקות פולחן (לזיהוי רפאים גם בצד הפולחן)
+    let cultIds = new Set()
+    try { const { data: cRows } = await supabase.from('cult_productions').select('id'); cultIds = new Set((cRows || []).map(r => r.id)) } catch (e) {}
     const seen = new Set()
     const merged = []
     const pushKey = (k, obj) => { if (seen.has(k)) return; seen.add(k); merged.push(obj) }
     liveGreen.forEach(i => pushKey(keyOf(i), i))
     respondedKeys.forEach(k => {
-      // אופציה א׳: דלג על "רפאים" — אירוע הפקה שנמחק/כבר לא קיים לא יופיע ברשימה
-      if (!String(k).startsWith('cult:')) {
-        const eid = String(k).split(':')[0]
+      const ks = String(k)
+      // אופציה א׳: דלג על "רפאים" — אירוע/הפקה שנמחק וכבר לא קיים
+      if (ks.startsWith('cult:')) {
+        const prodId = ks.split(':')[1]
+        if (!cultIds.has(prodId)) return
+      } else {
+        const eid = ks.split(':')[0]
         if (!eventExists(eid)) return
       }
       const existing = (lk.items || []).find(x => keyOf(x) === k)
       if (existing) { pushKey(k, existing); return }
       // legacy production reconstruction (eid:slot)
-      const parts = String(k).split(':'); const eid = parts[0]; const slot = parseInt(parts[1], 10)
+      const parts = ks.split(':'); const eid = parts[0]; const slot = parseInt(parts[1], 10)
       const ev = (events || []).find(e => e.id === eid)
       const nm = (slots[eid] && slots[eid][slot] && slots[eid][slot].name) || name
       pushKey(k, { source: 'production', key: k, eid, slot, name: nm, event_name: ev ? (ev.event_name || '') : '', date: ev ? (ev.date || '') : '', venue: ev ? (ev.venue || '') : '' })
