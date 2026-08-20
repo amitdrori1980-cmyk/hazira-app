@@ -13,6 +13,7 @@ import ProjectPlansMode from './ProjectPlansMode'
 // HAZIRA-PRODINQ-MOBILE-V40
 // HAZIRA-PRODINQ-UNIFIEDREVIEW-V41
 // HAZIRA-PRODINQ-CULTREVIEWBTN-V42
+// HAZIRA-PRODINQ-REVIEWGHOST-V43
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 function fmtDate(ds) {
@@ -646,6 +647,7 @@ function ProductionInquiries() {
   async function buildNewLink(name) {
     const items = greenItems().filter(i => i.name === name)
     if (!items.length) { alert('אין פעולות בירוק לאיש הצוות הזה'); return null }
+    items.sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.event_name || '').localeCompare(b.event_name || '', 'he'))
     let uid = null
     try { const { data } = await supabase.auth.getUser(); uid = data?.user?.id || null } catch (e) {}
     const token = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2))
@@ -670,19 +672,26 @@ function ProductionInquiries() {
     const { data: rs } = await supabase.from('review_responses').select('*').eq('token', lk.token)
     const respondedKeys = (rs || []).filter(r => r.decision && r.item_key).map(r => r.item_key)
     const keyOf = i => (i.key || (i.eid + ':' + i.slot))
+    const eventExists = eid => (events || []).some(e => e.id === eid && !e.deleted_at)
     const seen = new Set()
     const merged = []
     const pushKey = (k, obj) => { if (seen.has(k)) return; seen.add(k); merged.push(obj) }
     liveGreen.forEach(i => pushKey(keyOf(i), i))
     respondedKeys.forEach(k => {
+      // אופציה א׳: דלג על "רפאים" — אירוע הפקה שנמחק/כבר לא קיים לא יופיע ברשימה
+      if (!String(k).startsWith('cult:')) {
+        const eid = String(k).split(':')[0]
+        if (!eventExists(eid)) return
+      }
       const existing = (lk.items || []).find(x => keyOf(x) === k)
       if (existing) { pushKey(k, existing); return }
       // legacy production reconstruction (eid:slot)
-      const parts = k.split(':'); const eid = parts[0]; const slot = parseInt(parts[1], 10)
+      const parts = String(k).split(':'); const eid = parts[0]; const slot = parseInt(parts[1], 10)
       const ev = (events || []).find(e => e.id === eid)
       const nm = (slots[eid] && slots[eid][slot] && slots[eid][slot].name) || name
       pushKey(k, { source: 'production', key: k, eid, slot, name: nm, event_name: ev ? (ev.event_name || '') : '', date: ev ? (ev.date || '') : '', venue: ev ? (ev.venue || '') : '' })
     })
+    merged.sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.event_name || '').localeCompare(b.event_name || '', 'he'))
     await supabase.from('review_links').update({ items: merged }).eq('token', lk.token)
     lk = { ...lk, items: merged }
     setReviewLink(lk)
