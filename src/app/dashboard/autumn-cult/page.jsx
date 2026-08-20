@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-PERMGATE-V37
+// HAZIRA-CULT-DELFIX-V38
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -236,7 +236,9 @@ export default function CultPage() {
   }
   async function deleteProduction(id) {
     if (!window.confirm('למחוק את ההפקה?')) return
-    await supabase.from('cult_productions').delete().eq('id', id)
+    const { error, count } = await supabase.from('cult_productions').delete({ count: 'exact' }).eq('id', id)
+    if (error) { alert('שגיאה במחיקה: ' + error.message); return }
+    if (!count) { alert('המחיקה לא בוצעה (אין הרשאה או שההפקה כבר נמחקה). רענן ונסה שוב.'); return }
     setProds(prev => prev.filter(p => p.id !== id))
     setMenuFor(null)
   }
