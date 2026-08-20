@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-V35
+// HAZIRA-CULT-PERMGATE-V37
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -168,7 +168,18 @@ export default function CultPage() {
     try {
       const res = await supabase.auth.getUser().catch(() => null)
       const user = res?.data?.user
-      if (!user || user.id !== DEV_ID) { setAllowed(false); setChecking(false); return }
+      if (!user) { setAllowed(false); setChecking(false); return }
+      // הרשאה: מנהל, או בעל הרשאת autumn-cult (view/edit)
+      let ok = false
+      try {
+        const { data: me } = await supabase.from('profiles').select('is_manager').eq('id', user.id).single()
+        ok = !!me?.is_manager
+        if (!ok) {
+          const { data: acc } = await supabase.from('user_area_access').select('level').eq('user_id', user.id).eq('area', 'autumn-cult').maybeSingle()
+          ok = !!acc && (acc.level === 'view' || acc.level === 'edit')
+        }
+      } catch (e) { ok = false }
+      if (!ok) { setAllowed(false); setChecking(false); return }
       setAllowed(true)
       let cfg = null
       try {
