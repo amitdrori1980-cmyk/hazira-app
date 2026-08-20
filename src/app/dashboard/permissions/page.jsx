@@ -1,3 +1,4 @@
+// HAZIRA-PERMS-CULT-V1
 'use client'
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
@@ -13,6 +14,7 @@ const LEVELS = [
 const AREA_ORDER = [
   'dashboard','calendar','events','tasks','messages','specs','production','productions',
   'operations','equipment','storage','notes','constraints','crew','team','departments',
+  'autumn-cult',
   'venues','rundowns','duplicates','import','export','assistant','settings',
 ]
 
@@ -21,6 +23,7 @@ const FALLBACK_LABELS = {
   dashboard:'ראשי', calendar:'יומן', events:'אירועים', tasks:'משימות', messages:'הודעות',
   specs:'מפרטים', production:'הפקה', productions:'הפקות', operations:'תפעול', equipment:'ציוד',
   storage:'אחסון', notes:'הערות', constraints:'אילוצים', crew:'כוח אדם', team:'צוות',
+  'autumn-cult':'פולחן הסתיו',
   departments:'מחלקות', venues:'אולמות', rundowns:'ראנדאונים', duplicates:'כפילויות',
   import:'ייבוא', export:'ייצוא', assistant:'עוזר', settings:'הגדרות',
 }
