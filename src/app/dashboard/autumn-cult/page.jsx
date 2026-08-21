@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-IMPORTNODEL-V44
+// HAZIRA-CULT-MENUOUTSIDE-V45
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -801,6 +801,7 @@ export default function CultPage() {
                         )}
                         {hasWW ? <span className="absolute top-0 left-0 w-1.5 h-1.5 rounded-full bg-[#E0197D]" /> : null}
                       </button>
+                      {dayMenuFor === ds && <div className="fixed inset-0 z-20" onClick={() => setDayMenuFor(null)} />}
                       {dayMenuFor === ds && (
                         <div className="absolute z-30 mt-1 right-1 bg-white border border-[#EFC0D9] rounded-xl shadow-lg p-1 w-44 text-right font-normal">
                           <button onClick={() => { setWhoWhenFor(ds); setDayMenuFor(null) }}
@@ -844,6 +845,7 @@ export default function CultPage() {
                               <div className="text-[12px] font-medium text-gray-800 leading-tight">{p.name || '(ללא שם)'}</div>
                               {p.artist && <div className="text-[11px] text-gray-500 leading-tight">{p.artist}</div>}
                             </button>
+                            {menuFor === p.id && <div className="fixed inset-0 z-10" onClick={() => setMenuFor(null)} />}
                             {menuFor === p.id && (
                               <div className="absolute z-20 mt-1 right-0 bg-white border border-[#EFC0D9] rounded-xl shadow-lg p-1 w-48">
                                 <div className="px-2 py-1 flex items-center justify-between">
