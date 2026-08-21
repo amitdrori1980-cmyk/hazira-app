@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-MENUOUTSIDE-V45
+// HAZIRA-CULT-IMPORTRUNDOWN-V46
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -144,6 +144,9 @@ export default function CultPage() {
   const [manualQty, setManualQty] = useState('')
   const [timesFor, setTimesFor] = useState(null)   // production whose times (rundown) window is open
   const [times, setTimes] = useState([])           // [{ id, time, what, who, notes }]
+  const [schedPickerOpen, setSchedPickerOpen] = useState(false)
+  const [schedList, setSchedList] = useState([])
+  const [schedSearch, setSchedSearch] = useState('')
   const [filesFor, setFilesFor] = useState(null)   // production whose files window is open
   const [filesUploading, setFilesUploading] = useState(false)
   const [editProd, setEditProd] = useState(null)
@@ -379,6 +382,23 @@ export default function CultPage() {
     await supabase.from('cult_productions').update({ aspects }).eq('id', timesFor.id)
     setProds(prev => prev.map(p => p.id === timesFor.id ? { ...p, aspects } : p))
     setTimesFor(tf => tf ? { ...tf, aspects } : tf)
+  }
+  // ---- import rundown from "מפרטים ולוזים" (general_schedules) ----
+  async function openSchedPicker() {
+    setSchedSearch(''); setSchedPickerOpen(true)
+    const { data } = await supabase.from('general_schedules').select('id,title,venue').order('title', { ascending: true })
+    setSchedList(data || [])
+  }
+  async function importSchedule(sched) {
+    if (!timesFor) return
+    const { data: r } = await supabase.from('general_schedule_rows').select('*').eq('schedule_id', sched.id).order('sort_order')
+    const rows = (r || []).map(x => ({ id: newTagId(), time: x.time || '', what: x.what || '', who: x.who || '', notes: x.notes || '' }))
+    const aspects = { ...(timesFor.aspects || {}), times: rows, timesSource: { id: sched.id, title: sched.title } }
+    await supabase.from('cult_productions').update({ aspects }).eq('id', timesFor.id)
+    setProds(prev => prev.map(p => p.id === timesFor.id ? { ...p, aspects } : p))
+    setTimesFor(tf => tf ? { ...tf, aspects } : tf)
+    setTimes(rows)
+    setSchedPickerOpen(false)
   }
   function addTimeRow() {
     const next = [...times, { id: newTagId(), time: '', what: '', who: '', notes: '' }]
@@ -1244,13 +1264,16 @@ export default function CultPage() {
             <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
               <button onClick={() => setTimesFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
               <div className="flex items-center gap-3">
+                <button onClick={openSchedPicker} className="text-[12px] px-2.5 py-1 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1" title="ייבא לו״ז מאזור מפרטים ולוזים">
+                  <i className="ti ti-download" style={{ fontSize: 14 }} /> ייבא לו״ז
+                </button>
                 <label className="text-[#0f766e] hover:text-[#0b5c56] cursor-pointer" title="ייבוא מאקסל">
                   <i className="ti ti-file-import" style={{ fontSize: 16 }} />
                   <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; timesImportExcel(f) }} />
                 </label>
                 <button onClick={timesExportExcel} className="text-[#166534] hover:text-[#0f4023]" title="ייצוא לאקסל"><i className="ti ti-file-spreadsheet" style={{ fontSize: 16 }} /></button>
                 <button onClick={exportTimes} className="text-[#E0197D] hover:text-[#A0106A]" title="ייצוא PDF"><i className="ti ti-file-type-pdf" style={{ fontSize: 16 }} /></button>
-                <div className="text-[15px] font-semibold text-gray-900">זמנים — {timesFor.name}</div>
+                <div className="text-[15px] font-semibold text-gray-900">זמנים — {timesFor.name}{timesFor.aspects?.timesSource ? <span className="text-[11px] text-gray-400 font-normal"> · מקור: {timesFor.aspects.timesSource.title}</span> : null}</div>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
@@ -1290,6 +1313,42 @@ export default function CultPage() {
           </div>
         </div>
       )}
+
+      {/* schedule picker — import rundown from מפרטים ולוזים */}
+      {schedPickerOpen && (() => {
+        const q = schedSearch.trim().toLowerCase()
+        const list = q ? schedList.filter(s => (s.title || '').toLowerCase().includes(q) || (s.venue || '').toLowerCase().includes(q)) : schedList
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setSchedPickerOpen(false)}>
+            <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
+                <button onClick={() => setSchedPickerOpen(false)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 18 }} /></button>
+                <div className="text-[15px] font-semibold text-gray-900">ייבא לו״ז</div>
+              </div>
+              <div className="p-3 border-b border-[#F5D3E7]">
+                <input value={schedSearch} onChange={e => setSchedSearch(e.target.value)} placeholder="חיפוש לו״ז…" autoFocus
+                  className="w-full text-[13px] px-3 py-2 border border-[#EFC0D9] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right" />
+              </div>
+              <div className="flex-1 overflow-y-auto p-3">
+                {list.length === 0 ? (
+                  <div className="text-center text-[13px] text-gray-400 py-6">{schedList.length === 0 ? 'אין לו״זים באזור מפרטים ולוזים' : 'לא נמצאו תוצאות'}</div>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {list.map(s => (
+                      <button key={s.id} onClick={() => importSchedule(s)}
+                        className="flex items-center justify-between gap-2 border border-[#F5D3E7] rounded-lg px-3 py-2 hover:bg-[#FCE4F3] text-right">
+                        <i className="ti ti-download text-[#E0197D]" style={{ fontSize: 15 }} />
+                        <span className="flex-1"><span className="text-[13px] text-gray-800">{s.title}</span>{s.venue ? <span className="text-[11px] text-gray-400"> · {s.venue}</span> : null}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="text-[11px] text-gray-400 text-center mt-3">בחירה תחליף את שורות הלו״ז בכרטיס בגרסה העדכנית מהמקור</div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* personal schedule export picker */}
       {crewExportOpen && (() => {
