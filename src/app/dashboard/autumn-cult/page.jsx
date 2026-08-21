@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-NOREVIEW-V39
+// HAZIRA-CULT-NOTAG-V40
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -623,7 +623,7 @@ export default function CultPage() {
   if (!allowed) return (
     <div dir="rtl" className="p-10 text-center">
       <div className="text-gray-700 font-semibold">אין הרשאה</div>
-      <div className="text-gray-400 text-sm mt-1">האזור הזה בפיתוח וזמין רק למנהל המערכת.</div>
+      <div className="text-gray-400 text-sm mt-1">אין לך גישה לאזור פולחן הסתיו. פנה למנהל המערכת כדי לקבל הרשאה.</div>
     </div>
   )
   if (!config) return <div dir="rtl" className="p-8 text-center text-gray-400">טוען...</div>
@@ -657,7 +657,6 @@ export default function CultPage() {
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <input value={config.title || ''} onChange={e => setConfig(c => ({ ...c, title: e.target.value }))} onBlur={e => saveConfig({ title: e.target.value })}
           className="text-xl md:text-2xl font-bold text-[#E0197D] bg-transparent outline-none border-b border-transparent focus:border-[#E0197D] flex-1 min-w-[200px]" />
-        <span className="text-[11px] text-gray-400 border border-[#EFC0D9] rounded-full px-2 py-0.5">בפיתוח · גלוי רק לך</span>
         <button onClick={exportBoard} className="text-[12px] px-3 py-1.5 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1">
           <i className="ti ti-file-type-pdf" style={{ fontSize: 14 }} /> ייצוא PDF
         </button>
