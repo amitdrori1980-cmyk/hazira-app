@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-NOTAG-V40
+// HAZIRA-CULT-IMPORT-V41
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -429,6 +429,36 @@ export default function CultPage() {
     await supabase.from('cult_productions').update({ aspects }).eq('id', prodId)
   }
   function dayCrew(ds) { return dayCrewByKey(ds, 'crew', CREW_ROWS) }
+  function dayCrewList(ds) { return (config.day_crew || {})[ds] || [] }
+
+  // ייבוא חד-צדדי מההפקה הטכנית: מושך צוות + סטטוסים לכל תאריך בטווח הפולחן.
+  async function importFromProduction() {
+    const from = config?.date_from, to = config?.date_to
+    if (!from || !to) { alert('קבע קודם טווח תאריכים לפולחן (מתאריך / עד תאריך)'); return }
+    if (!window.confirm('לייבא/לעדכן את הצוות מההפקה הטכנית לפי טווח התאריכים? (הסטטוסים יתעדכנו, אנשי צוות חדשים יתווספו)')) return
+    try {
+      const { data: evs } = await supabase.from('production_events').select('id,date').gte('date', from).lte('date', to)
+      const live = (evs || []).filter(e => e.date)
+      if (!live.length) { alert('אין אירועי הפקה טכנית בטווח התאריכים'); return }
+      const dateOf = {}; live.forEach(e => { dateOf[e.id] = e.date })
+      const { data: ppl } = await supabase.from('production_people').select('production_event_id,name,status,note').in('production_event_id', live.map(e => e.id))
+      const dc = { ...(config.day_crew || {}) }
+      let added = 0, updated = 0
+      ;(ppl || []).forEach(p => {
+        const ds = dateOf[p.production_event_id]; const nm = (p.name || '').trim()
+        if (!ds || !nm) return
+        const list = dc[ds] ? [...dc[ds]] : []
+        const i = list.findIndex(x => x.name === nm)
+        if (i >= 0) { list[i] = { ...list[i], status: p.status || 'white', note: p.note || list[i].note || '' }; updated++ }
+        else { list.push({ id: newTagId(), name: nm, status: p.status || 'white', note: p.note || '' }); added++ }
+        dc[ds] = list
+      })
+      setConfig(c => ({ ...c, day_crew: dc }))
+      await supabase.from('cult_config').update({ day_crew: dc, updated_at: new Date().toISOString() }).eq('id', 1)
+      alert(`הצוות עודכן מההפקה הטכנית.\nחדשים: ${added} · עודכנו: ${updated}`)
+    } catch (e) { alert('שגיאה בייבוא: ' + (e?.message || e)) }
+  }
+
   function dayCrewConfirmed(ds) {
     const byName = dayCrewByKey(ds, 'crew', CREW_ROWS)
     return Object.keys(byName).filter(n => byName[n].some(e => e.status === 'yellow'))
@@ -657,6 +687,9 @@ export default function CultPage() {
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <input value={config.title || ''} onChange={e => setConfig(c => ({ ...c, title: e.target.value }))} onBlur={e => saveConfig({ title: e.target.value })}
           className="text-xl md:text-2xl font-bold text-[#E0197D] bg-transparent outline-none border-b border-transparent focus:border-[#E0197D] flex-1 min-w-[200px]" />
+        <button onClick={importFromProduction} className="text-[12px] px-3 py-1.5 rounded-lg border border-[#14b8a6] text-[#0f766e] hover:bg-[#ccfbf1] flex items-center gap-1" title="מושך צוות + סטטוסים מההפקה הטכנית לפי טווח התאריכים">
+          <i className="ti ti-download" style={{ fontSize: 14 }} /> ייבא מהפקה טכנית
+        </button>
         <button onClick={exportBoard} className="text-[12px] px-3 py-1.5 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1">
           <i className="ti ti-file-type-pdf" style={{ fontSize: 14 }} /> ייצוא PDF
         </button>
@@ -825,14 +858,18 @@ export default function CultPage() {
                 {dates.map(ds => {
                   const we = isWeekend(ds)
                   if (we) return <td key={ds} className="border border-black border-t-2 border-t-[#B6CFD0] bg-gray-50/50" />
-                  const names = dayCrewConfirmed(ds)
+                  const dc = dayCrewList(ds)
                   const opNames = dayOpCrew(ds)
                   return (
                     <td key={ds} className="border border-black border-t-2 border-t-[#B6CFD0] align-top p-1.5 min-w-[160px] bg-[#F6FBFB]">
-                      <button onClick={() => setCrewDayFor({ ds, mode: 'crew' })} className="w-full text-right mb-1.5">
-                        <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1"><i className="ti ti-users" style={{ fontSize: 11 }} /> צוות ({names.length})</div>
-                        <div className="text-[11px] text-gray-700 leading-snug break-words">{names.length ? names.join(', ') : <span className="text-gray-300">—</span>}</div>
-                      </button>
+                      <div className="mb-1.5">
+                        <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1"><i className="ti ti-users" style={{ fontSize: 11 }} /> צוות ({dc.length})</div>
+                        <div className="flex flex-wrap gap-1">
+                          {dc.length ? dc.map(p => { const st = cultStatus(p.status); return (
+                            <span key={p.id || p.name} style={{ backgroundColor: st.bg, color: st.text }} className="text-[10px] rounded px-1.5 py-0.5" title={st.label}>{p.name}</span>
+                          ) }) : <span className="text-gray-300 text-[11px]">— ייבא מהפקה טכנית</span>}
+                        </div>
+                      </div>
                       <button onClick={() => openDayOpCrew(ds)} className="w-full text-right pt-1.5 border-t border-[#F5D3E7] hover:bg-[#FCE4F3] rounded-b">
                         <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1"><i className="ti ti-briefcase" style={{ fontSize: 11 }} /> צוות תפעול ({opNames.length})</div>
                         <div className="text-[11px] text-gray-700 leading-snug break-words">{opNames.length ? opNames.join(', ') : <span className="text-gray-300">— לחץ לשיבוץ</span>}</div>
