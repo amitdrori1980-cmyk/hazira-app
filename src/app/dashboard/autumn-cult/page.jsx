@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-IMPORT-V41
+// HAZIRA-CULT-IMPORTCARDS-V42
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -437,7 +437,7 @@ export default function CultPage() {
     if (!from || !to) { alert('קבע קודם טווח תאריכים לפולחן (מתאריך / עד תאריך)'); return }
     if (!window.confirm('לייבא/לעדכן את הצוות מההפקה הטכנית לפי טווח התאריכים? (הסטטוסים יתעדכנו, אנשי צוות חדשים יתווספו)')) return
     try {
-      const { data: evs } = await supabase.from('production_events').select('id,date').gte('date', from).lte('date', to)
+      const { data: evs } = await supabase.from('production_events').select('id,date,event_name,venue').gte('date', from).lte('date', to)
       const live = (evs || []).filter(e => e.date)
       if (!live.length) { alert('אין אירועי הפקה טכנית בטווח התאריכים'); return }
       const dateOf = {}; live.forEach(e => { dateOf[e.id] = e.date })
@@ -455,7 +455,26 @@ export default function CultPage() {
       })
       setConfig(c => ({ ...c, day_crew: dc }))
       await supabase.from('cult_config').update({ day_crew: dc, updated_at: new Date().toISOString() }).eq('id', 1)
-      alert(`הצוות עודכן מההפקה הטכנית.\nחדשים: ${added} · עודכנו: ${updated}`)
+
+      // כרטיסים: מופע (type=show ביומן) -> הפקה; כל השאר -> פעולה. בלי כפילות (לפי שם+תאריך).
+      const { data: cal } = await supabase.from('events').select('title,date,type')
+      const showSet = new Set((cal || []).filter(e => e.type === 'show').map(e => `${(e.title || '').trim()}__${e.date}`))
+      const existing = new Set(prods.map(p => `${(p.name || '').trim()}__${p.date}`))
+      const newCards = []
+      live.forEach(pe => {
+        const nm = (pe.event_name || '').trim(); if (!nm) return
+        const key = `${nm}__${pe.date}`
+        if (existing.has(key)) return
+        existing.add(key)
+        const isShow = showSet.has(key)
+        newCards.push({ name: nm, artist: '', venue: pe.venue || null, time: null, kind: isShow ? 'production' : 'action', date: pe.date, sort_order: prods.length + newCards.length, aspects: {} })
+      })
+      let cardsAdded = 0
+      if (newCards.length) {
+        const { data: ins } = await supabase.from('cult_productions').insert(newCards).select()
+        if (ins) { setProds(prev => [...prev, ...ins]); cardsAdded = ins.length }
+      }
+      alert(`הייבוא הושלם.\nצוות — חדשים: ${added} · עודכנו: ${updated}\nכרטיסים חדשים: ${cardsAdded}`)
     } catch (e) { alert('שגיאה בייבוא: ' + (e?.message || e)) }
   }
 
