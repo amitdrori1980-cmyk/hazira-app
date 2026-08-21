@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-IMPORTCARDS-V42
+// HAZIRA-CULT-CREWPICK-V43
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -289,6 +289,18 @@ export default function CultPage() {
     setCrewAdd(a => ({ ...a, [row]: '' }))
   }
   function setTagNameLocal(row, id, name) { setCrew(c => ({ ...c, [row]: (c[row] || []).map(t => t.id === id ? { ...t, name } : t) })) }
+  // שיבוץ/ביטול איש צוות מהרשימה היומית לשורת כרטיס (הקמה/הפעלה/פירוק)
+  function toggleAssign(rowKey, name) {
+    const list = crew[rowKey] || []
+    const exists = list.some(t => t.name === name)
+    const next = exists ? list.filter(t => t.name !== name) : [...list, { id: newTagId(), name }]
+    mutateCrew({ ...crew, [rowKey]: next })
+  }
+  // סטטוס חי של איש צוות מהרשימה היומית (לפי תאריך הכרטיס)
+  function liveStatusOf(ds, name) {
+    const p = dayCrewList(ds).find(x => x.name === name)
+    return p ? (p.status || 'white') : 'white'
+  }
   function updateTag(row, id, patch) {
     mutateCrew({ ...crew, [row]: crew[row].map(t => t.id === id ? { ...t, ...patch } : t) })
   }
@@ -533,7 +545,10 @@ export default function CultPage() {
     const def = crewDefOf(crewCtx)
     const title = `${def.label} — ${crewCtx.kind === 'day' ? dayName(crewCtx.ds) + ' ' + fmtCell(crewCtx.ds) : crewCtx.prod.name}`
     const html = def.rows.map(r => {
-      const items = (crew[r.key] || []).map(t => `${esc(t.name)} <span class="muted">(${cultStatus(t.status).label})</span>${(t.note || '').trim() ? ' — ' + esc(t.note) : ''}`).join('<br>') || '<span class="muted">—</span>'
+      const items = (crew[r.key] || []).map(t => {
+        const stv = crewCtx.kind === 'prod' ? liveStatusOf(crewCtx.prod.date, t.name) : t.status
+        return `${esc(t.name)} <span class="muted">(${cultStatus(stv).label})</span>${(t.note || '').trim() ? ' — ' + esc(t.note) : ''}`
+      }).join('<br>') || '<span class="muted">—</span>'
       return `<h2>${esc(r.label)}</h2><div>${items}</div>`
     }).join('')
     printExport(title, html)
@@ -993,28 +1008,51 @@ export default function CultPage() {
             {crewDefOf(crewCtx).rows.map(row => (
               <div key={row.key} className="mb-4">
                 <div className="text-[12px] font-semibold text-gray-600 mb-1.5 text-right">{row.label}</div>
-                <div className="flex flex-wrap gap-1.5 items-center justify-end">
-                  {(crew[row.key] || []).map(tag => {
-                    const st = cultStatus(tag.status)
-                    return (
-                      <div key={tag.id} style={{ backgroundColor: st.bg, borderColor: 'rgba(0,0,0,0.12)' }}
-                        className="flex items-center gap-1.5 rounded-full border px-2 py-1">
-                        <button onClick={() => { setCrewEditing({ row: row.key, id: tag.id }); setStatusMenuOpen(false) }} title={st.label}
-                          className="w-3.5 h-3.5 rounded-full ring-1 ring-black/10 flex-shrink-0" style={{ background: st.text }} />
-                        <input value={tag.name} onChange={e => setTagNameLocal(row.key, tag.id, e.target.value)} onBlur={() => saveCrew(crew)}
-                          placeholder="שם" style={{ color: st.text }}
-                          className="bg-transparent outline-none text-[12px] text-right w-16 focus:w-24 transition-all" />
-                        {(tag.note || '').trim() && <i className="ti ti-message-2 flex-shrink-0" style={{ fontSize: 12, color: st.text }} />}
-                      </div>
-                    )
-                  })}
-                  <div className="flex items-center gap-1.5 rounded-full border border-dashed border-[#E7A9C8] px-2 py-1">
-                    <span className="w-3.5 h-3.5 rounded-full bg-gray-200 flex-shrink-0" />
-                    <input value={crewAdd[row.key] || ''} onChange={e => setCrewAdd(a => ({ ...a, [row.key]: e.target.value }))}
-                      onKeyDown={e => { if (e.key === 'Enter') addCrew(row.key) }} onBlur={() => { if ((crewAdd[row.key] || '').trim()) addCrew(row.key) }}
-                      placeholder="+ שם" className="bg-transparent outline-none text-[12px] text-right w-16 focus:w-24 transition-all placeholder:text-gray-400" />
+                {crewCtx.kind === 'prod' ? (() => {
+                  const ds = crewCtx.prod.date
+                  const dayList = dayCrewList(ds)
+                  const assigned = new Set((crew[row.key] || []).map(t => t.name))
+                  if (!dayList.length) return <div className="text-[12px] text-gray-400 text-right">אין רשימת צוות ליום זה — לחץ "ייבא מהפקה טכנית"</div>
+                  return (
+                    <div className="flex flex-wrap gap-1.5 items-center justify-end">
+                      {dayList.map(p => {
+                        const on = assigned.has(p.name)
+                        const st = cultStatus(p.status)
+                        return (
+                          <button key={p.id || p.name} onClick={() => toggleAssign(row.key, p.name)} title={st.label}
+                            style={on ? { backgroundColor: st.bg, color: st.text, borderColor: 'rgba(0,0,0,0.12)' } : {}}
+                            className={`text-[12px] rounded-full border px-2.5 py-1 flex items-center gap-1.5 ${on ? '' : 'border-dashed border-gray-300 text-gray-400 hover:border-[#E0197D] hover:text-[#E0197D]'}`}>
+                            {on && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: st.text }} />}
+                            {p.name}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )
+                })() : (
+                  <div className="flex flex-wrap gap-1.5 items-center justify-end">
+                    {(crew[row.key] || []).map(tag => {
+                      const st = cultStatus(tag.status)
+                      return (
+                        <div key={tag.id} style={{ backgroundColor: st.bg, borderColor: 'rgba(0,0,0,0.12)' }}
+                          className="flex items-center gap-1.5 rounded-full border px-2 py-1">
+                          <button onClick={() => { setCrewEditing({ row: row.key, id: tag.id }); setStatusMenuOpen(false) }} title={st.label}
+                            className="w-3.5 h-3.5 rounded-full ring-1 ring-black/10 flex-shrink-0" style={{ background: st.text }} />
+                          <input value={tag.name} onChange={e => setTagNameLocal(row.key, tag.id, e.target.value)} onBlur={() => saveCrew(crew)}
+                            placeholder="שם" style={{ color: st.text }}
+                            className="bg-transparent outline-none text-[12px] text-right w-16 focus:w-24 transition-all" />
+                          {(tag.note || '').trim() && <i className="ti ti-message-2 flex-shrink-0" style={{ fontSize: 12, color: st.text }} />}
+                        </div>
+                      )
+                    })}
+                    <div className="flex items-center gap-1.5 rounded-full border border-dashed border-[#E7A9C8] px-2 py-1">
+                      <span className="w-3.5 h-3.5 rounded-full bg-gray-200 flex-shrink-0" />
+                      <input value={crewAdd[row.key] || ''} onChange={e => setCrewAdd(a => ({ ...a, [row.key]: e.target.value }))}
+                        onKeyDown={e => { if (e.key === 'Enter') addCrew(row.key) }} onBlur={() => { if ((crewAdd[row.key] || '').trim()) addCrew(row.key) }}
+                        placeholder="+ שם" className="bg-transparent outline-none text-[12px] text-right w-16 focus:w-24 transition-all placeholder:text-gray-400" />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ))}
           </div>
