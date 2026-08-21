@@ -1,3 +1,5 @@
+// HAZIRA-PRODINQ-REVIEWPRODONLY-V47
+// HAZIRA-PRODINQ-CULTREVIEW-ACTIONSONLY-V46
 'use client'
 import { useEffect, useState, useRef, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
@@ -73,7 +75,6 @@ function ProductionInquiries() {
   const [reviewResponses, setReviewResponses] = useState([])
   const [reviewBusy, setReviewBusy] = useState(false)
   const [reviewLinksList, setReviewLinksList] = useState([])
-  const [cultGreenItems, setCultGreenItems] = useState([])
   const [notesDraft, setNotesDraft] = useState({})
   const dragId = useRef(null)
   const [draggingId, setDraggingId] = useState(null)
@@ -100,7 +101,7 @@ function ProductionInquiries() {
     if (typeof window === 'undefined') return
     if (new URLSearchParams(window.location.search).get('review') === '1') {
       setReviewOpen(true); setReviewPerson(''); setReviewLink(null); setReviewResponses([])
-      loadReviewLinksList(); loadCultGreen()
+      loadReviewLinksList()
     }
   }, [])
   useEffect(() => {
@@ -597,31 +598,7 @@ function ProductionInquiries() {
         }
       })
     })
-    return [...items, ...cultGreenItems]
-  }
-
-  // איסוף ירוקים מפולחן הסתיו (נעול ב-RLS למנהל בלבד; יחזור ריק לאחרים)
-  const CULT_CREW_ROWS = [
-    { key: 'operation', label: 'צוות הפעלה' },
-    { key: 'setup', label: 'צוות הקמה' },
-    { key: 'strike', label: 'צוות פירוק' },
-  ]
-  async function loadCultGreen() {
-    try {
-      const { data } = await supabase.from('cult_productions').select('id,name,date,venue,aspects')
-      const items = []
-      ;(data || []).forEach(p => {
-        const crew = p.aspects?.crew || {}
-        CULT_CREW_ROWS.forEach(r => {
-          (crew[r.key] || []).forEach(t => {
-            if ((t.status === 'green' || t.status === 'teal') && (t.name || '').trim()) {
-              items.push({ source: 'cult', prodId: p.id, rowKey: r.key, tagId: t.id, key: 'cult:' + p.id + ':' + t.id, name: t.name.trim(), event_name: p.name || '', date: p.date || '', venue: p.venue || '' })
-            }
-          })
-        })
-      })
-      setCultGreenItems(items)
-    } catch (e) { setCultGreenItems([]) }
+    return items
   }
 
   function greenPeople() {
@@ -675,30 +652,23 @@ function ProductionInquiries() {
     const respondedKeys = (rs || []).filter(r => r.decision && r.item_key).map(r => r.item_key)
     const keyOf = i => (i.key || (i.eid + ':' + i.slot))
     const eventExists = eid => (events || []).some(e => e.id === eid && !e.deleted_at)
-    // קיום הפקות פולחן (לזיהוי רפאים גם בצד הפולחן)
-    let cultIds = new Set()
-    try { const { data: cRows } = await supabase.from('cult_productions').select('id'); cultIds = new Set((cRows || []).map(r => r.id)) } catch (e) {}
     const seen = new Set()
     const merged = []
     const pushKey = (k, obj) => { if (seen.has(k)) return; seen.add(k); merged.push(obj) }
     liveGreen.forEach(i => pushKey(keyOf(i), i))
     respondedKeys.forEach(k => {
       const ks = String(k)
-      // אופציה א׳: דלג על "רפאים" — אירוע/הפקה שנמחק וכבר לא קיים
-      if (ks.startsWith('cult:')) {
-        const prodId = ks.split(':')[1]
-        if (!cultIds.has(prodId)) return
-      } else {
-        const eid = ks.split(':')[0]
-        if (!eventExists(eid)) return
-      }
+      // הבדיקה היא רק על הפקה טכנית — פריטי פולחן ישנים נזרקים; אירוע שנמחק (רפאים) נזרק
+      if (ks.startsWith('cult:')) return
+      const eid = ks.split(':')[0]
+      if (!eventExists(eid)) return
       const existing = (lk.items || []).find(x => keyOf(x) === k)
       if (existing) { pushKey(k, existing); return }
       // legacy production reconstruction (eid:slot)
-      const parts = ks.split(':'); const eid = parts[0]; const slot = parseInt(parts[1], 10)
-      const ev = (events || []).find(e => e.id === eid)
-      const nm = (slots[eid] && slots[eid][slot] && slots[eid][slot].name) || name
-      pushKey(k, { source: 'production', key: k, eid, slot, name: nm, event_name: ev ? (ev.event_name || '') : '', date: ev ? (ev.date || '') : '', venue: ev ? (ev.venue || '') : '' })
+      const parts = ks.split(':'); const eid2 = parts[0]; const slot = parseInt(parts[1], 10)
+      const ev = (events || []).find(e => e.id === eid2)
+      const nm = (slots[eid2] && slots[eid2][slot] && slots[eid2][slot].name) || name
+      pushKey(k, { source: 'production', key: k, eid: eid2, slot, name: nm, event_name: ev ? (ev.event_name || '') : '', date: ev ? (ev.date || '') : '', venue: ev ? (ev.venue || '') : '' })
     })
     merged.sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.event_name || '').localeCompare(b.event_name || '', 'he'))
     await supabase.from('review_links').update({ items: merged }).eq('token', lk.token)
@@ -750,17 +720,7 @@ function ProductionInquiries() {
       if (!it) continue
       const status = r.decision === 'approve' ? 'yellow' : r.decision === 'reject' ? 'red' : null
       if (!status) continue
-      if (it.source === 'cult') {
-        const { data: cp, error: gerr } = await supabase.from('cult_productions').select('aspects').eq('id', it.prodId).single()
-        if (gerr || !cp) { if (!firstErr) firstErr = gerr?.message || 'cult load'; continue }
-        const crew = cp.aspects?.crew || {}
-        const rowArr = (crew[it.rowKey] || []).map(t => t.id === it.tagId ? { ...t, status, ...(r.note && r.note.trim() ? { note: r.note.trim() } : {}) } : t)
-        const aspects = { ...(cp.aspects || {}), crew: { ...crew, [it.rowKey]: rowArr } }
-        const { error } = await supabase.from('cult_productions').update({ aspects }).eq('id', it.prodId)
-        if (error) { if (!firstErr) firstErr = error.message; continue }
-        applied++
-        continue
-      }
+      if (it.source === 'cult') continue // הבדיקה היא רק על הפקה טכנית — פריטי פולחן ישנים מדולגים
       const payload = { production_event_id: it.eid, slot: it.slot, name: it.name, status }
       if (r.note && r.note.trim()) payload.note = r.note.trim()
       const { error } = await supabase.from('production_people').upsert(payload, { onConflict: 'production_event_id,slot' })
@@ -961,7 +921,7 @@ function ProductionInquiries() {
               className="bg-white border border-[#E0197D] text-[#E0197D] text-sm px-4 py-2 rounded-lg hover:bg-[#FCE4F3] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
               <i className="ti ti-checkbox"/> בחר לייצוא
             </button>
-            <button onClick={() => { setReviewOpen(true); setReviewPerson(''); setReviewLink(null); setReviewResponses([]); loadReviewLinksList(); loadCultGreen() }}
+            <button onClick={() => { setReviewOpen(true); setReviewPerson(''); setReviewLink(null); setReviewResponses([]); loadReviewLinksList() }}
               className="bg-white border border-[#14b8a6] text-[#0f766e] text-sm px-4 py-2 rounded-lg hover:bg-[#ccfbf1] flex items-center justify-center gap-1 flex-1 min-w-[130px] md:flex-none md:min-w-[150px]">
               <i className="ti ti-clipboard-check"/> שלח לבדיקה
             </button>

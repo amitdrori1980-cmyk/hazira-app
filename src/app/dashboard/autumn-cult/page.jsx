@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-DELFIX-V38
+// HAZIRA-CULT-NOREVIEW-V39
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -663,9 +663,6 @@ export default function CultPage() {
         </button>
         <button onClick={() => setCrewExportOpen(true)} className="text-[12px] px-3 py-1.5 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1">
           <i className="ti ti-user-check" style={{ fontSize: 14 }} /> לו״ז אישי
-        </button>
-        <button onClick={() => { window.location.href = '/dashboard/production?review=1' }} className="text-[12px] px-3 py-1.5 rounded-lg border border-[#14b8a6] text-[#0f766e] hover:bg-[#ccfbf1] flex items-center gap-1" title="פותח את חלון הבדיקה בהפקה הטכנית (מאוחד — כולל ירוקים מהפולחן)">
-          <i className="ti ti-clipboard-check" style={{ fontSize: 14 }} /> שלח לבדיקה
         </button>
       </div>
 
