@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-CREWPICK-V43
+// HAZIRA-CULT-IMPORTNODEL-V44
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -449,8 +449,8 @@ export default function CultPage() {
     if (!from || !to) { alert('קבע קודם טווח תאריכים לפולחן (מתאריך / עד תאריך)'); return }
     if (!window.confirm('לייבא/לעדכן את הצוות מההפקה הטכנית לפי טווח התאריכים? (הסטטוסים יתעדכנו, אנשי צוות חדשים יתווספו)')) return
     try {
-      const { data: evs } = await supabase.from('production_events').select('id,date,event_name,venue').gte('date', from).lte('date', to)
-      const live = (evs || []).filter(e => e.date)
+      const { data: evs } = await supabase.from('production_events').select('id,date,event_name,venue,deleted_at').gte('date', from).lte('date', to)
+      const live = (evs || []).filter(e => e.date && !e.deleted_at)
       if (!live.length) { alert('אין אירועי הפקה טכנית בטווח התאריכים'); return }
       const dateOf = {}; live.forEach(e => { dateOf[e.id] = e.date })
       const { data: ppl } = await supabase.from('production_people').select('production_event_id,name,status,note').in('production_event_id', live.map(e => e.id))
