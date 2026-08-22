@@ -1,3 +1,4 @@
+// HAZIRA-GCAL-CONSTRAINT-COLLAPSE-V20
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -75,6 +76,7 @@ export default function CalendarPage() {
   const [conForm, setConForm] = useState({ crew_name: '', available: false, notes: '' })
   const [conCrewOpen, setConCrewOpen] = useState(false)
   const [conBusy, setConBusy] = useState(false)
+  const [conFormOpen, setConFormOpen] = useState(false)
 
   async function toggleGoogle(e) {
     if (gBusy) return
@@ -1118,7 +1120,13 @@ export default function CalendarPage() {
               )
             })()}
             {profile?.is_manager && (
-            <div className="flex flex-col gap-2 bg-gray-50 rounded-lg p-3">
+            <div className="rounded-lg border border-black bg-gray-100 overflow-hidden">
+              <button onClick={() => setConFormOpen(o => !o)} className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-200 transition">
+                <i className={`ti ti-chevron-${conFormOpen ? 'up' : 'down'} text-gray-500`} style={{ fontSize: 16 }} />
+                <span className="text-[13px] font-semibold text-gray-800 flex items-center gap-1.5"><i className="ti ti-user-plus" style={{ fontSize: 14 }} /> הוספת אילוץ צוות</span>
+              </button>
+              {conFormOpen && (
+              <div className="flex flex-col gap-2 p-3 pt-0">
               <div className="relative">
                 <input value={conForm.crew_name} onChange={e => { setConForm(f => ({ ...f, crew_name: e.target.value })); setConCrewOpen(true) }} onFocus={() => setConCrewOpen(true)} onBlur={() => setTimeout(() => setConCrewOpen(false), 150)}
                   placeholder="שם איש צוות" className="w-full text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#E0197D] text-right" />
@@ -1136,6 +1144,8 @@ export default function CalendarPage() {
               </div>
               <input value={conForm.notes} onChange={e => setConForm(f => ({ ...f, notes: e.target.value }))} placeholder="הערה (אופציונלי)" className="text-[13px] px-3 py-2 border border-gray-200 rounded-lg bg-white outline-none focus:border-[#E0197D] text-right" />
               <button onClick={() => addConstraint(selectedDay)} disabled={conBusy || !conForm.crew_name.trim()} className="text-[13px] bg-[#E0197D] text-white py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-40">הוסף אילוץ</button>
+              </div>
+              )}
             </div>
             )}
           </div>
