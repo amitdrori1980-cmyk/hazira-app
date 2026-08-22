@@ -1,4 +1,5 @@
 // HAZIRA-GCAL-CONSTRAINT-COLLAPSE-V20
+// HAZIRA-GCAL-MOBILEDAYPOPUP-V21
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -39,6 +40,7 @@ export default function CalendarPage() {
   const [calYear, setCalYear] = useState(new Date().getFullYear())
   const [calMonth, setCalMonth] = useState(new Date().getMonth())
   const [selectedDay, setSelectedDay] = useState(null)
+  const [mobileDay, setMobileDay] = useState(null)
   const [dayLinks, setDayLinks] = useState({}) // { 'YYYY-MM-DD': {date, schedule_id} }
   const [dayNotes, setDayNotes] = useState({}) // { 'YYYY-MM-DD': 'note text' }
   const [schedules, setSchedules] = useState([]) // general_schedules for the picker
@@ -804,7 +806,7 @@ export default function CalendarPage() {
                         return (a.time || '').localeCompare(b.time || '')
                       })
                     return (
-                      <div key={ci} onClick={() => openDay(c.ds)}
+                      <div key={ci} onClick={() => { openDay(c.ds); setMobileDay(c.ds) }}
                         className={`min-h-[120px] md:min-h-[420px] flex flex-col rounded-lg p-1.5 md:p-2 cursor-pointer border transition-all ${
                           isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
                           isToday ? 'bg-[#FCE4F3] border-transparent' :
@@ -862,7 +864,7 @@ export default function CalendarPage() {
                     const dPresent = dayConstraints(c.ds).filter(x => x.available)
                     const dTasks = tasksForDay(c.ds)
                     return (
-                      <div key={ci} onClick={() => openDay(c.ds)}
+                      <div key={ci} onClick={() => { openDay(c.ds); setMobileDay(c.ds) }}
                         className={`min-h-[72px] md:min-h-[150px] flex flex-col rounded-lg p-1.5 cursor-pointer border transition-all ${
                           isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
                           isToday ? 'bg-[#FCE4F3] border-transparent' :
@@ -1196,6 +1198,66 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
+      {/* mobile-only day info popup */}
+      {mobileDay && (() => {
+        const ds = mobileDay
+        const evs = filteredEvents
+          .filter(e => e.date === ds || (e.end_date && e.end_date >= e.date && ds >= e.date && ds <= e.end_date))
+          .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+        const present = dayConstraints(ds).filter(x => x.available)
+        const absent = dayConstraints(ds).filter(x => !x.available)
+        const scheds = dayLinks[ds] || []
+        const nTasks = tasksForDay(ds).length
+        const [yy, mm, dd] = ds.split('-')
+        return (
+          <div className="md:hidden fixed inset-0 z-[70] flex items-end" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setMobileDay(null)}>
+            <div className="bg-white rounded-t-2xl w-full max-h-[85vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[#F5D3E7]">
+                <button onClick={() => setMobileDay(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 20 }} /></button>
+                <div className="text-[15px] font-semibold text-gray-900">{dayName(ds)} · {dd}/{mm}/{yy}</div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+                <div>
+                  <div className="text-[12px] font-semibold text-gray-500 mb-1.5">אירועים</div>
+                  {evs.length === 0 ? <div className="text-[13px] text-gray-300">אין אירועים</div> : (
+                    <div className="flex flex-col gap-1.5">
+                      {evs.map(e => (
+                        <div key={e.id} className="rounded-lg px-3 py-2 text-[13px]" style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
+                          <span className="font-semibold">{e.time ? e.time.slice(0, 5) + ' · ' : ''}{e.title}</span>
+                          {e.venue ? <span className="opacity-80"> · {e.venue}</span> : null}
+                          {e.type ? <span className="opacity-60"> · {getTypeLabel(e.type)}</span> : null}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {(present.length > 0 || absent.length > 0) && (
+                  <div>
+                    <div className="text-[12px] font-semibold text-gray-500 mb-1.5">זמינות צוות</div>
+                    {present.length > 0 && <div className="text-[13px] mb-0.5" style={{ color: '#085041' }}><b>נמצאים:</b> {present.map(a => a.crew_name).join(', ')}</div>}
+                    {absent.length > 0 && <div className="text-[13px]" style={{ color: '#C0392B' }}><b>לא נמצאים:</b> {absent.map(a => a.crew_name).join(', ')}</div>}
+                  </div>
+                )}
+                {(scheds.length > 0 || nTasks > 0) && (
+                  <div className="flex flex-col gap-1.5 pt-1 border-t border-[#F3C9E2]">
+                    {scheds.map(l => (
+                      <a key={l.id} href={'/rundown/' + l.schedule_id} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-[13px] text-[#A0106A] font-medium">
+                        <i className="ti ti-list-details" style={{ fontSize: 15 }} /> {scheduleTitle(l.schedule_id)}
+                      </a>
+                    ))}
+                    {nTasks > 0 && (
+                      <a href={'/dashboard/tasks'} className="flex items-center gap-2 text-[13px] text-[#A0106A] font-medium">
+                        <i className="ti ti-checklist" style={{ fontSize: 15 }} /> {nTasks} משימות
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
