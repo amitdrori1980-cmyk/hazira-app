@@ -1,5 +1,5 @@
 // HAZIRA-GCAL-CONSTRAINT-COLLAPSE-V20
-// HAZIRA-GCAL-MOBILEDAYPOPUP-V22
+// HAZIRA-GCAL-MOBILEDAYPOPUP-V23
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -806,7 +806,7 @@ export default function CalendarPage() {
                         return (a.time || '').localeCompare(b.time || '')
                       })
                     return (
-                      <div key={ci} onClick={() => { openDay(c.ds); setMobileDay(c.ds) }}
+                      <div key={ci} onClick={() => { if (typeof window !== 'undefined' && window.innerWidth < 768) setMobileDay(c.ds); else openDay(c.ds) }}
                         className={`min-h-[120px] md:min-h-[420px] flex flex-col rounded-lg p-1.5 md:p-2 cursor-pointer border transition-all ${
                           isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
                           isToday ? 'bg-[#FCE4F3] border-transparent' :
@@ -864,7 +864,7 @@ export default function CalendarPage() {
                     const dPresent = dayConstraints(c.ds).filter(x => x.available)
                     const dTasks = tasksForDay(c.ds)
                     return (
-                      <div key={ci} onClick={() => { openDay(c.ds); setMobileDay(c.ds) }}
+                      <div key={ci} onClick={() => { if (typeof window !== 'undefined' && window.innerWidth < 768) setMobileDay(c.ds); else openDay(c.ds) }}
                         className={`min-h-[72px] md:min-h-[150px] flex flex-col rounded-lg p-1.5 cursor-pointer border transition-all ${
                           isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
                           isToday ? 'bg-[#FCE4F3] border-transparent' :
@@ -1211,8 +1211,8 @@ export default function CalendarPage() {
         const [yy, mm, dd] = ds.split('-')
         const heDay = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'][new Date(+yy, +mm - 1, +dd).getDay()]
         return (
-          <div className="md:hidden fixed inset-0 z-[70] flex items-end" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setMobileDay(null)}>
-            <div className="bg-white rounded-t-2xl w-full max-h-[85vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
+          <div className="md:hidden fixed inset-0 z-[70] flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setMobileDay(null)}>
+            <div className="bg-white rounded-2xl w-full max-w-sm max-h-[85vh] flex flex-col shadow-2xl" dir="rtl" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-4 py-3 border-b border-[#F5D3E7]">
                 <button onClick={() => setMobileDay(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 20 }} /></button>
                 <div className="text-[15px] font-semibold text-gray-900">יום {heDay} · {dd}/{mm}/{yy}</div>
