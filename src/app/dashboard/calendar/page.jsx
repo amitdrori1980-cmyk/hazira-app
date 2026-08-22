@@ -1,5 +1,5 @@
 // HAZIRA-GCAL-CONSTRAINT-COLLAPSE-V20
-// HAZIRA-GCAL-MOBILEDAYPOPUP-V21
+// HAZIRA-GCAL-MOBILEDAYPOPUP-V22
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -1209,12 +1209,13 @@ export default function CalendarPage() {
         const scheds = dayLinks[ds] || []
         const nTasks = tasksForDay(ds).length
         const [yy, mm, dd] = ds.split('-')
+        const heDay = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'][new Date(+yy, +mm - 1, +dd).getDay()]
         return (
           <div className="md:hidden fixed inset-0 z-[70] flex items-end" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setMobileDay(null)}>
             <div className="bg-white rounded-t-2xl w-full max-h-[85vh] flex flex-col" dir="rtl" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-4 py-3 border-b border-[#F5D3E7]">
                 <button onClick={() => setMobileDay(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 20 }} /></button>
-                <div className="text-[15px] font-semibold text-gray-900">{dayName(ds)} · {dd}/{mm}/{yy}</div>
+                <div className="text-[15px] font-semibold text-gray-900">יום {heDay} · {dd}/{mm}/{yy}</div>
               </div>
               <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
                 <div>
