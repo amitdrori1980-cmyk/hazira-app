@@ -1,5 +1,5 @@
 'use client'
-// HAZIRA-CULT-IMPORTRUNDOWN-V46
+// HAZIRA-CULT-MULTINOTES-V47
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -525,6 +525,21 @@ export default function CultPage() {
     setConfig(c => ({ ...c, day_notes: dn }))
     await supabase.from('cult_config').update({ day_notes: dn, updated_at: new Date().toISOString() }).eq('id', 1)
   }
+  // מערך הערות ליום (תאימות לאחור: טקסט בודד ישן -> הערה ראשונה)
+  function dayNotesArr(ds) {
+    const v = (config.day_notes || {})[ds]
+    if (Array.isArray(v)) return v
+    if (typeof v === 'string' && v.trim()) return [{ id: 'legacy', text: v }]
+    return []
+  }
+  async function saveDayNotesArr(ds, arr) {
+    const dn = { ...(config.day_notes || {}), [ds]: arr }
+    setConfig(c => ({ ...c, day_notes: dn }))
+    await supabase.from('cult_config').update({ day_notes: dn, updated_at: new Date().toISOString() }).eq('id', 1)
+  }
+  function addDayNote(ds) { saveDayNotesArr(ds, [...dayNotesArr(ds), { id: newTagId(), text: '' }]) }
+  function updateDayNote(ds, id, text) { saveDayNotesArr(ds, dayNotesArr(ds).map(n => n.id === id ? { ...n, text } : n)) }
+  function removeDayNote(ds, id) { saveDayNotesArr(ds, dayNotesArr(ds).filter(n => n.id !== id)) }
 
   // ---- "מי ומתי" (day-level: crew + arrival/end) ----
   async function saveWhoWhen(ds, arr) {
@@ -555,7 +570,7 @@ export default function CultPage() {
       const actList = dayCards.filter(p => p.kind === 'action')
       const crew = dayCrewConfirmed(d).join(', ') || '—'
       const op = dayOpCrew(d).join(', ') || '—'
-      const note = (config.day_notes || {})[d] || ''
+      const note = dayNotesArr(d).map(n => (n.text || '').trim()).filter(Boolean).join(' · ')
       return `<tr><td><b>${dayName(d)}</b><br>${fmtCell(d)}</td><td class="prod">${fmt(prodList)}</td><td class="act">${fmt(actList)}</td><td>${esc(crew)}</td><td>${esc(op)}</td><td>${esc(note)}</td></tr>`
     }).join('')
     printExport(config.title || 'פולחן הסתיו', `<table><thead><tr><th>יום</th><th class="prod">הפקות</th><th class="act">פעולות</th><th>צוות (אישרו)</th><th>צוות תפעול</th><th>הערות</th></tr></thead><tbody>${rows}</tbody></table>`)
@@ -940,9 +955,19 @@ export default function CultPage() {
                   if (we) return <td key={ds} className="border border-black bg-gray-50/50" />
                   return (
                     <td key={ds} className="border border-black align-top p-1 min-w-[160px]">
-                      <textarea defaultValue={(config.day_notes || {})[ds] || ''} onBlur={e => saveDayNote(ds, e.target.value)}
-                        placeholder="הערות יום…" rows={2}
-                        className="w-full text-[11px] px-2 py-1 border border-[#F5D3E7] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y" />
+                      <div className="flex flex-col gap-1">
+                        {dayNotesArr(ds).map(n => (
+                          <div key={n.id} className="flex items-start gap-1">
+                            <textarea defaultValue={n.text} onBlur={e => updateDayNote(ds, n.id, e.target.value)}
+                              placeholder="הערה…" rows={2}
+                              className="flex-1 text-[11px] px-2 py-1 border border-[#F5D3E7] rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right resize-y" />
+                            <button onClick={() => removeDayNote(ds, n.id)} className="text-gray-300 hover:text-red-500 mt-0.5 flex-shrink-0" title="מחק הערה"><i className="ti ti-x" style={{ fontSize: 12 }} /></button>
+                          </div>
+                        ))}
+                        <button onClick={() => addDayNote(ds)} className="text-[10px] text-[#E0197D] hover:bg-[#FCE4F3] rounded px-1 py-0.5 flex items-center gap-0.5 justify-center">
+                          <i className="ti ti-plus" style={{ fontSize: 11 }} /> הוסף הערה
+                        </button>
+                      </div>
                     </td>
                   )
                 })}
