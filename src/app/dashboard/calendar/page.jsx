@@ -1,4 +1,4 @@
-// HAZIRA-GCAL-DAYSWIPE-V24
+// HAZIRA-GCAL-DAYSWIPE-V25
 // HAZIRA-GCAL-CONSTRAINT-COLLAPSE-V20
 // HAZIRA-GCAL-MOBILEDAYPOPUP-V23
 'use client'
@@ -1222,7 +1222,7 @@ export default function CalendarPage() {
           <div className="md:hidden fixed inset-0 z-[70] flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setMobileDay(null)}>
             <div className="bg-white rounded-2xl w-full max-w-sm max-h-[85vh] flex flex-col shadow-2xl" dir="rtl" onClick={e => e.stopPropagation()}
               onTouchStart={e => { swipeX.current = e.touches[0].clientX }}
-              onTouchEnd={e => { if (swipeX.current == null) return; const dx = e.changedTouches[0].clientX - swipeX.current; swipeX.current = null; if (Math.abs(dx) > 50) setMobileDay(shiftDs(ds, dx < 0 ? 1 : -1)) }}>
+              onTouchEnd={e => { if (swipeX.current == null) return; const dx = e.changedTouches[0].clientX - swipeX.current; swipeX.current = null; if (Math.abs(dx) > 50) setMobileDay(shiftDs(ds, dx < 0 ? -1 : 1)) }}>
               <div className="flex items-center justify-between px-4 py-3 border-b border-[#F5D3E7]">
                 <button onClick={() => setMobileDay(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{ fontSize: 20 }} /></button>
                 <div className="text-[15px] font-semibold text-gray-900">יום {heDay} · {dd}/{mm}/{yy}</div>
