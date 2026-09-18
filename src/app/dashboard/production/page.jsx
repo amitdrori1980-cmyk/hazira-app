@@ -1,3 +1,4 @@
+// HAZIRA-PRODINQ-SYNCPARALLEL-V49
 // HAZIRA-PRODINQ-DAYNAME-TZFIX-V48
 // HAZIRA-PRODINQ-REVIEWPRODONLY-V47
 // HAZIRA-PRODINQ-CULTREVIEW-ACTIONSONLY-V46
@@ -367,11 +368,20 @@ function ProductionInquiries() {
   }
 
   async function pushActive(skipIds) {
+    const list = activeEvents.filter(ev => !(skipIds && skipIds.includes(ev.id)))
+    // קיבוץ לפי תאריך: תאריכים שונים רצים במקביל (מהיר), אירועים באותו תאריך בטור (למניעת race על שורות האילוצים/יומן)
+    const byDate = {}
+    list.forEach(ev => { const k = ev.date || 'no-date'; (byDate[k] = byDate[k] || []).push(ev) })
+    const groups = Object.values(byDate)
     let ok = 0, created = 0
-    for (const ev of activeEvents) {
-      if (skipIds && skipIds.includes(ev.id)) continue
-      const r = await syncEventToCalendarAndConstraints(ev)
-      if (!r.error) { ok++; if (r.created) created++ }
+    const CONC = 6
+    for (let i = 0; i < groups.length; i += CONC) {
+      await Promise.all(groups.slice(i, i + CONC).map(async group => {
+        for (const ev of group) {
+          const r = await syncEventToCalendarAndConstraints(ev)
+          if (!r.error) { ok++; if (r.created) created++ }
+        }
+      }))
     }
     return { ok, created }
   }
@@ -414,10 +424,18 @@ function ProductionInquiries() {
     if (!window.confirm(`לעדכן את כל ${activeEvents.length} האירועים בהפקה הטכנית — ליומן ולאילוצים?`)) return
     setBulkBusy(true)
     let ok = 0, created = 0, totalConfirmed = 0, errors = 0
-    for (const ev of activeEvents) {
-      const r = await syncEventToCalendarAndConstraints(ev)
-      if (r.error) errors++
-      else { ok++; if (r.created) created++; totalConfirmed += (r.confirmed || 0) }
+    const byDate = {}
+    activeEvents.forEach(ev => { const k = ev.date || 'no-date'; (byDate[k] = byDate[k] || []).push(ev) })
+    const groups = Object.values(byDate)
+    const CONC = 6
+    for (let i = 0; i < groups.length; i += CONC) {
+      await Promise.all(groups.slice(i, i + CONC).map(async group => {
+        for (const ev of group) {
+          const r = await syncEventToCalendarAndConstraints(ev)
+          if (r.error) errors++
+          else { ok++; if (r.created) created++; totalConfirmed += (r.confirmed || 0) }
+        }
+      }))
     }
     setBulkBusy(false)
     alert(`עודכנו ${ok} אירועים — ליומן ולאילוצים` + (created ? ` (${created} חדשים)` : '') + `, ובסך הכול ${totalConfirmed} אישורי צוות` + (errors ? `. ${errors} נכשלו.` : '.'))
