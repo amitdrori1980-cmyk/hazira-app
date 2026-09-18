@@ -1,4 +1,4 @@
-// HAZIRA-PRODINQ-SYNCPARALLEL-V49
+// HAZIRA-PRODINQ-DAYFROMDATE-V50
 // HAZIRA-PRODINQ-DAYNAME-TZFIX-V48
 // HAZIRA-PRODINQ-REVIEWPRODONLY-V47
 // HAZIRA-PRODINQ-CULTREVIEW-ACTIONSONLY-V46
@@ -809,7 +809,7 @@ function ProductionInquiries() {
                     <div className="text-[13px] font-semibold text-black break-words min-w-0">{ev.event_name}</div>
                     <div className="text-[13px] font-semibold text-black flex items-center gap-2 flex-wrap">
                       {ev.date && <span>{fmtDate(ev.date)}</span>}
-                      {ev.day && <span>יום {ev.day}</span>}
+                      {(ev.date ? heDayName(ev.date) : ev.day) && <span>יום {ev.date ? heDayName(ev.date) : ev.day}</span>}
                       {ev.venue && <span>{ev.venue}</span>}
                       {ev.type && <span className={`px-1.5 py-0.5 rounded-full ${getTypeStyle(ev.type)}`}>{getTypeLabel(ev.type)}</span>}
                     </div>
