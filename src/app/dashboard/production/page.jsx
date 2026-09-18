@@ -1,3 +1,4 @@
+// HAZIRA-PRODINQ-DAYNAME-TZFIX-V48
 // HAZIRA-PRODINQ-REVIEWPRODONLY-V47
 // HAZIRA-PRODINQ-CULTREVIEW-ACTIONSONLY-V46
 'use client'
@@ -36,6 +37,8 @@ const STATUSES = [
 ]
 const getStatus = v => STATUSES.find(s => s.value === v) || STATUSES[0]
 const DAYS   = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת']
+// חישוב יום-בשבוע חסין-timezone: פירוק YYYY-MM-DD לרכיבים (זמן מקומי), לא new Date(str) שמפרש כ-UTC
+function heDayName(ds){ if(!ds) return ''; const [y,m,d]=String(ds).split('-').map(Number); if(!y||!m||!d) return ''; return DAYS[new Date(y,m-1,d).getDay()] }
 const VENUES = ['אולם 1','אולם 2','אולם 3','אולם 4','אולם 5','תיאטרון הבית','דירה']
 const SLOTS  = 14
 function emptySlots() {
@@ -117,7 +120,7 @@ function ProductionInquiries() {
         ? events.find(e => e.event_name === inqName && e.date === date)
         : events.find(e => e.event_name === inqName)
       if (!match) {
-        const day = date ? DAYS[new Date(date).getDay()] : null
+        const day = date ? heDayName(date) : null
         const { data } = await supabase.from('production_events').insert({
           event_name: inqName, date, day, venue,
         }).select().single()
@@ -238,7 +241,7 @@ function ProductionInquiries() {
       setTimeout(() => document.getElementById('prod-ev-' + exists.id)?.scrollIntoView({ behavior:'smooth', block:'center' }), 200)
       return
     }
-    const day = ce.date ? DAYS[new Date(ce.date).getDay()] : null
+    const day = ce.date ? heDayName(ce.date) : null
     const { data } = await supabase.from('production_events').insert({
       event_name: name, date: ce.date || null, day, venue: ce.venue || null, notes: ce.crew_notes || null,
     }).select().single()
@@ -264,7 +267,7 @@ function ProductionInquiries() {
       const name = (ce.title || '').trim()
       if (!name) continue
       if (events.some(e => e.event_name === name && (!ce.date || e.date === ce.date))) continue // כבר קיים
-      const day = ce.date ? DAYS[new Date(ce.date).getDay()] : null
+      const day = ce.date ? heDayName(ce.date) : null
       rows.push({ event_name: name, date: ce.date || null, day, venue: ce.venue || null, notes: ce.crew_notes || null })
     }
     if (rows.length) {
@@ -1083,7 +1086,7 @@ function ProductionInquiries() {
               placeholder="שם האירוע *" className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] text-right col-span-2"/>
             <input type="date" value={newEvent.date} onChange={e=>{
               const d=e.target.value
-              const day=d?['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(d).getDay()]:''
+              const day=d?heDayName(d):''
               setNewEvent(p=>({...p,date:d,day}))
             }}
               className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
