@@ -1,3 +1,4 @@
+// HAZIRA-GCAL-PRODMATCH-V26
 // HAZIRA-GCAL-DAYSWIPE-V25
 // HAZIRA-GCAL-CONSTRAINT-COLLAPSE-V20
 // HAZIRA-GCAL-MOBILEDAYPOPUP-V23
@@ -299,7 +300,8 @@ export default function CalendarPage() {
     setConstraints(prev => prev.filter(x => x.id !== c.id))
   }
 
-  const inInq = e => inqAdded.has(e.id) || inqRows.some(r => r.event_name === (e.title || '').trim() && (r.date || '') === (e.date || ''))
+  const normName = s => (s || '').trim().replace(/\s+/g, ' ')
+  const inInq = e => inqAdded.has(e.id) || inqRows.some(r => normName(r.event_name) === normName(e.title) && (r.date || '') === (e.date || ''))
   function addToInquiries(e) {
     const name = (e.title || '').trim()
     if (!name) return
