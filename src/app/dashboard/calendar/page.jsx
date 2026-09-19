@@ -1,3 +1,5 @@
+// HAZIRA-GCAL-REORDERSAVE-V28
+// HAZIRA-GCAL-DRAGMOVEDAY-V27
 // HAZIRA-GCAL-PRODMATCH-V26
 // HAZIRA-GCAL-DAYSWIPE-V25
 // HAZIRA-GCAL-CONSTRAINT-COLLAPSE-V20
@@ -586,6 +588,22 @@ export default function CalendarPage() {
         })
     : []
 
+  function dsToLocal(ds){ const a=String(ds).split('-').map(Number); return new Date(a[0],a[1]-1,a[2],12) }
+  function localToDs(dt){ const p=n=>String(n).padStart(2,'0'); return dt.getFullYear()+'-'+p(dt.getMonth()+1)+'-'+p(dt.getDate()) }
+  function addDaysDs(ds,n){ const dt=dsToLocal(ds); dt.setDate(dt.getDate()+n); return localToDs(dt) }
+  function daysBetweenDs(a,b){ return Math.round((dsToLocal(b)-dsToLocal(a))/86400000) }
+  async function moveEventToDay(ds){
+    if(!dragId){ return }
+    const ev=events.find(e=>e.id===dragId)
+    if(!ev || (ev.date||'')===ds){ setDragId(null); setDragOverId(null); return }
+    const patch={ date: ds }
+    if(ev.end_date && ev.date){ patch.end_date = addDaysDs(ev.end_date, daysBetweenDs(ev.date, ds)) }
+    setEvents(prev=>prev.map(e=>e.id===dragId?{...e,...patch}:e))
+    const movedId=dragId; setDragId(null); setDragOverId(null)
+    const { error } = await supabase.from('events').update(patch).eq('id', movedId)
+    if(error) alert('שגיאה בשמירת התאריך: '+error.message)
+  }
+
   async function reorderEventsInDay(ds, targetId) {
     if (!dragId || dragId === targetId) { setDragId(null); return }
     const list = filteredEvents
@@ -608,7 +626,9 @@ export default function CalendarPage() {
     const updates = reordered.map((e, i) => ({ id: e.id, sort_order: i }))
     setEvents(prev => prev.map(e => { const u = updates.find(x => x.id === e.id); return u ? { ...e, sort_order: u.sort_order } : e }))
     setDragId(null)
-    for (const u of updates) await supabase.from('events').update({ sort_order: u.sort_order }).eq('id', u.id)
+    const results = await Promise.all(updates.map(u => supabase.from('events').update({ sort_order: u.sort_order }).eq('id', u.id)))
+    const firstErr = results.find(r => r.error)
+    if (firstErr) alert('שגיאה בשמירת הסדר: ' + firstErr.error.message)
   }
 
   async function reorderDayEvents(targetId) {
@@ -623,7 +643,9 @@ export default function CalendarPage() {
     const updates = reordered.map((e, i) => ({ id: e.id, sort_order: i }))
     setEvents(prev => prev.map(e => { const u = updates.find(x => x.id === e.id); return u ? { ...e, sort_order: u.sort_order } : e }))
     setDragId(null)
-    for (const u of updates) await supabase.from('events').update({ sort_order: u.sort_order }).eq('id', u.id)
+    const results = await Promise.all(updates.map(u => supabase.from('events').update({ sort_order: u.sort_order }).eq('id', u.id)))
+    const firstErr = results.find(r => r.error)
+    if (firstErr) alert('שגיאה בשמירת הסדר: ' + firstErr.error.message)
   }
 
   async function exportExcel() {
@@ -816,7 +838,7 @@ export default function CalendarPage() {
                         return (a.time || '').localeCompare(b.time || '')
                       })
                     return (
-                      <div key={ci} onClick={() => { if (typeof window !== 'undefined' && window.innerWidth < 768) setMobileDay(c.ds); else openDay(c.ds) }}
+                      <div key={ci} onClick={() => { if (typeof window !== 'undefined' && window.innerWidth < 768) setMobileDay(c.ds); else openDay(c.ds) }} onDragOver={ev=>{if(profile?.is_manager)ev.preventDefault()}} onDrop={ev=>{if(profile?.is_manager)moveEventToDay(c.ds)}}
                         className={`min-h-[120px] md:min-h-[420px] flex flex-col rounded-lg p-1.5 md:p-2 cursor-pointer border transition-all ${
                           isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
                           isToday ? 'bg-[#FCE4F3] border-transparent' :
@@ -831,7 +853,7 @@ export default function CalendarPage() {
                           </a>
                         ))}
                         {dayEvents.map(e => (
-                          <div key={e.id} draggable={profile?.is_manager} onDragStart={ev=>{ev.stopPropagation();ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragEnd={()=>{setDragId(null);setDragOverId(null)}} onDragOver={ev=>{if(profile?.is_manager){ev.preventDefault();ev.dataTransfer.dropEffect='move';setDragOverId(e.id)}}} onDrop={ev=>{if(profile?.is_manager){ev.stopPropagation();reorderEventsInDay(c.ds,e.id)}}} className={`text-[10px] md:text-[14px] px-1.5 py-1 rounded mb-1 truncate ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''} ${dragOverId===e.id&&dragId&&dragId!==e.id?'shadow-[0_-3px_0_0_#E0197D]':''}`}
+                          <div key={e.id} draggable={profile?.is_manager} onDragStart={ev=>{ev.stopPropagation();ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragEnd={()=>{setDragId(null);setDragOverId(null)}} onDragOver={ev=>{if(profile?.is_manager){ev.preventDefault();ev.dataTransfer.dropEffect='move';setDragOverId(e.id)}}} onDrop={ev=>{if(profile?.is_manager){ev.stopPropagation();const dr=events.find(x=>x.id===dragId);if(dr&&(dr.date||'')!==c.ds){moveEventToDay(c.ds)}else{reorderEventsInDay(c.ds,e.id)}}}} className={`text-[10px] md:text-[14px] px-1.5 py-1 rounded mb-1 truncate ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''} ${dragOverId===e.id&&dragId&&dragId!==e.id?'shadow-[0_-3px_0_0_#E0197D]':''}`}
                             style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
                             {e.time ? e.time.slice(0,5) + ' ' : ''}{e.title}
                           </div>
@@ -874,7 +896,7 @@ export default function CalendarPage() {
                     const dPresent = dayConstraints(c.ds).filter(x => x.available)
                     const dTasks = tasksForDay(c.ds)
                     return (
-                      <div key={ci} onClick={() => { if (typeof window !== 'undefined' && window.innerWidth < 768) setMobileDay(c.ds); else openDay(c.ds) }}
+                      <div key={ci} onClick={() => { if (typeof window !== 'undefined' && window.innerWidth < 768) setMobileDay(c.ds); else openDay(c.ds) }} onDragOver={ev=>{if(profile?.is_manager)ev.preventDefault()}} onDrop={ev=>{if(profile?.is_manager)moveEventToDay(c.ds)}}
                         className={`min-h-[72px] md:min-h-[150px] flex flex-col rounded-lg p-1.5 cursor-pointer border transition-all ${
                           isSelected ? 'border-[#E0197D] bg-[#FCE4F3]' :
                           isToday ? 'bg-[#FCE4F3] border-transparent' :
@@ -894,7 +916,7 @@ export default function CalendarPage() {
                           ))}
                         </div>
                         {dayEvents.slice(0, 4).map(e => (
-                          <div key={e.id} draggable={profile?.is_manager} onDragStart={ev=>{ev.stopPropagation();ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragEnd={()=>{setDragId(null);setDragOverId(null)}} onDragOver={ev=>{if(profile?.is_manager){ev.preventDefault();ev.dataTransfer.dropEffect='move';setDragOverId(e.id)}}} onDrop={ev=>{if(profile?.is_manager){ev.stopPropagation();reorderEventsInDay(c.ds,e.id)}}} className={`hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''} ${dragOverId===e.id&&dragId&&dragId!==e.id?'shadow-[0_-3px_0_0_#E0197D]':''}`}
+                          <div key={e.id} draggable={profile?.is_manager} onDragStart={ev=>{ev.stopPropagation();ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(e.id));setDragId(e.id)}} onDragEnd={()=>{setDragId(null);setDragOverId(null)}} onDragOver={ev=>{if(profile?.is_manager){ev.preventDefault();ev.dataTransfer.dropEffect='move';setDragOverId(e.id)}}} onDrop={ev=>{if(profile?.is_manager){ev.stopPropagation();const dr=events.find(x=>x.id===dragId);if(dr&&(dr.date||'')!==c.ds){moveEventToDay(c.ds)}else{reorderEventsInDay(c.ds,e.id)}}}} className={`hidden md:block text-[12px] px-1 py-0.5 rounded mb-0.5 truncate ${profile?.is_manager?'cursor-move':''} ${dragId===e.id?'opacity-40':''} ${dragOverId===e.id&&dragId&&dragId!==e.id?'shadow-[0_-3px_0_0_#E0197D]':''}`}
                             style={{ backgroundColor: getTypeColors(e.type).bg, color: getTypeColors(e.type).text }}>
                             {e.time ? e.time.slice(0,5) + ' ' : ''}{e.title}
                           </div>
