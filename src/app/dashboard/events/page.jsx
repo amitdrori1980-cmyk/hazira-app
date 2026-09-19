@@ -3,6 +3,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 // HAZIRA-EVENTS-SKETCH-V2
+// HAZIRA-EVENTS-NOCREWNOTES-V3
 
 const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלים בלבד
 
@@ -315,9 +316,6 @@ function EventsPageInner() {
             <option value="">בחר אולם...</option>
             {venues.map(v=><option key={v} value={v}>{v}</option>)}
           </select>
-          <textarea value={form.crew_notes} onChange={e=>setForm(f=>({...f,crew_notes:e.target.value}))}
-            placeholder="הערות לצוות..." rows={2}
-            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-none"/>
 
           <button type="submit" disabled={adding}
             className="bg-[#E0197D] text-white text-sm py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
@@ -387,9 +385,6 @@ function EventsPageInner() {
                     <option value="">בחר אולם...</option>
                     {venues.map(v=><option key={v} value={v}>{v}</option>)}
                   </select>
-                  <textarea value={editVal.crew_notes||''} onChange={e=>setEditVal(v=>({...v,crew_notes:e.target.value}))}
-                    placeholder="הערות לצוות..." rows={2}
-                    className="text-sm px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D] resize-none"/>
                   <div className="flex gap-2">
                     <button onClick={()=>saveEdit(ev.id)} className="flex-1 bg-[#E0197D] text-white text-sm py-1.5 rounded-lg">שמור</button>
                     <button onClick={()=>setEditing(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm py-1.5 rounded-lg">ביטול</button>
@@ -406,11 +401,6 @@ function EventsPageInner() {
                         <div className="text-[13px] text-gray-800">{ev.title}</div>
                         {ev.description&&<div className="text-[11px] text-gray-400">{ev.description}</div>}
                         {ev.venue&&<div className="text-[11px] text-gray-500 flex items-center gap-1 flex-row-reverse justify-end"><i className="ti ti-map-pin" style={{fontSize:10,color:'#E0197D'}}/>{ev.venue}</div>}
-                        {ev.crew_notes&&(
-                          <div className="text-[11px] text-[#A0106A] mt-0.5 inline-block max-w-full whitespace-pre-wrap text-right">
-                            📝 {ev.crew_notes}
-                          </div>
-                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 flex-row-reverse flex-wrap justify-end flex-shrink-0">
