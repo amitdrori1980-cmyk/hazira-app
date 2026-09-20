@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-REVIEW-V14
+// HAZIRA-PROJPLANS-REVIEWCAL-V15
 'use client'
 // HAZIRA-PROJPLANS-V12
 import { useEffect, useState, useRef } from 'react'
@@ -420,11 +420,11 @@ export default function ProjectPlansMode({ profile }) {
           items.forEach(it=>{ if(!have.has(it.key)) merged.push(it) })
           merged.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.event_name||'').localeCompare(b.event_name||'','he'))
           await supabase.from('review_links').update({ items: merged }).eq('token', ex.token)
-          links.push({ name:nm, token:ex.token, url:`${window.location.origin}/review/${ex.token}`, count:merged.length })
+          links.push({ name:nm, token:ex.token, url:`${window.location.origin}/review-cal/${ex.token}`, count:merged.length })
         } else {
           const token=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2))
           const { error } = await supabase.from('review_links').insert({ token, person_name:nm, created_by:uid, items, plan_id: plan.id })
-          if(!error) links.push({ name:nm, token, url:`${window.location.origin}/review/${token}`, count:items.length })
+          if(!error) links.push({ name:nm, token, url:`${window.location.origin}/review-cal/${token}`, count:items.length })
         }
       }
       links.sort((a,b)=>a.name.localeCompare(b.name,'he'))
