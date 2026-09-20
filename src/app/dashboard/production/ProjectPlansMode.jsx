@@ -1,3 +1,4 @@
+// HAZIRA-PROJPLANS-REVIEW-V13
 'use client'
 // HAZIRA-PROJPLANS-V12
 import { useEffect, useState, useRef } from 'react'
@@ -83,6 +84,10 @@ export default function ProjectPlansMode({ profile }) {
   const [importSearch, setImportSearch] = useState('')
   const [importBusy, setImportBusy]     = useState(false)
   const [syncBusy, setSyncBusy]         = useState(null) // planId currently syncing
+  const [reviewFor, setReviewFor]       = useState(null) // plan whose review modal is open
+  const [reviewLinks, setReviewLinks]   = useState([])   // [{name, token, url, count}]
+  const [reviewBusy, setReviewBusy]     = useState(null) // 'send:planId' | 'apply' | null
+  const [reviewCopied, setReviewCopied] = useState(null)
 
   useEffect(() => { load() }, [])
 
@@ -368,6 +373,84 @@ export default function ProjectPlansMode({ profile }) {
   }
 
   // re-pull crew/notes/action for every linked card in the plan
+  // ---- send plan to review (per-person links, writeback to production_people) ----
+  function normNm(x){ return (x||'').trim().replace(/\s+/g,' ') }
+  async function sendPlanToReview(plan){
+    setReviewBusy('send:'+plan.id)
+    try{
+      const { allCells } = await fetchBoard(plan.id)
+      const linked = allCells.filter(c => c.source_event_id && (c.crew||'').trim())
+      if(!linked.length){ alert('אין אירועים מקושרים עם צוות בתוכנית'); setReviewBusy(null); return }
+      const eventIds = [...new Set(linked.map(c=>c.source_event_id))]
+      const [{ data: evs }, { data: ppl }] = await Promise.all([
+        supabase.from('production_events').select('id,event_name,date,venue').in('id', eventIds),
+        supabase.from('production_people').select('production_event_id,slot,name').in('production_event_id', eventIds),
+      ])
+      const evMap={}; (evs||[]).forEach(e=>{evMap[e.id]=e})
+      const slotByEvent={}, nextSlot={}
+      eventIds.forEach(eid=>{
+        const rows=(ppl||[]).filter(p=>p.production_event_id===eid)
+        slotByEvent[eid]={}; rows.forEach(r=>{ slotByEvent[eid][normNm(r.name)]=r.slot })
+        nextSlot[eid]=(rows.length? Math.max(...rows.map(r=>r.slot)) : -1)+1
+      })
+      const newRows=[]; const byPerson={}
+      linked.forEach(cell=>{
+        const ev=evMap[cell.source_event_id]; if(!ev) return
+        const names=(cell.crew||'').split(',').map(x=>x.trim()).filter(Boolean)
+        names.forEach(nm=>{
+          const k=normNm(nm)
+          let slot=slotByEvent[ev.id][k]
+          if(slot==null){ slot=nextSlot[ev.id]++; slotByEvent[ev.id][k]=slot; newRows.push({production_event_id:ev.id, slot, name:nm, status:'green'}) }
+          const item={source:'production', key:ev.id+':'+slot, eid:ev.id, slot, name:nm, event_name:ev.event_name||'', date:ev.date||'', venue:ev.venue||''}
+          ;(byPerson[nm]=byPerson[nm]||[]).push(item)
+        })
+      })
+      if(newRows.length){ await supabase.from('production_people').upsert(newRows,{onConflict:'production_event_id,slot'}) }
+      let uid=null; try{const {data}=await supabase.auth.getUser(); uid=data?.user?.id||null}catch(e){}
+      const links=[]
+      for(const nm of Object.keys(byPerson)){
+        const items=byPerson[nm].sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.event_name||'').localeCompare(b.event_name||'','he'))
+        const token=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2))
+        const { error } = await supabase.from('review_links').insert({ token, person_name:nm, created_by:uid, items })
+        if(!error) links.push({ name:nm, token, url:`${window.location.origin}/review/${token}`, count:items.length })
+      }
+      links.sort((a,b)=>a.name.localeCompare(b.name,'he'))
+      setReviewLinks(links); setReviewFor(plan)
+    }catch(e){ alert('שגיאה בהכנת הלינקים: '+(e?.message||e)) }
+    setReviewBusy(null)
+  }
+  async function applyPlanResponses(){
+    setReviewBusy('apply')
+    let applied=0, firstErr=null
+    try{
+      for(const lk of reviewLinks){
+        const [{ data: rs }, { data: linkRow }] = await Promise.all([
+          supabase.from('review_responses').select('*').eq('token', lk.token),
+          supabase.from('review_links').select('items').eq('token', lk.token).single(),
+        ])
+        const items=linkRow?.items||[]
+        for(const r of (rs||[])){
+          if(!r.decision) continue
+          let it = r.item_key ? items.find(x => (x.key||(x.eid+':'+x.slot))===r.item_key) : null
+          if(!it && r.item_index!=null) it=items[r.item_index]
+          if(!it) continue
+          const status = r.decision==='approve'?'yellow':r.decision==='reject'?'red':null
+          if(!status) continue
+          const payload={ production_event_id:it.eid, slot:it.slot, name:it.name, status }
+          if(r.note&&r.note.trim()) payload.note=r.note.trim()
+          const { error } = await supabase.from('production_people').upsert(payload,{onConflict:'production_event_id,slot'})
+          if(error){ if(!firstErr)firstErr=error.message } else applied++
+        }
+      }
+    }catch(e){ firstErr=e?.message||String(e) }
+    setReviewBusy(null)
+    alert(firstErr?('שגיאה: '+firstErr):('הוחלו '+applied+' תגובות על ההפקה הטכנית'))
+  }
+  async function copyReviewUrl(url, token){
+    try{ await navigator.clipboard.writeText(url) }catch(e){ try{ window.prompt('העתק:', url) }catch(_){} }
+    setReviewCopied(token); setTimeout(()=>setReviewCopied(c=>c===token?null:c),1500)
+  }
+
   async function syncLinked(planId) {
     setSyncBusy(planId)
     const { allCells } = await fetchBoard(planId)
@@ -608,6 +691,13 @@ export default function ProjectPlansMode({ profile }) {
                     className="text-[12px] px-3 py-1.5 rounded-lg border border-[#E0197D] text-[#E0197D] hover:bg-[#FCE4F3] flex items-center gap-1.5">
                     <i className="ti ti-download" style={{ fontSize: 14 }} /> ייבא מהפקה טכנית
                   </button>
+                  {hasLinked && (
+                    <button onClick={() => sendPlanToReview(plan)} disabled={reviewBusy === 'send:'+plan.id}
+                      className="text-[12px] px-3 py-1.5 rounded-lg border border-[#14b8a6] text-[#0f766e] hover:bg-[#ccfbf1] flex items-center gap-1.5 disabled:opacity-50">
+                      <i className={`ti ${reviewBusy === 'send:'+plan.id ? 'ti-loader-2 animate-spin' : 'ti-clipboard-check'}`} style={{ fontSize: 14 }} />
+                      {reviewBusy === 'send:'+plan.id ? 'מכין לינקים...' : 'שלח לבדיקה'}
+                    </button>
+                  )}
                 </div>
 
                 {/* import picker */}
@@ -772,6 +862,41 @@ export default function ProjectPlansMode({ profile }) {
           </div>
         )
       })}
+
+      {reviewFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background:'rgba(0,0,0,0.45)' }} onClick={()=>setReviewFor(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col" dir="rtl" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
+              <button onClick={()=>setReviewFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{fontSize:18}}/></button>
+              <div className="text-[15px] font-semibold text-gray-900">שלח לבדיקה — {reviewFor.title}</div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {reviewLinks.length===0 ? (
+                <div className="text-center text-[13px] text-gray-400 py-6">לא נמצאו אנשי צוות באירועים מקושרים</div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <div className="text-[12px] text-gray-400 mb-1 text-right">{reviewLinks.length} אנשי צוות · לינק ייחודי לכל אחד (מתייחס רק לאירועי התוכנית)</div>
+                  {reviewLinks.map(l=>(
+                    <div key={l.token} className="flex items-center gap-2 border border-[#F5D3E7] rounded-lg px-3 py-2">
+                      <span className="flex-1 text-[13px] text-gray-800">{l.name} <span className="text-[11px] text-gray-400">· {l.count} אירועים</span></span>
+                      <a href={l.url} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-[#E0197D]" title="פתח"><i className="ti ti-external-link" style={{fontSize:15}}/></a>
+                      <button onClick={()=>copyReviewUrl(l.url, l.token)} className="text-[12px] text-[#E0197D] hover:bg-[#FCE4F3] rounded px-2 py-0.5">{reviewCopied===l.token?'הועתק':'העתק'}</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="px-5 py-3 border-t border-[#F5D3E7]">
+              <button onClick={applyPlanResponses} disabled={reviewBusy==='apply' || reviewLinks.length===0}
+                className="w-full bg-[#E0197D] text-white text-[14px] py-2.5 rounded-lg hover:bg-[#A0106A] disabled:opacity-40 flex items-center justify-center gap-2">
+                <i className={`ti ${reviewBusy==='apply'?'ti-loader-2 animate-spin':'ti-checkbox'}`} style={{fontSize:16}}/>
+                {reviewBusy==='apply'?'מחיל...':'שמור תגובות לאירועים'}
+              </button>
+              <div className="text-[11px] text-gray-400 text-center mt-1.5">מושך את תגובות העובדים ומעדכן סטטוסים בהפקה הטכנית (אישר→צהוב · לא יכול→אדום)</div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
