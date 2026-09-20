@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-REVIEW-V13
+// HAZIRA-PROJPLANS-REVIEW-V14
 'use client'
 // HAZIRA-PROJPLANS-V12
 import { useEffect, useState, useRef } from 'react'
@@ -407,12 +407,25 @@ export default function ProjectPlansMode({ profile }) {
       })
       if(newRows.length){ await supabase.from('production_people').upsert(newRows,{onConflict:'production_event_id,slot'}) }
       let uid=null; try{const {data}=await supabase.auth.getUser(); uid=data?.user?.id||null}catch(e){}
+      const { data: existingLinks } = await supabase.from('review_links').select('token,person_name,items').eq('plan_id', plan.id)
+      const existByName={}; (existingLinks||[]).forEach(l=>{ existByName[normNm(l.person_name)]=l })
       const links=[]
       for(const nm of Object.keys(byPerson)){
         const items=byPerson[nm].sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.event_name||'').localeCompare(b.event_name||'','he'))
-        const token=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2))
-        const { error } = await supabase.from('review_links').insert({ token, person_name:nm, created_by:uid, items })
-        if(!error) links.push({ name:nm, token, url:`${window.location.origin}/review/${token}`, count:items.length })
+        const ex=existByName[normNm(nm)]
+        if(ex){
+          // גישה ב׳: עדכון לינק קיים — שומר תגובות, מוסיף אירועים חדשים בלבד
+          const have=new Set((ex.items||[]).map(x=>x.key||(x.eid+':'+x.slot)))
+          const merged=[...(ex.items||[])]
+          items.forEach(it=>{ if(!have.has(it.key)) merged.push(it) })
+          merged.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.event_name||'').localeCompare(b.event_name||'','he'))
+          await supabase.from('review_links').update({ items: merged }).eq('token', ex.token)
+          links.push({ name:nm, token:ex.token, url:`${window.location.origin}/review/${ex.token}`, count:merged.length })
+        } else {
+          const token=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2))
+          const { error } = await supabase.from('review_links').insert({ token, person_name:nm, created_by:uid, items, plan_id: plan.id })
+          if(!error) links.push({ name:nm, token, url:`${window.location.origin}/review/${token}`, count:items.length })
+        }
       }
       links.sort((a,b)=>a.name.localeCompare(b.name,'he'))
       setReviewLinks(links); setReviewFor(plan)
@@ -449,6 +462,12 @@ export default function ProjectPlansMode({ profile }) {
   async function copyReviewUrl(url, token){
     try{ await navigator.clipboard.writeText(url) }catch(e){ try{ window.prompt('העתק:', url) }catch(_){} }
     setReviewCopied(token); setTimeout(()=>setReviewCopied(c=>c===token?null:c),1500)
+  }
+  async function deleteReviewLink(token){
+    if(!window.confirm('למחוק את הלינק של איש הצוות? התגובות שהתקבלו בו יימחקו גם הן.')) return
+    await supabase.from('review_responses').delete().eq('token', token)
+    await supabase.from('review_links').delete().eq('token', token)
+    setReviewLinks(prev=>prev.filter(l=>l.token!==token))
   }
 
   async function syncLinked(planId) {
@@ -881,6 +900,7 @@ export default function ProjectPlansMode({ profile }) {
                       <span className="flex-1 text-[13px] text-gray-800">{l.name} <span className="text-[11px] text-gray-400">· {l.count} אירועים</span></span>
                       <a href={l.url} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-[#E0197D]" title="פתח"><i className="ti ti-external-link" style={{fontSize:15}}/></a>
                       <button onClick={()=>copyReviewUrl(l.url, l.token)} className="text-[12px] text-[#E0197D] hover:bg-[#FCE4F3] rounded px-2 py-0.5">{reviewCopied===l.token?'הועתק':'העתק'}</button>
+                      <button onClick={()=>deleteReviewLink(l.token)} className="text-gray-300 hover:text-red-500" title="מחק לינק"><i className="ti ti-trash" style={{fontSize:15}}/></button>
                     </div>
                   ))}
                 </div>
