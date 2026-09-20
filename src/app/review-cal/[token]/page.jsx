@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-REVIEWCAL-DAYCARD-V2
+// HAZIRA-REVIEWCAL-DAYCARD-V3
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DOW = ['א','ב','ג','ד','ה','ו','ש']
@@ -183,7 +183,7 @@ export default function ReviewCalPage() {
                 </div>
               </div>
               <div className="flex gap-2 mb-2">
-                <button onClick={() => setDayDecision(ds, 'approve')} className={'flex-1 text-[14px] py-2.5 rounded-xl border font-medium ' + (dec === 'approve' ? 'bg-yellow-400 border-yellow-400 text-yellow-950' : 'bg-white border-gray-200 text-gray-500 hover:border-yellow-400')}><i className="ti ti-check" /> מאשר את היום</button>
+                <button onClick={() => setDayDecision(ds, 'approve')} className={'flex-1 text-[14px] py-2.5 rounded-xl border font-medium ' + (dec === 'approve' ? 'bg-yellow-400 border-yellow-400 text-yellow-950' : 'bg-white border-gray-200 text-gray-500 hover:border-yellow-400')}><i className="ti ti-check" /> מאשר</button>
                 <button onClick={() => setDayDecision(ds, 'reject')} className={'flex-1 text-[14px] py-2.5 rounded-xl border font-medium ' + (dec === 'reject' ? 'bg-red-500 border-red-500 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400')}><i className="ti ti-x" /> לא יכול</button>
               </div>
               {dec && <button onClick={() => clearDay(ds)} className="text-[12px] text-gray-400 hover:text-gray-600 mb-2 flex items-center gap-1"><i className="ti ti-eraser" style={{ fontSize: 13 }} /> נקה בחירה</button>}
