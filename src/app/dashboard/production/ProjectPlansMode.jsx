@@ -1,3 +1,4 @@
+// HAZIRA-PROJPLANS-LIVECREW-V23
 // HAZIRA-PROJPLANS-DROPLINEFIX-V22
 'use client'
 // HAZIRA-PROJPLANS-V12
@@ -43,6 +44,7 @@ const DAY_CATEGORIES = [
   { value: 'strike',  label: 'פירוק',   head: '#C3C6C9', text: '#40454A' },
 ]
 const getDayCategory = v => DAY_CATEGORIES.find(c => c.value === (v || '')) || DAY_CATEGORIES[0]
+const STATUS_DOT = { white:'#e5e7eb', green:'#22c55e', teal:'#14b8a6', yellow:'#eab308', red:'#ef4444', purple:'#a855f7' }
 const WK_DOW = ['א','ב','ג','ד','ה','ו','ש']
 function pad2(n){ return String(n).padStart(2,'0') }
 function dowOf(ds){ const a=String(ds).split('-').map(Number); return new Date(a[0],a[1]-1,a[2]).getDay() }
@@ -78,6 +80,7 @@ export default function ProjectPlansMode({ profile }) {
   const [openId, setOpenId]   = useState(null)
   const [columns, setColumns] = useState({}) // { [planId]: Column[] }
   const [cells, setCells]     = useState({}) // { [columnId]: Cell[] }
+  const [eventPeople, setEventPeople] = useState({}) // { [eid]: [{slot,name,status}] } — live crew from production
   const [eventTypes, setEventTypes] = useState([])
   const [showNew, setShowNew] = useState(false)
   const [newTitle, setNewTitle] = useState('')
@@ -155,9 +158,31 @@ export default function ProjectPlansMode({ profile }) {
   }
 
   async function loadBoard(planId) {
-    const { cols, grouped } = await fetchBoard(planId)
+    const { cols, grouped, allCells } = await fetchBoard(planId)
     setColumns(prev => ({ ...prev, [planId]: cols }))
     setCells(prev => ({ ...prev, ...grouped }))
+    // live crew from production for linked cells
+    const eids = [...new Set((allCells || []).map(c => c.source_event_id).filter(Boolean))]
+    if (eids.length) {
+      const { data: ppl } = await supabase.from('production_people').select('production_event_id,slot,name,status').in('production_event_id', eids).order('slot')
+      const map = {}
+      ;(ppl || []).forEach(r => { (map[r.production_event_id] = map[r.production_event_id] || []).push(r) })
+      setEventPeople(prev => ({ ...prev, ...map }))
+    }
+  }
+  function renderLiveCrew(eid) {
+    const ppl = (eventPeople[eid] || []).filter(p => (p.name || '').trim())
+    if (!ppl.length) return <div className="text-[11px] text-gray-300">—</div>
+    return (
+      <div className="flex flex-col gap-0.5">
+        {ppl.map(p => (
+          <div key={p.slot} className="flex items-center gap-1.5 text-[12px] text-gray-700">
+            <span className="w-2.5 h-2.5 rounded-full ring-1 ring-black/10 flex-shrink-0" style={{ background: STATUS_DOT[p.status] || STATUS_DOT.white }} />
+            <span className="truncate">{p.name}</span>
+          </div>
+        ))}
+      </div>
+    )
   }
 
   function toggleOpen(id) {
@@ -962,7 +987,7 @@ export default function ProjectPlansMode({ profile }) {
                                             {cell.source_event_id && <i className="ti ti-link text-[#E0197D] mt-0.5 shrink-0" style={{ fontSize: 10 }} />}
                                             <span className="whitespace-pre-wrap">{cell.action || '—'}</span>
                                           </div>
-                                          {(cell.crew || '').trim() && <div className="text-[11px] text-gray-600 whitespace-pre-wrap mt-0.5">{cell.crew}</div>}
+                                          {cell.source_event_id ? <div className="mt-0.5">{renderLiveCrew(cell.source_event_id)}</div> : ((cell.crew || '').trim() && <div className="text-[11px] text-gray-600 whitespace-pre-wrap mt-0.5">{cell.crew}</div>)}
                                           {(cell.notes || '').trim() && <div className="text-[11px] text-gray-400 whitespace-pre-wrap mt-0.5">{cell.notes}</div>}
                                         </div>
                                       ))}
@@ -1032,10 +1057,14 @@ export default function ProjectPlansMode({ profile }) {
                                       onBlur={e => commitCell(cell.id, 'action', e.target.value)}
                                       className="flex-1 min-w-0 text-[12px] font-medium text-gray-800 bg-transparent outline-none text-right placeholder:text-gray-300" />
                                   </div>
-                                  <AutoTextarea value={cell.crew || ''} placeholder="צוות"
-                                    onChange={e => setCellField(col.id, cell.id, 'crew', e.target.value)}
-                                    onBlur={e => commitCell(cell.id, 'crew', e.target.value)}
-                                    className="w-full text-[11px] text-gray-600 bg-transparent outline-none text-right placeholder:text-gray-300" />
+                                  {cell.source_event_id ? (
+                                    <div className="w-full">{renderLiveCrew(cell.source_event_id)}</div>
+                                  ) : (
+                                    <AutoTextarea value={cell.crew || ''} placeholder="צוות"
+                                      onChange={e => setCellField(col.id, cell.id, 'crew', e.target.value)}
+                                      onBlur={e => commitCell(cell.id, 'crew', e.target.value)}
+                                      className="w-full text-[11px] text-gray-600 bg-transparent outline-none text-right placeholder:text-gray-300" />
+                                  )}
                                   <AutoTextarea value={cell.notes || ''} placeholder="הערות"
                                     onChange={e => setCellField(col.id, cell.id, 'notes', e.target.value)}
                                     onBlur={e => commitCell(cell.id, 'notes', e.target.value)}
