@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-DROPLINE-V21
+// HAZIRA-PROJPLANS-DROPLINEFIX-V22
 'use client'
 // HAZIRA-PROJPLANS-V12
 import { useEffect, useState, useRef } from 'react'
@@ -729,10 +729,10 @@ export default function ProjectPlansMode({ profile }) {
         planCols.forEach(c => (cells[c.id] || []).forEach(cell => { if (cell.source_event_id) linkedEventIds.add(cell.source_event_id) }))
         const hasLinked = linkedEventIds.size > 0
         return (
-          <div key={plan.id}>
+          <div key={plan.id} className="relative">
           {!showArchive && dragPlanId && dragPlanId !== plan.id && dragOverPlanId === plan.id && (
-            <div className="flex items-center gap-1 mb-1 px-1" aria-hidden>
-              <span className="w-5 h-5 rounded-full bg-[#E0197D] text-white flex items-center justify-center flex-shrink-0"><i className="ti ti-plus" style={{ fontSize: 13 }} /></span>
+            <div className="absolute -top-1.5 left-0 right-0 flex items-center gap-1 px-1 z-10 pointer-events-none" aria-hidden>
+              <span className="w-5 h-5 rounded-full bg-[#E0197D] text-white flex items-center justify-center flex-shrink-0 shadow"><i className="ti ti-plus" style={{ fontSize: 13 }} /></span>
               <span className="flex-1 h-0.5 bg-[#E0197D] rounded-full" />
             </div>
           )}
