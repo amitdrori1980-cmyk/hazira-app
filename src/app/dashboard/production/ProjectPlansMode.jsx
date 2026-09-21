@@ -1,3 +1,4 @@
+// HAZIRA-PROJPLANS-REVIEWLIVECREW-V25
 // HAZIRA-PROJPLANS-LIVECREW-V23
 // HAZIRA-PROJPLANS-DROPLINEFIX-V22
 'use client'
@@ -100,6 +101,7 @@ export default function ProjectPlansMode({ profile }) {
   const [reviewLinks, setReviewLinks]   = useState([])   // [{name, token, url, count}]
   const [reviewBusy, setReviewBusy]     = useState(null) // 'send:planId' | 'apply' | null
   const [reviewCopied, setReviewCopied] = useState(null)
+  const [reviewMissing, setReviewMissing] = useState([]) // [{name,event,date}] not assigned in production
   const [pdfPickFor, setPdfPickFor]     = useState(null) // plan whose personal-export picker is open
   const [pdfNames, setPdfNames]         = useState([])
   const [planView, setPlanView]         = useState({}) // { [planId]: 'weekly' } ; default horizontal
@@ -441,33 +443,30 @@ export default function ProjectPlansMode({ profile }) {
     setReviewBusy('send:'+plan.id)
     try{
       const { allCells } = await fetchBoard(plan.id)
-      const linked = allCells.filter(c => c.source_event_id && (c.crew||'').trim())
-      if(!linked.length){ alert('אין אירועים מקושרים עם צוות בתוכנית'); setReviewBusy(null); return }
+      const linked = allCells.filter(c => c.source_event_id)
+      if(!linked.length){ alert('אין אירועים מקושרים בתוכנית'); setReviewBusy(null); return }
       const eventIds = [...new Set(linked.map(c=>c.source_event_id))]
       const [{ data: evs }, { data: ppl }] = await Promise.all([
         supabase.from('production_events').select('id,event_name,date,venue').in('id', eventIds),
-        supabase.from('production_people').select('production_event_id,slot,name').in('production_event_id', eventIds),
+        supabase.from('production_people').select('production_event_id,slot,name,status').in('production_event_id', eventIds),
       ])
       const evMap={}; (evs||[]).forEach(e=>{evMap[e.id]=e})
-      const slotByEvent={}, nextSlot={}
-      eventIds.forEach(eid=>{
-        const rows=(ppl||[]).filter(p=>p.production_event_id===eid)
-        slotByEvent[eid]={}; rows.forEach(r=>{ slotByEvent[eid][normNm(r.name)]=r.slot })
-        nextSlot[eid]=(rows.length? Math.max(...rows.map(r=>r.slot)) : -1)+1
-      })
-      const newRows=[]; const byPerson={}
+      // צוות חי מההפקה לכל אירוע מקושר (כל מי שמשובץ שם, בכל סטטוס)
+      const peopleByEvent={}
+      ;(ppl||[]).forEach(r=>{ if((r.name||'').trim()) (peopleByEvent[r.production_event_id]=peopleByEvent[r.production_event_id]||[]).push(r) })
+      const byPerson={}
+      const seenEid=new Set()
       linked.forEach(cell=>{
         const ev=evMap[cell.source_event_id]; if(!ev) return
-        const names=(cell.crew||'').split(',').map(x=>x.trim()).filter(Boolean)
-        names.forEach(nm=>{
-          const k=normNm(nm)
-          let slot=slotByEvent[ev.id][k]
-          if(slot==null){ slot=nextSlot[ev.id]++; slotByEvent[ev.id][k]=slot; newRows.push({production_event_id:ev.id, slot, name:nm, status:'green'}) }
-          const item={source:'production', key:ev.id+':'+slot, eid:ev.id, slot, name:nm, event_name:ev.event_name||'', date:ev.date||'', venue:ev.venue||''}
+        if(seenEid.has(ev.id)) return   // אירוע אחד — פעם אחת (גם אם מופיע בכמה תאים)
+        seenEid.add(ev.id)
+        ;(peopleByEvent[ev.id]||[]).forEach(r=>{
+          const nm=r.name
+          const item={source:'production', key:ev.id+':'+r.slot, eid:ev.id, slot:r.slot, name:nm, event_name:ev.event_name||'', date:ev.date||'', venue:ev.venue||''}
           ;(byPerson[nm]=byPerson[nm]||[]).push(item)
         })
       })
-      if(newRows.length){ await supabase.from('production_people').upsert(newRows,{onConflict:'production_event_id,slot'}) }
+      const missing=[]
       let uid=null; try{const {data}=await supabase.auth.getUser(); uid=data?.user?.id||null}catch(e){}
       const { data: existingLinks } = await supabase.from('review_links').select('token,person_name,items').eq('plan_id', plan.id)
       const existByName={}; (existingLinks||[]).forEach(l=>{ existByName[normNm(l.person_name)]=l })
@@ -490,7 +489,7 @@ export default function ProjectPlansMode({ profile }) {
         }
       }
       links.sort((a,b)=>a.name.localeCompare(b.name,'he'))
-      setReviewLinks(links); setReviewFor(plan)
+      setReviewMissing(missing); setReviewLinks(links); setReviewFor(plan)
     }catch(e){ alert('שגיאה בהכנת הלינקים: '+(e?.message||e)) }
     setReviewBusy(null)
   }
@@ -1118,8 +1117,17 @@ export default function ProjectPlansMode({ profile }) {
               <div className="text-[15px] font-semibold text-gray-900">שלח לבדיקה — {reviewFor.title}</div>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
+              {reviewMissing.length > 0 && (
+                <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-right">
+                  <div className="text-[12px] font-semibold text-amber-800 flex items-center gap-1 justify-end"><i className="ti ti-alert-triangle" style={{ fontSize: 13 }} /> שמות שלא שובצו בהפקה — לא נכללו בבדיקה</div>
+                  <div className="text-[11px] text-amber-700 mt-1 space-y-0.5">
+                    {reviewMissing.map((m, i) => <div key={i}>{m.name} — {m.event}{m.date ? ` (${fmtShort(m.date)})` : ''}</div>)}
+                  </div>
+                  <div className="text-[10px] text-amber-600 mt-1">שבצו אותם קודם בכרטיס ההפקה הטכנית, ואז שלחו לבדיקה שוב.</div>
+                </div>
+              )}
               {reviewLinks.length===0 ? (
-                <div className="text-center text-[13px] text-gray-400 py-6">לא נמצאו אנשי צוות באירועים מקושרים</div>
+                <div className="text-center text-[13px] text-gray-400 py-6">לא נמצאו אנשי צוות משובצים בהפקה לאירועי התוכנית</div>
               ) : (
                 <div className="flex flex-col gap-1.5">
                   <div className="text-[12px] text-gray-400 mb-1 text-right">{reviewLinks.length} אנשי צוות · לינק ייחודי לכל אחד (מתייחס רק לאירועי התוכנית)</div>
