@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-PDFPERSON-V16
+// HAZIRA-PROJPLANS-PDFCAL-V17
 'use client'
 // HAZIRA-PROJPLANS-V12
 import { useEffect, useState, useRef } from 'react'
@@ -563,6 +563,28 @@ export default function ProjectPlansMode({ profile }) {
         </section>`
     }).join('')
 
+    // ---- personal calendar view (month per page) ----
+    const HEM=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
+    const DOW=['א','ב','ג','ד','ה','ו','ש']
+    const byDateActs={}
+    days.forEach(col=>{ if(!col.date) return; const acts=(grouped[col.id]||[]).filter(c=>cellHasPerson(c,person)).map(c=>c.action).filter(Boolean); if(acts.length) byDateActs[col.date]=acts })
+    const monthsMap={}
+    Object.keys(byDateActs).sort().forEach(ds=>{ const a=ds.split('-').map(Number); const k=a[0]+'-'+a[1]; (monthsMap[k]=monthsMap[k]||{y:a[0],m:a[1],days:{}}); monthsMap[k].days[a[2]]=byDateActs[ds] })
+    const calHtml=Object.values(monthsMap).map((mo,mi)=>{
+      const startDow=new Date(mo.y,mo.m-1,1).getDay()
+      const dim=new Date(mo.y,mo.m,0).getDate()
+      const grid=[]; for(let i=0;i<startDow;i++)grid.push(null); for(let d=1;d<=dim;d++)grid.push(d); while(grid.length%7)grid.push(null)
+      let rows=''
+      for(let i=0;i<grid.length;i+=7){
+        rows+='<tr>'+grid.slice(i,i+7).map(d=>{
+          if(d==null) return '<td class="cal-empty"></td>'
+          const acts=mo.days[d]; const has=acts&&acts.length
+          return '<td class="'+(has?'cal-has':'')+'"><div class="cal-d">'+d+'</div>'+(has?'<div>'+acts.map(a=>'<div class="cal-act">'+pdfEsc(a)+'</div>').join('')+'</div>':'')+'</td>'
+        }).join('')+'</tr>'
+      }
+      return '<section class="cal-month" style="'+(mi>0?'page-break-before:always;':'')+'"><h2 class="cal-title">'+HEM[mo.m-1]+' '+mo.y+'</h2><table class="cal"><thead><tr>'+DOW.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table></section>'
+    }).join('')
+
     const t = new Date()
     const stamp = t.getDate() + '/' + (t.getMonth() + 1) + '/' + t.getFullYear()
 
@@ -593,6 +615,15 @@ export default function ProjectPlansMode({ profile }) {
   .lnk { display:inline-block; width:6px; height:6px; border-radius:50%; background:#E0197D; margin-left:6px; vertical-align:middle; }
   td.empty { color:#9ca3af; text-align:center; padding:10px; }
   footer { margin-top:22px; padding-top:10px; border-top:1px solid #eee; font-size:10px; color:#9ca3af; text-align:center; }
+  table.cal { width:100%; border-collapse:collapse; table-layout:fixed; }
+  table.cal th { background:#FCE4F3; color:#A0106A; border:1px solid rgba(224,25,125,.2); padding:4px; font-size:11px; text-align:center; }
+  table.cal td { border:1px solid rgba(224,25,125,.13); height:92px; vertical-align:top; padding:3px; font-size:10px; }
+  td.cal-empty { background:#fafafa; }
+  td.cal-has { background:#FFF8FC; }
+  .cal-d { color:#9ca3af; font-size:10px; text-align:left; }
+  .cal-act { background:#FCE4F3; color:#A0106A; border-radius:4px; padding:1px 4px; margin-top:2px; font-weight:600; font-size:9px; line-height:1.3; }
+  .cal-title { color:#E0197D; font-size:17px; margin:0 0 8px; }
+  section.cal-month { break-inside:avoid; }
   @page { margin:14mm 12mm; }
 </style></head><body>
   <header class="doc">
@@ -604,7 +635,7 @@ export default function ProjectPlansMode({ profile }) {
     <img class="logo" src="${HAZIRA_LOGO}" alt="הזירה" />
   </header>
   ${notes ? `<div class="notes"><div class="notes-t">הערות כלליות</div><div>${pdfEsc(notes).replace(/\n/g, '<br>')}</div></div>` : ''}
-  ${daysHtml || '<div class="empty" style="text-align:center;color:#9ca3af;padding:30px">אין ימים בתוכנית</div>'}
+  ${person ? (calHtml || '<div style="text-align:center;color:#9ca3af;padding:30px">אין ימים לאיש צוות זה</div>') : (daysHtml || '<div class="empty" style="text-align:center;color:#9ca3af;padding:30px">אין ימים בתוכנית</div>')}
   <footer>הופק ב-${stamp} · הזירה</footer>
   <script>window.onload=function(){window.print();window.onafterprint=function(){window.close()}}<\/script>
 </body></html>`
