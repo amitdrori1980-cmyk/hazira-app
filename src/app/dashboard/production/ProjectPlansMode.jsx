@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-DRAGARCHIVE-V20
+// HAZIRA-PROJPLANS-DROPLINE-V21
 'use client'
 // HAZIRA-PROJPLANS-V12
 import { useEffect, useState, useRef } from 'react'
@@ -73,6 +73,7 @@ export default function ProjectPlansMode({ profile }) {
   const [plans, setPlans]     = useState([])
   const [showArchive, setShowArchive] = useState(false)
   const [dragPlanId, setDragPlanId]   = useState(null)
+  const [dragOverPlanId, setDragOverPlanId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [openId, setOpenId]   = useState(null)
   const [columns, setColumns] = useState({}) // { [planId]: Column[] }
@@ -728,14 +729,22 @@ export default function ProjectPlansMode({ profile }) {
         planCols.forEach(c => (cells[c.id] || []).forEach(cell => { if (cell.source_event_id) linkedEventIds.add(cell.source_event_id) }))
         const hasLinked = linkedEventIds.size > 0
         return (
-          <div key={plan.id} id={`pp-${plan.id}`} className={`bg-white border-2 rounded-xl mb-3 overflow-hidden shadow-sm ${dragPlanId===plan.id ? 'border-[#E0197D] opacity-60' : 'border-[#B6CFD0]'}`}
-            onDragOver={e => { if (!showArchive && dragPlanId) e.preventDefault() }}
-            onDrop={e => { if (!showArchive && dragPlanId) { e.preventDefault(); movePlan(dragPlanId, plan.id) } }}>
+          <div key={plan.id}>
+          {!showArchive && dragPlanId && dragPlanId !== plan.id && dragOverPlanId === plan.id && (
+            <div className="flex items-center gap-1 mb-1 px-1" aria-hidden>
+              <span className="w-5 h-5 rounded-full bg-[#E0197D] text-white flex items-center justify-center flex-shrink-0"><i className="ti ti-plus" style={{ fontSize: 13 }} /></span>
+              <span className="flex-1 h-0.5 bg-[#E0197D] rounded-full" />
+            </div>
+          )}
+          <div id={`pp-${plan.id}`} className={`bg-white border-2 rounded-xl mb-3 overflow-hidden shadow-sm ${dragPlanId===plan.id ? 'border-[#E0197D]' : 'border-[#B6CFD0]'}`}
+            onDragOver={e => { if (!showArchive && dragPlanId && dragPlanId !== plan.id) { e.preventDefault(); if (dragOverPlanId !== plan.id) setDragOverPlanId(plan.id) } }}
+            onDragLeave={() => { if (dragOverPlanId === plan.id) setDragOverPlanId(null) }}
+            onDrop={e => { if (!showArchive && dragPlanId) { e.preventDefault(); movePlan(dragPlanId, plan.id); setDragOverPlanId(null) } }}>
             {/* header */}
             <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 flex-row-reverse"
               onClick={() => toggleOpen(plan.id)}>
               {!showArchive && (
-                <span draggable onDragStart={e => { e.stopPropagation(); setDragPlanId(plan.id) }} onDragEnd={() => setDragPlanId(null)} onClick={e => e.stopPropagation()}
+                <span draggable onDragStart={e => { e.stopPropagation(); setDragPlanId(plan.id) }} onDragEnd={() => { setDragPlanId(null); setDragOverPlanId(null) }} onClick={e => e.stopPropagation()}
                   className="text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing no-print" title="גרור לסידור">
                   <i className="ti ti-grip-vertical" style={{ fontSize: 16 }} />
                 </span>
@@ -1067,6 +1076,7 @@ export default function ProjectPlansMode({ profile }) {
                 )}
               </div>
             )}
+          </div>
           </div>
         )
       })}
