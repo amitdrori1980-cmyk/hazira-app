@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-REVIEWCAL-V15
+// HAZIRA-PROJPLANS-PDFPERSON-V16
 'use client'
 // HAZIRA-PROJPLANS-V12
 import { useEffect, useState, useRef } from 'react'
@@ -88,6 +88,8 @@ export default function ProjectPlansMode({ profile }) {
   const [reviewLinks, setReviewLinks]   = useState([])   // [{name, token, url, count}]
   const [reviewBusy, setReviewBusy]     = useState(null) // 'send:planId' | 'apply' | null
   const [reviewCopied, setReviewCopied] = useState(null)
+  const [pdfPickFor, setPdfPickFor]     = useState(null) // plan whose personal-export picker is open
+  const [pdfNames, setPdfNames]         = useState([])
 
   useEffect(() => { load() }, [])
 
@@ -515,9 +517,21 @@ export default function ProjectPlansMode({ profile }) {
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   }
 
-  async function exportPdf(plan) {
+  function cellHasPerson(c, person){
+    if(!person) return true
+    return (c.crew||'').split(',').map(x=>x.trim()).some(x => x && x.replace(/\s+/g,' ') === person.replace(/\s+/g,' '))
+  }
+  async function openPdfPicker(plan){
+    const { allCells } = await fetchBoard(plan.id)
+    const set=new Set()
+    ;(allCells||[]).forEach(c => (c.crew||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(n=>set.add(n.replace(/\s+/g,' '))))
+    setPdfNames([...set].sort((a,b)=>a.localeCompare(b,'he')))
+    setPdfPickFor(plan)
+  }
+  async function exportPdf(plan, person) {
     const { cols, grouped } = await fetchBoard(plan.id)
-    const days = sortColsByDate(cols)
+    const allDays = sortColsByDate(cols)
+    const days = person ? allDays.filter(col => (grouped[col.id]||[]).some(c => cellHasPerson(c, person))) : allDays
     const dates = days.map(d => d.date).filter(Boolean)
     const range = dates.length
       ? (fmtShort(dates[0]) + (dates.length > 1 ? ' – ' + fmtShort(dates[dates.length - 1]) : ''))
@@ -527,7 +541,7 @@ export default function ProjectPlansMode({ profile }) {
 
     const daysHtml = days.map(col => {
       const cat = getDayCategory(col.category)
-      const cells = grouped[col.id] || []
+      const cells = (grouped[col.id] || []).filter(c => cellHasPerson(c, person))
       const rows = cells.length
         ? cells.map((c, i) => `
           <tr class="${i % 2 ? 'alt' : ''}">
@@ -583,8 +597,8 @@ export default function ProjectPlansMode({ profile }) {
 </style></head><body>
   <header class="doc">
     <div>
-      <div class="brand">הזירה · תכנון פרויקטים</div>
-      <h1>${pdfEsc(plan.title)}</h1>
+      <div class="brand">הזירה · תכנון פרויקטים${person ? ' · לו״ז אישי' : ''}</div>
+      <h1>${pdfEsc(plan.title)}${person ? ' — ' + pdfEsc(person) : ''}</h1>
       <div class="meta">${pdfEsc(stLabel)}${range ? ' · ' + range : ''}${days.length ? ' · ' + days.length + ' ימים' : ''}</div>
     </div>
     <img class="logo" src="${HAZIRA_LOGO}" alt="הזירה" />
@@ -665,6 +679,10 @@ export default function ProjectPlansMode({ profile }) {
                   className={`p-1 ${copiedId === plan.id ? 'text-green-600' : 'text-gray-300 hover:text-[#E0197D]'}`}
                   title={copiedId === plan.id ? 'הקישור הועתק' : 'העתק לינק לצפייה'}>
                   <i className={`ti ${copiedId === plan.id ? 'ti-check' : 'ti-link'}`} style={{ fontSize: 13 }} />
+                </button>
+                <button onClick={e => { e.stopPropagation(); openPdfPicker(plan) }}
+                  className="text-gray-300 hover:text-[#E0197D] p-1" title="ייצוא אישי (לפי איש צוות)">
+                  <i className="ti ti-user-down" style={{ fontSize: 16 }} />
                 </button>
                 <button onClick={e => { e.stopPropagation(); exportPdf(plan) }}
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="ייצוא PDF">
@@ -913,6 +931,33 @@ export default function ProjectPlansMode({ profile }) {
                 {reviewBusy==='apply'?'מחיל...':'שמור תגובות לאירועים'}
               </button>
               <div className="text-[11px] text-gray-400 text-center mt-1.5">מושך את תגובות העובדים ומעדכן סטטוסים בהפקה הטכנית (אישר→צהוב · לא יכול→אדום)</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pdfPickFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background:'rgba(0,0,0,0.45)' }} onClick={()=>setPdfPickFor(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm max-h-[85vh] flex flex-col" dir="rtl" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5D3E7]">
+              <button onClick={()=>setPdfPickFor(null)} className="text-gray-400 hover:text-gray-600"><i className="ti ti-x" style={{fontSize:18}}/></button>
+              <div className="text-[15px] font-semibold text-gray-900">ייצוא אישי — {pdfPickFor.title}</div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="text-[12px] text-gray-400 mb-3 text-right">בחר איש צוות — ייווצר PDF עם הימים שהוא משתתף בהם בלבד</div>
+              {pdfNames.length===0 ? (
+                <div className="text-center text-[13px] text-gray-400 py-6">אין אנשי צוות בתוכנית</div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {pdfNames.map(n=>(
+                    <button key={n} onClick={()=>{ exportPdf(pdfPickFor, n); setPdfPickFor(null) }}
+                      className="flex items-center justify-between gap-2 border border-[#F5D3E7] rounded-lg px-3 py-2 hover:bg-[#FCE4F3] text-right">
+                      <i className="ti ti-file-type-pdf text-[#E0197D]" style={{fontSize:16}}/>
+                      <span className="flex-1 text-[13px] text-gray-800">{n}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
