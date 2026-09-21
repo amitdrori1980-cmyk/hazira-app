@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-IMPORTMONTHS-V19
+// HAZIRA-PROJPLANS-DRAGARCHIVE-V20
 'use client'
 // HAZIRA-PROJPLANS-V12
 import { useEffect, useState, useRef } from 'react'
@@ -71,6 +71,8 @@ const HAZIRA_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53M
 
 export default function ProjectPlansMode({ profile }) {
   const [plans, setPlans]     = useState([])
+  const [showArchive, setShowArchive] = useState(false)
+  const [dragPlanId, setDragPlanId]   = useState(null)
   const [loading, setLoading] = useState(true)
   const [openId, setOpenId]   = useState(null)
   const [columns, setColumns] = useState({}) // { [planId]: Column[] }
@@ -128,7 +130,7 @@ export default function ProjectPlansMode({ profile }) {
   async function load() {
     setLoading(true)
     const [{ data }, { data: ts }] = await Promise.all([
-      supabase.from('project_plans').select('*').order('created_at', { ascending: false }),
+      supabase.from('project_plans').select('*').order('sort_order', { ascending: true, nullsFirst: false }).order('created_at', { ascending: false }),
       supabase.from('event_types').select('*').order('sort_order'),
     ])
     setPlans(data || [])
@@ -169,7 +171,7 @@ export default function ProjectPlansMode({ profile }) {
     if (!newTitle.trim()) return
     setSaving(true)
     const { data } = await supabase.from('project_plans')
-      .insert({ title: newTitle.trim(), status: 'draft', created_by: profile?.id || null })
+      .insert({ title: newTitle.trim(), status: 'draft', created_by: profile?.id || null, sort_order: (Math.min(0, ...plans.map(p => p.sort_order ?? 0)) - 1) })
       .select().single()
     if (data) {
       setPlans(prev => [data, ...prev])
@@ -186,6 +188,23 @@ export default function ProjectPlansMode({ profile }) {
     await supabase.from('project_plans').update({ [field]: value }).eq('id', id)
   }
 
+  async function setArchived(id, val) {
+    setPlans(prev => prev.map(p => p.id === id ? { ...p, archived: val } : p))
+    if (openId === id) setOpenId(null)
+    await supabase.from('project_plans').update({ archived: val }).eq('id', id)
+  }
+  async function movePlan(dragId, targetId) {
+    if (!dragId || dragId === targetId) return
+    const active = plans.filter(p => !p.archived)
+    const from = active.findIndex(p => p.id === dragId), to = active.findIndex(p => p.id === targetId)
+    if (from < 0 || to < 0 || from === to) { setDragPlanId(null); return }
+    const next = [...active]; const [m] = next.splice(from, 1); next.splice(to, 0, m)
+    const reordered = next.map((p, i) => ({ ...p, sort_order: i }))
+    setPlans(prev => [...reordered, ...prev.filter(p => p.archived)])
+    setDragPlanId(null)
+    const results = await Promise.all(reordered.map((p, i) => supabase.from('project_plans').update({ sort_order: i }).eq('id', p.id)))
+    const err = results.find(r => r.error); if (err) alert('שגיאה בשמירת הסדר: ' + err.error.message)
+  }
   async function deletePlan(id) {
     await supabase.from('project_plans').delete().eq('id', id) // cascades columns + cells
     setPlans(prev => prev.filter(p => p.id !== id))
@@ -688,13 +707,20 @@ export default function ProjectPlansMode({ profile }) {
         </div>
       )}
 
-      {plans.length === 0 && !showNew && (
+      {(() => { const arch = plans.filter(p => p.archived); return (
+        <div className="flex items-center gap-2 mb-3">
+          <button onClick={() => setShowArchive(false)} className={`text-[12px] px-3 py-1.5 rounded-lg border ${!showArchive ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>פעילות ({plans.length - arch.length})</button>
+          <button onClick={() => setShowArchive(true)} className={`text-[12px] px-3 py-1.5 rounded-lg border flex items-center gap-1 ${showArchive ? 'bg-[#E0197D] text-white border-[#E0197D]' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}><i className="ti ti-archive" style={{ fontSize: 13 }} /> ארכיון ({arch.length})</button>
+        </div>
+      ) })()}
+
+      {plans.filter(p => showArchive ? p.archived : !p.archived).length === 0 && !showNew && (
         <div className="bg-white border border-gray-100 rounded-xl p-8 text-center text-[13px] text-gray-400">
-          אין תוכניות — לחץ על "תוכנית חדשה" להתחלה
+          {showArchive ? 'אין תוכניות בארכיון' : 'אין תוכניות — לחץ על "תוכנית חדשה" להתחלה'}
         </div>
       )}
 
-      {plans.map(plan => {
+      {plans.filter(p => showArchive ? p.archived : !p.archived).map(plan => {
         const isOpen = openId === plan.id
         const planCols = columns[plan.id] || []
         const st = getPlanStatus(plan.status)
@@ -702,10 +728,18 @@ export default function ProjectPlansMode({ profile }) {
         planCols.forEach(c => (cells[c.id] || []).forEach(cell => { if (cell.source_event_id) linkedEventIds.add(cell.source_event_id) }))
         const hasLinked = linkedEventIds.size > 0
         return (
-          <div key={plan.id} id={`pp-${plan.id}`} className="bg-white border-2 border-[#B6CFD0] rounded-xl mb-3 overflow-hidden shadow-sm">
+          <div key={plan.id} id={`pp-${plan.id}`} className={`bg-white border-2 rounded-xl mb-3 overflow-hidden shadow-sm ${dragPlanId===plan.id ? 'border-[#E0197D] opacity-60' : 'border-[#B6CFD0]'}`}
+            onDragOver={e => { if (!showArchive && dragPlanId) e.preventDefault() }}
+            onDrop={e => { if (!showArchive && dragPlanId) { e.preventDefault(); movePlan(dragPlanId, plan.id) } }}>
             {/* header */}
             <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 flex-row-reverse"
               onClick={() => toggleOpen(plan.id)}>
+              {!showArchive && (
+                <span draggable onDragStart={e => { e.stopPropagation(); setDragPlanId(plan.id) }} onDragEnd={() => setDragPlanId(null)} onClick={e => e.stopPropagation()}
+                  className="text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing no-print" title="גרור לסידור">
+                  <i className="ti ti-grip-vertical" style={{ fontSize: 16 }} />
+                </span>
+              )}
               <div className="flex-1 text-right">
                 <input
                   value={plan.title}
@@ -737,6 +771,10 @@ export default function ProjectPlansMode({ profile }) {
                 <button onClick={e => { e.stopPropagation(); duplicatePlan(plan) }}
                   className="text-gray-300 hover:text-[#E0197D] p-1" title="שכפל תוכנית">
                   <i className="ti ti-copy" style={{ fontSize: 13 }} />
+                </button>
+                <button onClick={e => { e.stopPropagation(); setArchived(plan.id, !plan.archived) }}
+                  className="text-gray-300 hover:text-[#0f766e] p-1" title={plan.archived ? 'שחזר מארכיון' : 'העבר לארכיון'}>
+                  <i className={`ti ${plan.archived ? 'ti-archive-off' : 'ti-archive'}`} style={{ fontSize: 13 }} />
                 </button>
                 <button onClick={e => { e.stopPropagation(); if (window.confirm('למחוק את התוכנית?')) deletePlan(plan.id) }}
                   className="text-gray-300 hover:text-red-500 p-1" title="מחק">
