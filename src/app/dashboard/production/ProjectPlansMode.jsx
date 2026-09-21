@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-PDFCAL-V17
+// HAZIRA-PROJPLANS-WEEKLYVIEW-V18
 'use client'
 // HAZIRA-PROJPLANS-V12
 import { useEffect, useState, useRef } from 'react'
@@ -43,6 +43,11 @@ const DAY_CATEGORIES = [
   { value: 'strike',  label: 'פירוק',   head: '#C3C6C9', text: '#40454A' },
 ]
 const getDayCategory = v => DAY_CATEGORIES.find(c => c.value === (v || '')) || DAY_CATEGORIES[0]
+const WK_DOW = ['א','ב','ג','ד','ה','ו','ש']
+function pad2(n){ return String(n).padStart(2,'0') }
+function dowOf(ds){ const a=String(ds).split('-').map(Number); return new Date(a[0],a[1]-1,a[2]).getDay() }
+function weekStartDs(ds){ const a=String(ds).split('-').map(Number); const dt=new Date(a[0],a[1]-1,a[2],12); dt.setDate(dt.getDate()-dt.getDay()); return dt.getFullYear()+'-'+pad2(dt.getMonth()+1)+'-'+pad2(dt.getDate()) }
+function fmtDM(ds){ const a=String(ds).split('-').map(Number); return a[2]+'/'+a[1] }
 
 // עמודות ממוינות כרונולוגית לפי תאריך (ריק — בסוף)
 function sortColsByDate(arr) {
@@ -90,6 +95,7 @@ export default function ProjectPlansMode({ profile }) {
   const [reviewCopied, setReviewCopied] = useState(null)
   const [pdfPickFor, setPdfPickFor]     = useState(null) // plan whose personal-export picker is open
   const [pdfNames, setPdfNames]         = useState([])
+  const [planView, setPlanView]         = useState({}) // { [planId]: 'weekly' } ; default horizontal
 
   useEffect(() => { load() }, [])
 
@@ -830,7 +836,71 @@ export default function ProjectPlansMode({ profile }) {
                   </div>
                 )}
 
-                {/* columns */}
+                {/* view toggle */}
+                <div className="flex justify-end mb-2">
+                  <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden text-[12px]">
+                    <button onClick={() => setPlanView(v => ({ ...v, [plan.id]: 'horizontal' }))}
+                      className={`px-3 py-1 flex items-center gap-1 ${(planView[plan.id]||'horizontal')==='horizontal' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
+                      <i className="ti ti-layout-columns" style={{ fontSize: 13 }} /> אופקי
+                    </button>
+                    <button onClick={() => setPlanView(v => ({ ...v, [plan.id]: 'weekly' }))}
+                      className={`px-3 py-1 flex items-center gap-1 ${planView[plan.id]==='weekly' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
+                      <i className="ti ti-calendar-week" style={{ fontSize: 13 }} /> שבועי
+                    </button>
+                  </div>
+                </div>
+
+                {/* ===== WEEKLY VIEW (read-only) ===== */}
+                {planView[plan.id] === 'weekly' && (() => {
+                  const dated = planCols.filter(c => c.date)
+                  const weeks = {}
+                  dated.forEach(col => { const ws = weekStartDs(col.date); (weeks[ws] = weeks[ws] || {})[dowOf(col.date)] = col })
+                  const weekKeys = Object.keys(weeks).sort()
+                  if (!weekKeys.length) return <div className="text-center text-gray-400 text-[13px] py-8">אין ימים עם תאריך בתוכנית</div>
+                  return (
+                    <div className="flex flex-col gap-3">
+                      {weekKeys.map(ws => {
+                        const wk = weeks[ws]
+                        const need7 = !!(wk[5] || wk[6])
+                        const n = need7 ? 7 : 5
+                        return (
+                          <div key={ws} className="grid gap-2" style={{ gridTemplateColumns: `repeat(${n}, minmax(0,1fr))` }}>
+                            {Array.from({ length: n }).map((_, dow) => {
+                              const col = wk[dow]
+                              if (!col) return <div key={dow} className="rounded-xl border border-dashed border-gray-100 bg-gray-50/40 min-h-[80px]" />
+                              const cat = getDayCategory(col.category)
+                              const colCells = cells[col.id] || []
+                              return (
+                                <div key={dow} className="rounded-xl border border-gray-300 bg-gray-50 overflow-hidden">
+                                  <div className="px-2 py-1.5" style={{ backgroundColor: cat.head }}>
+                                    <div className="text-[11px] font-bold" style={{ color: cat.text }}>יום {WK_DOW[dow]} · {fmtDM(col.date)}</div>
+                                    {cat.value ? <div className="text-[9px] mt-0.5" style={{ color: cat.text }}>{cat.label}</div> : null}
+                                  </div>
+                                  <div className="p-1.5 space-y-1.5">
+                                    {colCells.length === 0 ? <div className="text-[11px] text-gray-300 text-center py-1">—</div> :
+                                      colCells.map(cell => (
+                                        <div key={cell.id} className="bg-white rounded-lg border border-[#E0197D]/25 p-1.5 text-right">
+                                          <div className="text-[12px] font-medium text-gray-800 flex items-start gap-1 justify-end">
+                                            {cell.source_event_id && <i className="ti ti-link text-[#E0197D] mt-0.5 shrink-0" style={{ fontSize: 10 }} />}
+                                            <span className="whitespace-pre-wrap">{cell.action || '—'}</span>
+                                          </div>
+                                          {(cell.crew || '').trim() && <div className="text-[11px] text-gray-600 whitespace-pre-wrap mt-0.5">{cell.crew}</div>}
+                                          {(cell.notes || '').trim() && <div className="text-[11px] text-gray-400 whitespace-pre-wrap mt-0.5">{cell.notes}</div>}
+                                        </div>
+                                      ))}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+
+                {/* columns (horizontal) */}
+                {planView[plan.id] !== 'weekly' && (
                 <div className="flex gap-3 overflow-x-auto pb-2 items-start">
                   {planCols.map((col, ci) => {
                     const colCells = cells[col.id] || []
@@ -925,6 +995,7 @@ export default function ProjectPlansMode({ profile }) {
                     <i className="ti ti-calendar-plus" style={{ fontSize: 20 }} /> הוסף יום
                   </button>
                 </div>
+                )}
               </div>
             )}
           </div>
