@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-WEEKLYVIEW-V18
+// HAZIRA-PROJPLANS-IMPORTMONTHS-V19
 'use client'
 // HAZIRA-PROJPLANS-V12
 import { useEffect, useState, useRef } from 'react'
@@ -87,6 +87,7 @@ export default function ProjectPlansMode({ profile }) {
   const [importEvents, setImportEvents] = useState([])   // candidate production_events (with _crew[])
   const [importSel, setImportSel]       = useState(new Set())
   const [importSearch, setImportSearch] = useState('')
+  const [importOpenMonths, setImportOpenMonths] = useState({}) // {'YYYY-MM': true} ; default collapsed
   const [importBusy, setImportBusy]     = useState(false)
   const [syncBusy, setSyncBusy]         = useState(null) // planId currently syncing
   const [reviewFor, setReviewFor]       = useState(null) // plan whose review modal is open
@@ -335,6 +336,14 @@ export default function ProjectPlansMode({ profile }) {
 
   function toggleImportSel(id) {
     setImportSel(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+  function toggleMonthSel(evs, select) {
+    setImportSel(prev => { const n = new Set(prev); evs.forEach(e => { if (select) n.add(e.id); else n.delete(e.id) }); return n })
+  }
+  function monthLabelImp(key) {
+    if (!key || key === 'no-date') return 'ללא תאריך'
+    const M = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
+    const [y, m] = key.split('-').map(Number); return (M[m-1] || '') + ' ' + y
   }
 
   async function runImport(planId) {
@@ -798,27 +807,49 @@ export default function ProjectPlansMode({ profile }) {
                             ? importEvents.filter(e => (e.event_name || '').toLowerCase().includes(q) || (e.venue || '').toLowerCase().includes(q))
                             : importEvents
                           if (shown.length === 0) return <div className="text-center text-[12px] text-gray-400 py-4">לא נמצאו אירועים תואמים</div>
+                          const searching = !!q
+                          const groups = {}
+                          shown.forEach(ev => { const key = (ev.date || '').slice(0, 7) || 'no-date'; (groups[key] = groups[key] || []).push(ev) })
+                          const monthKeys = Object.keys(groups).sort()
+                          const evLabel = (ev) => {
+                            const already = linkedEventIds.has(ev.id)
+                            const checked = importSel.has(ev.id)
+                            return (
+                              <label key={ev.id}
+                                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-right ${checked ? 'bg-[#FCE4F3]' : 'hover:bg-gray-50'}`}>
+                                <input type="checkbox" checked={checked} onChange={() => toggleImportSel(ev.id)} className="accent-[#E0197D] shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[12px] font-medium text-gray-800 flex items-center gap-1.5 min-w-0">
+                                    {already && <span className="text-[9px] text-[#E0197D] border border-[#E0197D] rounded px-1 py-px shrink-0">מקושר</span>}
+                                    <span className="truncate">{ev.event_name}</span>
+                                  </div>
+                                  <div className="text-[11px] text-gray-400 flex gap-2 flex-wrap">
+                                    {ev._crew.length > 0 && <span>{ev._crew.length} אישרו</span>}
+                                    {ev.venue && <span>{ev.venue}</span>}
+                                    <span>{fmtShort(ev.date)}</span>
+                                  </div>
+                                </div>
+                              </label>
+                            )
+                          }
                           return (
-                            <div className="max-h-64 overflow-y-auto space-y-1">
-                              {shown.map(ev => {
-                                const already = linkedEventIds.has(ev.id)
-                                const checked = importSel.has(ev.id)
+                            <div className="max-h-72 overflow-y-auto space-y-1.5">
+                              {monthKeys.map(key => {
+                                const evs = groups[key]
+                                const expanded = searching || importOpenMonths[key]
+                                const allSel = evs.every(e => importSel.has(e.id))
                                 return (
-                                  <label key={ev.id}
-                                    className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-right ${checked ? 'bg-[#FCE4F3]' : 'hover:bg-gray-50'}`}>
-                                    <input type="checkbox" checked={checked} onChange={() => toggleImportSel(ev.id)} className="accent-[#E0197D] shrink-0" />
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-[12px] font-medium text-gray-800 flex items-center gap-1.5 min-w-0">
-                                        {already && <span className="text-[9px] text-[#E0197D] border border-[#E0197D] rounded px-1 py-px shrink-0">מקושר</span>}
-                                        <span className="truncate">{ev.event_name}</span>
-                                      </div>
-                                      <div className="text-[11px] text-gray-400 flex gap-2 flex-wrap">
-                                        {ev._crew.length > 0 && <span>{ev._crew.length} אישרו</span>}
-                                        {ev.venue && <span>{ev.venue}</span>}
-                                        <span>{fmtShort(ev.date)}</span>
-                                      </div>
+                                  <div key={key}>
+                                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">
+                                      <button type="button" onClick={() => setImportOpenMonths(pv => ({ ...pv, [key]: !pv[key] }))} className="flex items-center gap-1.5 flex-1 text-right">
+                                        <i className={`ti ${expanded ? 'ti-chevron-up' : 'ti-chevron-down'} text-gray-400`} style={{ fontSize: 14 }} />
+                                        <span className="text-[12px] font-semibold text-gray-700">{monthLabelImp(key)}</span>
+                                        <span className="text-[10px] text-gray-400">({evs.length})</span>
+                                      </button>
+                                      <button type="button" onClick={() => toggleMonthSel(evs, !allSel)} className="text-[10px] text-[#E0197D] hover:underline shrink-0">{allSel ? 'נקה' : 'בחר הכל'}</button>
                                     </div>
-                                  </label>
+                                    {expanded && <div className="space-y-1 mt-1 pr-1">{evs.map(evLabel)}</div>}
+                                  </div>
                                 )
                               })}
                             </div>
