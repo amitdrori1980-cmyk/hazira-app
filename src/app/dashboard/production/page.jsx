@@ -1,4 +1,4 @@
-// HAZIRA-PRODINQ-DAYFROMDATE-V50
+// HAZIRA-PRODINQ-MONTHSCOLLAPSED-V51
 // HAZIRA-PRODINQ-DAYNAME-TZFIX-V48
 // HAZIRA-PRODINQ-REVIEWPRODONLY-V47
 // HAZIRA-PRODINQ-CULTREVIEW-ACTIONSONLY-V46
@@ -72,7 +72,7 @@ function ProductionInquiries() {
   const [archiveSearch, setArchiveSearch] = useState('')
   const [prodSearch, setProdSearch] = useState('')
   const [openMonths, setOpenMonths] = useState({})
-  const [collapsedMonths, setCollapsedMonths] = useState({})
+  const [expandedMonths, setExpandedMonths] = useState({})
   const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewPerson, setReviewPerson] = useState('')
   const [reviewLink, setReviewLink] = useState(null)
@@ -1180,11 +1180,11 @@ function ProductionInquiries() {
           </div>
           <div className="flex justify-end mb-2 no-print">
             <button onClick={() => {
-              const allCollapsed = activeMonthGroups.every(g => collapsedMonths[g.key])
-              if (allCollapsed) setCollapsedMonths({})
-              else { const next = {}; activeMonthGroups.forEach(g => { next[g.key] = true }); setCollapsedMonths(next) }
+              const allExpanded = activeMonthGroups.length > 0 && activeMonthGroups.every(g => expandedMonths[g.key])
+              if (allExpanded) setExpandedMonths({})
+              else { const next = {}; activeMonthGroups.forEach(g => { next[g.key] = true }); setExpandedMonths(next) }
             }} className="text-[11px] text-gray-500 hover:text-[#E0197D]">
-              {activeMonthGroups.every(g => collapsedMonths[g.key]) ? 'הרחב הכל' : 'כווץ הכל'}
+              {activeMonthGroups.length > 0 && activeMonthGroups.every(g => expandedMonths[g.key]) ? 'כווץ הכל' : 'הרחב הכל'}
             </button>
           </div>
           <table className="w-full table-fixed" style={{ borderCollapse: 'collapse' }}>
@@ -1202,17 +1202,17 @@ function ProductionInquiries() {
                 <Fragment key={g.key}>
                   <tr className={`${printMode === 'selected' && !g.events.some(e => selectedIds.has(e.id)) ? 'hidden' : ''}`}>
                     <td style={{ padding: 0 }}>
-                      <button onClick={() => setCollapsedMonths(p => ({ ...p, [g.key]: !p[g.key] }))}
+                      <button onClick={() => setExpandedMonths(p => ({ ...p, [g.key]: !p[g.key] }))}
                         className="w-full flex items-center justify-between px-4 py-2.5 mb-2 bg-gray-50 border border-black rounded-xl flex-row-reverse hover:bg-gray-100">
                         <span className="text-[13px] font-semibold text-gray-700 flex items-center gap-2 flex-row-reverse">
-                          <i className={`ti ${collapsedMonths[g.key] ? 'ti-chevron-down' : 'ti-chevron-up'} text-gray-400 no-print`} style={{fontSize:15}}/>
+                          <i className={`ti ${expandedMonths[g.key] ? 'ti-chevron-up' : 'ti-chevron-down'} text-gray-400 no-print`} style={{fontSize:15}}/>
                           {g.label}
                         </span>
                         <span className="text-[11px] text-gray-400">{g.events.length} אירועים</span>
                       </button>
                     </td>
                   </tr>
-                  {(!collapsedMonths[g.key] || printMode === 'selected') && g.events.map(ev => (
+                  {(expandedMonths[g.key] || printMode === 'selected') && g.events.map(ev => (
                     <tr key={ev.id} className={`prod-ev-card ${printMode === 'selected' && !selectedIds.has(ev.id) ? 'hidden' : ''}`}>
                       <td style={{ padding: 0, verticalAlign: 'top' }}>{RenderCard(ev, g.events)}</td>
                     </tr>
