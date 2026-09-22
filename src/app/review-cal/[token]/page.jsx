@@ -2,18 +2,20 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-REVIEWCAL-DAYCARD-V3
+// HAZIRA-REVIEWCAL-LIVE-V4
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DOW = ['א','ב','ג','ד','ה','ו','ש']
 function fmtDate(ds) { if (!ds) return ''; const [y, m, d] = ds.split('-').map(Number); return d + ' ' + HE_MONTHS[m - 1] }
 function heDow(ds) { const [y, m, d] = String(ds).split('-').map(Number); if (!y) return ''; return HE_DOW[new Date(y, m - 1, d).getDay()] }
 function ym(ds) { const [y, m] = String(ds).split('-').map(Number); return { y, m } }
+function normNm(x) { return (x || '').trim().replace(/\s+/g, ' ') }
 
 export default function ReviewCalPage() {
   const params = useParams()
   const token = params?.token
   const [link, setLink] = useState(null)
+  const [items, setItems] = useState([])
   const [responses, setResponses] = useState({})
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -21,26 +23,52 @@ export default function ReviewCalPage() {
   const [monthIdx, setMonthIdx] = useState(0)
   const [openDs, setOpenDs] = useState(null)
 
-  useEffect(() => {
-    async function load() {
-      if (!token) return
-      const { data: l } = await supabase.from('review_links').select('*').eq('token', token).maybeSingle()
-      if (!l) { setNotFound(true); setLoading(false); return }
-      setLink(l)
-      const { data: rs } = await supabase.from('review_responses').select('*').eq('token', token)
-      const map = {}; const its = l.items || []
-      ;(rs || []).forEach(r => {
-        let idx = -1
-        if (r.item_key) idx = its.findIndex(x => (x.key || (x.eid + ':' + x.slot)) === r.item_key)
-        if (idx < 0 && r.item_index != null) idx = r.item_index
-        if (idx >= 0) map[idx] = { decision: r.decision || '', note: r.note || '', updated_at: r.updated_at || null }
-      })
-      setResponses(map); setLoading(false)
-    }
-    load()
-  }, [token])
+  async function loadAll() {
+    if (!token) return
+    const { data: l } = await supabase.from('review_links').select('*').eq('token', token).maybeSingle()
+    if (!l) { setNotFound(true); setLoading(false); return }
+    setLink(l)
 
-  const items = link?.items || []
+    // ---- LIVE: for plan-review links, compute events from production in real time ----
+    let liveItems = null
+    if (l.plan_id) {
+      const { data: cells } = await supabase.from('project_plan_cells').select('source_event_id').eq('plan_id', l.plan_id)
+      const eids = [...new Set((cells || []).map(c => c.source_event_id).filter(Boolean))]
+      if (eids.length) {
+        const [{ data: evs }, { data: ppl }] = await Promise.all([
+          supabase.from('production_events').select('id,event_name,date,venue').in('id', eids),
+          supabase.from('production_people').select('production_event_id,slot,name,status').in('production_event_id', eids),
+        ])
+        const evMap = {}; (evs || []).forEach(e => { evMap[e.id] = e })
+        const target = normNm(l.person_name)
+        liveItems = (ppl || [])
+          .filter(p => normNm(p.name) === target)
+          .map(p => {
+            const ev = evMap[p.production_event_id]; if (!ev) return null
+            return { source: 'production', key: ev.id + ':' + p.slot, eid: ev.id, slot: p.slot, name: p.name, event_name: ev.event_name || '', date: ev.date || '', venue: ev.venue || '' }
+          })
+          .filter(Boolean)
+          .sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.event_name || '').localeCompare(b.event_name || '', 'he'))
+      } else {
+        liveItems = []
+      }
+    }
+    const finalItems = liveItems != null ? liveItems : (l.items || [])
+    setItems(finalItems)
+
+    const { data: rs } = await supabase.from('review_responses').select('*').eq('token', token)
+    const map = {}
+    ;(rs || []).forEach(r => {
+      let idx = -1
+      if (r.item_key) idx = finalItems.findIndex(x => (x.key || (x.eid + ':' + x.slot)) === r.item_key)
+      if (idx < 0 && r.item_index != null) idx = r.item_index
+      if (idx >= 0) map[idx] = { decision: r.decision || '', note: r.note || '', updated_at: r.updated_at || null }
+    })
+    setResponses(map); setLoading(false)
+  }
+
+  useEffect(() => { loadAll() }, [token])
+
   function itemKey(idx) { const it = items[idx]; return it ? (it.key || (it.eid != null ? it.eid + ':' + it.slot : 'idx:' + idx)) : ('idx:' + idx) }
 
   const byDate = {}
@@ -112,6 +140,9 @@ export default function ReviewCalPage() {
           <div className="text-gray-400 text-[12px] mt-1">{doneDays}/{datesSorted.length} ימים סומנו</div>
         </div>
 
+        {datesSorted.length === 0 ? (
+          <div className="bg-white border border-[#F3C9E2] rounded-2xl p-8 text-center text-[14px] text-gray-400">אין כרגע אירועים לבדיקה עבורך.</div>
+        ) : (<>
         <div className="hidden md:block">
           {curMonth && (
             <div className="bg-white border border-[#F3C9E2] rounded-2xl p-4 shadow-sm">
@@ -163,6 +194,7 @@ export default function ReviewCalPage() {
             )
           })}
         </div>
+        </>)}
 
         <div className="text-center text-[12px] text-gray-400 mt-6">התגובות נשמרות אוטומטית. אפשר לסגור את הדף ולחזור אליו מאוחר יותר.</div>
       </div>
