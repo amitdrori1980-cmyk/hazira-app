@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-REVIEWLIVECREW-V25
+// HAZIRA-PROJPLANS-NORMNAME-V26
 // HAZIRA-PROJPLANS-LIVECREW-V23
 // HAZIRA-PROJPLANS-DROPLINEFIX-V22
 'use client'
@@ -461,7 +461,7 @@ export default function ProjectPlansMode({ profile }) {
         if(seenEid.has(ev.id)) return   // אירוע אחד — פעם אחת (גם אם מופיע בכמה תאים)
         seenEid.add(ev.id)
         ;(peopleByEvent[ev.id]||[]).forEach(r=>{
-          const nm=r.name
+          const nm=normNm(r.name)
           const item={source:'production', key:ev.id+':'+r.slot, eid:ev.id, slot:r.slot, name:nm, event_name:ev.event_name||'', date:ev.date||'', venue:ev.venue||''}
           ;(byPerson[nm]=byPerson[nm]||[]).push(item)
         })
