@@ -2,14 +2,20 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-REVIEWCAL-CHUNKRETRY-V5
+// HAZIRA-REVIEWCAL-NAMENORM-V6
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DOW = ['א','ב','ג','ד','ה','ו','ש']
 function fmtDate(ds) { if (!ds) return ''; const [y, m, d] = ds.split('-').map(Number); return d + ' ' + HE_MONTHS[m - 1] }
 function heDow(ds) { const [y, m, d] = String(ds).split('-').map(Number); if (!y) return ''; return HE_DOW[new Date(y, m - 1, d).getDay()] }
 function ym(ds) { const [y, m] = String(ds).split('-').map(Number); return { y, m } }
-function normNm(x) { return (x || '').trim().replace(/\s+/g, ' ') }
+function normNm(x) {
+  return (x || '')
+    .normalize('NFC')
+    .replace(/[\u200e\u200f\u202a-\u202e\u200b-\u200d\ufeff]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+}
 
 export default function ReviewCalPage() {
   const params = useParams()
