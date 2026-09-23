@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-REVIEWCAL-LIVE-V4
+// HAZIRA-REVIEWCAL-CHUNKRETRY-V5
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DOW = ['א','ב','ג','ד','ה','ו','ש']
@@ -19,52 +19,74 @@ export default function ReviewCalPage() {
   const [responses, setResponses] = useState({})
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const [savingDs, setSavingDs] = useState(null)
   const [monthIdx, setMonthIdx] = useState(0)
   const [openDs, setOpenDs] = useState(null)
 
-  async function loadAll() {
-    if (!token) return
-    const { data: l } = await supabase.from('review_links').select('*').eq('token', token).maybeSingle()
-    if (!l) { setNotFound(true); setLoading(false); return }
-    setLink(l)
-
-    // ---- LIVE: for plan-review links, compute events from production in real time ----
-    let liveItems = null
-    if (l.plan_id) {
-      const { data: cells } = await supabase.from('project_plan_cells').select('source_event_id').eq('plan_id', l.plan_id)
-      const eids = [...new Set((cells || []).map(c => c.source_event_id).filter(Boolean))]
-      if (eids.length) {
-        const [{ data: evs }, { data: ppl }] = await Promise.all([
-          supabase.from('production_events').select('id,event_name,date,venue').in('id', eids),
-          supabase.from('production_people').select('production_event_id,slot,name,status').in('production_event_id', eids),
-        ])
-        const evMap = {}; (evs || []).forEach(e => { evMap[e.id] = e })
-        const target = normNm(l.person_name)
-        liveItems = (ppl || [])
-          .filter(p => normNm(p.name) === target)
-          .map(p => {
-            const ev = evMap[p.production_event_id]; if (!ev) return null
-            return { source: 'production', key: ev.id + ':' + p.slot, eid: ev.id, slot: p.slot, name: p.name, event_name: ev.event_name || '', date: ev.date || '', venue: ev.venue || '' }
-          })
-          .filter(Boolean)
-          .sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.event_name || '').localeCompare(b.event_name || '', 'he'))
-      } else {
-        liveItems = []
-      }
+  async function fetchInChunks(table, cols, col, ids, chunkSize) {
+    const out = []
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const { data, error } = await supabase.from(table).select(cols).in(col, ids.slice(i, i + chunkSize))
+      if (error) throw error
+      if (data) out.push(...data)
     }
-    const finalItems = liveItems != null ? liveItems : (l.items || [])
-    setItems(finalItems)
+    return out
+  }
 
-    const { data: rs } = await supabase.from('review_responses').select('*').eq('token', token)
-    const map = {}
-    ;(rs || []).forEach(r => {
-      let idx = -1
-      if (r.item_key) idx = finalItems.findIndex(x => (x.key || (x.eid + ':' + x.slot)) === r.item_key)
-      if (idx < 0 && r.item_index != null) idx = r.item_index
-      if (idx >= 0) map[idx] = { decision: r.decision || '', note: r.note || '', updated_at: r.updated_at || null }
-    })
-    setResponses(map); setLoading(false)
+  async function loadAll(attempt = 0) {
+    if (!token) return
+    setLoadError(false)
+    try {
+      const { data: l, error: lErr } = await supabase.from('review_links').select('*').eq('token', token).maybeSingle()
+      if (lErr) throw lErr
+      if (!l) { setNotFound(true); setLoading(false); return }
+      setLink(l)
+
+      // ---- LIVE: for plan-review links, compute events from production in real time ----
+      let liveItems = null
+      if (l.plan_id) {
+        const { data: cells, error: cErr } = await supabase.from('project_plan_cells').select('source_event_id').eq('plan_id', l.plan_id)
+        if (cErr) throw cErr
+        const eids = [...new Set((cells || []).map(c => c.source_event_id).filter(Boolean))]
+        if (eids.length) {
+          // chunked .in() so the request URL stays short (mobile Safari / cellular proxies can drop very long URLs)
+          const [evs, ppl] = await Promise.all([
+            fetchInChunks('production_events', 'id,event_name,date,venue', 'id', eids, 25),
+            fetchInChunks('production_people', 'production_event_id,slot,name,status', 'production_event_id', eids, 25),
+          ])
+          const evMap = {}; (evs || []).forEach(e => { evMap[e.id] = e })
+          const target = normNm(l.person_name)
+          liveItems = (ppl || [])
+            .filter(p => normNm(p.name) === target)
+            .map(p => {
+              const ev = evMap[p.production_event_id]; if (!ev) return null
+              return { source: 'production', key: ev.id + ':' + p.slot, eid: ev.id, slot: p.slot, name: p.name, event_name: ev.event_name || '', date: ev.date || '', venue: ev.venue || '' }
+            })
+            .filter(Boolean)
+            .sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.event_name || '').localeCompare(b.event_name || '', 'he'))
+        } else {
+          liveItems = []
+        }
+      }
+      const finalItems = liveItems != null ? liveItems : (l.items || [])
+      setItems(finalItems)
+
+      const { data: rs, error: rErr } = await supabase.from('review_responses').select('*').eq('token', token)
+      if (rErr) throw rErr
+      const map = {}
+      ;(rs || []).forEach(r => {
+        let idx = -1
+        if (r.item_key) idx = finalItems.findIndex(x => (x.key || (x.eid + ':' + x.slot)) === r.item_key)
+        if (idx < 0 && r.item_index != null) idx = r.item_index
+        if (idx >= 0) map[idx] = { decision: r.decision || '', note: r.note || '', updated_at: r.updated_at || null }
+      })
+      setResponses(map); setLoading(false)
+    } catch (e) {
+      // network/server error — retry a couple of times, then show a connection error (not "no events")
+      if (attempt < 2) { setTimeout(() => loadAll(attempt + 1), 800 * (attempt + 1)); return }
+      setLoadError(true); setLoading(false)
+    }
   }
 
   useEffect(() => { loadAll() }, [token])
@@ -102,6 +124,18 @@ export default function ReviewCalPage() {
   function saveDayNote(ds) { const d = dayDecision(ds); writeDay(ds, d === 'mixed' ? '' : d, dayNote(ds)) }
 
   if (loading) return <div style={{ fontFamily: 'Calibri, sans-serif' }} className="min-h-screen flex items-center justify-center text-gray-400">טוען...</div>
+  if (loadError) return (
+    <div dir="rtl" style={{ fontFamily: 'Calibri, sans-serif' }} className="min-h-screen flex items-center justify-center text-center px-6 bg-[#FCE4F3]/40">
+      <div>
+        <div className="text-[#E0197D] text-2xl font-bold mb-2">הזירה</div>
+        <div className="text-gray-600 text-[15px] mb-1">בעיית חיבור</div>
+        <div className="text-gray-400 text-[13px] mb-4">לא הצלחנו לטעון את האירועים. בדקו את החיבור לאינטרנט ונסו שוב.</div>
+        <button onClick={() => { setLoading(true); loadAll() }} className="bg-[#E0197D] text-white text-[14px] px-6 py-2.5 rounded-xl hover:bg-[#A0106A] flex items-center gap-2 mx-auto">
+          <i className="ti ti-refresh" style={{ fontSize: 16 }} /> נסה שוב
+        </button>
+      </div>
+    </div>
+  )
   if (notFound) return (
     <div dir="rtl" style={{ fontFamily: 'Calibri, sans-serif' }} className="min-h-screen flex items-center justify-center text-center px-6">
       <div><div className="text-[#E0197D] text-2xl font-bold mb-2">הזירה</div><div className="text-gray-500 text-[14px]">הלינק לא נמצא או שפג תוקפו.</div></div>
