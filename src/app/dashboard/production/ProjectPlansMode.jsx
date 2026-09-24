@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-NORMNAME-V26
+// HAZIRA-PROJPLANS-REPLACEITEMS-V27
 // HAZIRA-PROJPLANS-LIVECREW-V23
 // HAZIRA-PROJPLANS-DROPLINEFIX-V22
 'use client'
@@ -476,12 +476,10 @@ export default function ProjectPlansMode({ profile }) {
         const ex=existByName[normNm(nm)]
         if(ex){
           // גישה ב׳: עדכון לינק קיים — שומר תגובות, מוסיף אירועים חדשים בלבד
-          const have=new Set((ex.items||[]).map(x=>x.key||(x.eid+':'+x.slot)))
-          const merged=[...(ex.items||[])]
-          items.forEach(it=>{ if(!have.has(it.key)) merged.push(it) })
-          merged.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.event_name||'').localeCompare(b.event_name||'','he'))
-          await supabase.from('review_links').update({ items: merged }).eq('token', ex.token)
-          links.push({ name:nm, token:ex.token, url:`${window.location.origin}/review-cal/${ex.token}`, count:merged.length })
+          // עדכון לינק קיים: מחליפים את רשימת האירועים במצב הנוכחי מההפקה (מחיקות יוצאות, חדשים נכנסים).
+          // הטוקן נשאר זהה, והסימונים שמורים ב-review_responses לפי מפתח eid:slot — לכן לא אובדים.
+          await supabase.from('review_links').update({ items }).eq('token', ex.token)
+          links.push({ name:nm, token:ex.token, url:`${window.location.origin}/review-cal/${ex.token}`, count:items.length })
         } else {
           const token=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2))
           const { error } = await supabase.from('review_links').insert({ token, person_name:nm, created_by:uid, items, plan_id: plan.id })

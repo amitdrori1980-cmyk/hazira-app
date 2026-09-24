@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-REVIEWCAL-NAMENORM-V6
+// HAZIRA-REVIEWCAL-SIMPLE-V8
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DOW = ['א','ב','ג','ד','ה','ו','ש']
@@ -30,16 +30,6 @@ export default function ReviewCalPage() {
   const [monthIdx, setMonthIdx] = useState(0)
   const [openDs, setOpenDs] = useState(null)
 
-  async function fetchInChunks(table, cols, col, ids, chunkSize) {
-    const out = []
-    for (let i = 0; i < ids.length; i += chunkSize) {
-      const { data, error } = await supabase.from(table).select(cols).in(col, ids.slice(i, i + chunkSize))
-      if (error) throw error
-      if (data) out.push(...data)
-    }
-    return out
-  }
-
   async function loadAll(attempt = 0) {
     if (!token) return
     setLoadError(false)
@@ -49,33 +39,8 @@ export default function ReviewCalPage() {
       if (!l) { setNotFound(true); setLoading(false); return }
       setLink(l)
 
-      // ---- LIVE: for plan-review links, compute events from production in real time ----
-      let liveItems = null
-      if (l.plan_id) {
-        const { data: cells, error: cErr } = await supabase.from('project_plan_cells').select('source_event_id').eq('plan_id', l.plan_id)
-        if (cErr) throw cErr
-        const eids = [...new Set((cells || []).map(c => c.source_event_id).filter(Boolean))]
-        if (eids.length) {
-          // chunked .in() so the request URL stays short (mobile Safari / cellular proxies can drop very long URLs)
-          const [evs, ppl] = await Promise.all([
-            fetchInChunks('production_events', 'id,event_name,date,venue', 'id', eids, 25),
-            fetchInChunks('production_people', 'production_event_id,slot,name,status', 'production_event_id', eids, 25),
-          ])
-          const evMap = {}; (evs || []).forEach(e => { evMap[e.id] = e })
-          const target = normNm(l.person_name)
-          liveItems = (ppl || [])
-            .filter(p => normNm(p.name) === target)
-            .map(p => {
-              const ev = evMap[p.production_event_id]; if (!ev) return null
-              return { source: 'production', key: ev.id + ':' + p.slot, eid: ev.id, slot: p.slot, name: p.name, event_name: ev.event_name || '', date: ev.date || '', venue: ev.venue || '' }
-            })
-            .filter(Boolean)
-            .sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.event_name || '').localeCompare(b.event_name || '', 'he'))
-        } else {
-          liveItems = []
-        }
-      }
-      const finalItems = liveItems != null ? liveItems : (l.items || [])
+      // פשוט ואמין: מציגים את רשימת האירועים השמורה בלינק (מתעדכנת בכל "שלח לבדיקה" בתכנון)
+      const finalItems = l.items || []
       setItems(finalItems)
 
       const { data: rs, error: rErr } = await supabase.from('review_responses').select('*').eq('token', token)
@@ -89,13 +54,18 @@ export default function ReviewCalPage() {
       })
       setResponses(map); setLoading(false)
     } catch (e) {
-      // network/server error — retry a couple of times, then show a connection error (not "no events")
       if (attempt < 2) { setTimeout(() => loadAll(attempt + 1), 800 * (attempt + 1)); return }
       setLoadError(true); setLoading(false)
     }
   }
 
-  useEffect(() => { loadAll() }, [token])
+  useEffect(() => {
+    loadAll()
+    // Safari/iOS may restore this page from back-forward cache without re-running JS → stale "no events". Re-fetch on restore.
+    const onShow = (e) => { if (e.persisted) { setLoading(true); loadAll() } }
+    window.addEventListener('pageshow', onShow)
+    return () => window.removeEventListener('pageshow', onShow)
+  }, [token])
 
   function itemKey(idx) { const it = items[idx]; return it ? (it.key || (it.eid != null ? it.eid + ':' + it.slot : 'idx:' + idx)) : ('idx:' + idx) }
 
