@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-REPLACEITEMS-V27
+// HAZIRA-PROJPLANS-ICONSPACE-V28
 // HAZIRA-PROJPLANS-LIVECREW-V23
 // HAZIRA-PROJPLANS-DROPLINEFIX-V22
 'use client'
@@ -767,7 +767,7 @@ export default function ProjectPlansMode({ profile }) {
               onClick={() => toggleOpen(plan.id)}>
               {!showArchive && (
                 <span draggable onDragStart={e => { e.stopPropagation(); setDragPlanId(plan.id) }} onDragEnd={() => { setDragPlanId(null); setDragOverPlanId(null) }} onClick={e => e.stopPropagation()}
-                  className="text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing no-print" title="גרור לסידור">
+                  className="text-gray-500 hover:text-gray-700 cursor-grab active:cursor-grabbing no-print p-1" title="גרור לסידור">
                   <i className="ti ti-grip-vertical" style={{ fontSize: 16 }} />
                 </span>
               )}
@@ -780,38 +780,38 @@ export default function ProjectPlansMode({ profile }) {
                   className="text-[13px] font-semibold text-gray-800 bg-transparent outline-none text-right w-full"
                 />
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2.5">
                 <select value={plan.status || 'draft'} onClick={e => e.stopPropagation()}
                   onChange={e => updatePlan(plan.id, 'status', e.target.value)}
                   className={`text-[11px] px-2 py-1 rounded-lg border-0 outline-none cursor-pointer ${st.color}`}>
                   {PLAN_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
                 <button onClick={e => { e.stopPropagation(); copyLink(plan.id) }}
-                  className={`p-1 ${copiedId === plan.id ? 'text-green-600' : 'text-gray-300 hover:text-[#E0197D]'}`}
+                  className={`p-2 ${copiedId === plan.id ? 'text-green-600' : 'text-gray-500 hover:text-[#E0197D]'}`}
                   title={copiedId === plan.id ? 'הקישור הועתק' : 'העתק לינק לצפייה'}>
                   <i className={`ti ${copiedId === plan.id ? 'ti-check' : 'ti-link'}`} style={{ fontSize: 13 }} />
                 </button>
                 <button onClick={e => { e.stopPropagation(); openPdfPicker(plan) }}
-                  className="text-gray-300 hover:text-[#E0197D] p-1" title="ייצוא אישי (לפי איש צוות)">
+                  className="text-gray-500 hover:text-[#E0197D] p-2" title="ייצוא אישי (לפי איש צוות)">
                   <i className="ti ti-user-down" style={{ fontSize: 16 }} />
                 </button>
                 <button onClick={e => { e.stopPropagation(); exportPdf(plan) }}
-                  className="text-gray-300 hover:text-[#E0197D] p-1" title="ייצוא PDF">
+                  className="text-gray-500 hover:text-[#E0197D] p-2" title="ייצוא PDF">
                   <i className="ti ti-file-type-pdf" style={{ fontSize: 13 }} />
                 </button>
                 <button onClick={e => { e.stopPropagation(); duplicatePlan(plan) }}
-                  className="text-gray-300 hover:text-[#E0197D] p-1" title="שכפל תוכנית">
+                  className="text-gray-500 hover:text-[#E0197D] p-2" title="שכפל תוכנית">
                   <i className="ti ti-copy" style={{ fontSize: 13 }} />
                 </button>
                 <button onClick={e => { e.stopPropagation(); setArchived(plan.id, !plan.archived) }}
-                  className="text-gray-300 hover:text-[#0f766e] p-1" title={plan.archived ? 'שחזר מארכיון' : 'העבר לארכיון'}>
+                  className="text-gray-500 hover:text-[#0f766e] p-2" title={plan.archived ? 'שחזר מארכיון' : 'העבר לארכיון'}>
                   <i className={`ti ${plan.archived ? 'ti-archive-off' : 'ti-archive'}`} style={{ fontSize: 13 }} />
                 </button>
                 <button onClick={e => { e.stopPropagation(); if (window.confirm('למחוק את התוכנית?')) deletePlan(plan.id) }}
-                  className="text-gray-300 hover:text-red-500 p-1" title="מחק">
+                  className="text-gray-500 hover:text-red-500 p-2" title="מחק">
                   <i className="ti ti-trash" style={{ fontSize: 13 }} />
                 </button>
-                <i className={`ti ${isOpen ? 'ti-chevron-up' : 'ti-chevron-down'} text-gray-300`} style={{ fontSize: 13 }} />
+                <span className="mr-3 pr-3 border-r border-gray-200 flex items-center"><i className={`ti ${isOpen ? 'ti-chevron-up' : 'ti-chevron-down'} text-gray-600`} style={{ fontSize: 16 }} /></span>
               </div>
             </div>
 

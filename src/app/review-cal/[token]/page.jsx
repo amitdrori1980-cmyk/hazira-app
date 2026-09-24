@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-// HAZIRA-REVIEWCAL-SIMPLE-V8
+// HAZIRA-REVIEWCAL-BACKBTN-V9
 
 const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 const HE_DOW = ['א','ב','ג','ד','ה','ו','ש']
@@ -29,6 +29,18 @@ export default function ReviewCalPage() {
   const [savingDs, setSavingDs] = useState(null)
   const [monthIdx, setMonthIdx] = useState(0)
   const [openDs, setOpenDs] = useState(null)
+  const [canGoBack, setCanGoBack] = useState(false)
+
+  useEffect(() => {
+    // show a back button only when there is somewhere to go back to (opened from inside the app); hidden for external (WhatsApp) opens
+    try { setCanGoBack(typeof window !== 'undefined' && (window.history.length > 1 || (document.referrer && document.referrer.includes(window.location.host)))) } catch (e) {}
+  }, [])
+  function goBack() {
+    try {
+      if (window.history.length > 1) { window.history.back(); return }
+    } catch (e) {}
+    window.location.href = '/dashboard'
+  }
 
   async function loadAll(attempt = 0) {
     if (!token) return
@@ -143,6 +155,11 @@ export default function ReviewCalPage() {
   return (
     <div dir="rtl" style={{ fontFamily: 'Calibri, sans-serif' }} className="min-h-screen bg-[#FCE4F3]/40 py-6 px-3">
       <div className="max-w-3xl mx-auto">
+        {canGoBack && (
+          <button onClick={goBack} className="mb-3 flex items-center gap-1.5 text-[14px] text-[#A0106A] hover:text-[#E0197D] font-medium">
+            <i className="ti ti-arrow-right" style={{ fontSize: 18 }} /> חזרה
+          </button>
+        )}
         <div className="text-center mb-4">
           <div className="text-[#E0197D] text-2xl font-bold">הזירה</div>
           <div className="text-gray-600 text-[14px] mt-1">בדיקת זמינות — {link.person_name}</div>
