@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-ICONSPACE-V28
+// HAZIRA-PROJPLANS-WEEKLYEDIT-V29
 // HAZIRA-PROJPLANS-LIVECREW-V23
 // HAZIRA-PROJPLANS-DROPLINEFIX-V22
 'use client'
@@ -291,6 +291,19 @@ export default function ProjectPlansMode({ profile }) {
     }
   }
 
+  async function addColumnOnDate(planId, ds) {
+    const curr = columns[planId] || []
+    const { data } = await supabase.from('project_plan_columns')
+      .insert({ plan_id: planId, date: ds, sort_order: curr.length })
+      .select().single()
+    if (data) {
+      const merged = sortColsByDate([...curr, data])
+      setColumns(prev => ({ ...prev, [planId]: merged }))
+      setCells(prev => ({ ...prev, [data.id]: [] }))
+      await persistColOrder(merged)
+    }
+  }
+
   async function updateColumnDate(planId, colId, value) {
     setColumns(prev => ({ ...prev, [planId]: prev[planId].map(c => c.id === colId ? { ...c, date: value } : c) }))
     await supabase.from('project_plan_columns').update({ date: value || null }).eq('id', colId)
@@ -556,6 +569,53 @@ export default function ProjectPlansMode({ profile }) {
     }
     await loadBoard(planId)
     setSyncBusy(null)
+  }
+
+  // ---- כרטיס תא ניתן לעריכה — משותף לתצוגה האופקית והשבועית ----
+  function renderEditableCell(col, cell, cj, colCells, compact) {
+    return (
+      <div key={cell.id}
+        ref={el => { const k = `${col.id}_${cell.id}`; if (el) cardRefs.current[k] = el; else delete cardRefs.current[k] }}
+        className={`bg-white rounded-lg border border-[#E0197D]/30 group ${compact ? 'p-1.5' : 'p-2'}`}>
+        <div className="flex items-start gap-1">
+          <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex items-start gap-1 justify-end">
+              {cell.source_event_id && <i className="ti ti-link text-[#E0197D] mt-0.5 shrink-0" style={{ fontSize: 11 }} title="מקושר לאירוע בהפקה הטכנית — יתעדכן בסנכרון" />}
+              <AutoTextarea value={cell.action || ''} placeholder="פעולה"
+                onChange={e => setCellField(col.id, cell.id, 'action', e.target.value)}
+                onBlur={e => commitCell(cell.id, 'action', e.target.value)}
+                className="flex-1 min-w-0 text-[12px] font-medium text-gray-800 bg-transparent outline-none text-right placeholder:text-gray-300" />
+            </div>
+            {cell.source_event_id ? (
+              <div className="w-full">{renderLiveCrew(cell.source_event_id)}</div>
+            ) : (
+              <AutoTextarea value={cell.crew || ''} placeholder="צוות"
+                onChange={e => setCellField(col.id, cell.id, 'crew', e.target.value)}
+                onBlur={e => commitCell(cell.id, 'crew', e.target.value)}
+                className="w-full text-[11px] text-gray-600 bg-transparent outline-none text-right placeholder:text-gray-300" />
+            )}
+            <AutoTextarea value={cell.notes || ''} placeholder="הערות"
+              onChange={e => setCellField(col.id, cell.id, 'notes', e.target.value)}
+              onBlur={e => commitCell(cell.id, 'notes', e.target.value)}
+              className="w-full text-[11px] text-gray-400 bg-transparent outline-none text-right placeholder:text-gray-300" />
+          </div>
+          <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={() => moveCell(col.id, cj, -1)} disabled={cj === 0}
+              className="text-gray-500 hover:text-[#E0197D] disabled:opacity-20 leading-none" title="למעלה">
+              <i className="ti ti-chevron-up" style={{ fontSize: 13 }} />
+            </button>
+            <button onClick={() => moveCell(col.id, cj, 1)} disabled={cj === colCells.length - 1}
+              className="text-gray-500 hover:text-[#E0197D] disabled:opacity-20 leading-none" title="למטה">
+              <i className="ti ti-chevron-down" style={{ fontSize: 13 }} />
+            </button>
+            <button onClick={() => deleteCell(col.id, cell.id)}
+              className="text-gray-500 hover:text-red-500 leading-none" title="מחק">
+              <i className="ti ti-x" style={{ fontSize: 13 }} />
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // ---- share link ----
@@ -950,7 +1010,7 @@ export default function ProjectPlansMode({ profile }) {
                   </div>
                 </div>
 
-                {/* ===== WEEKLY VIEW (read-only) ===== */}
+                {/* ===== WEEKLY VIEW (editable) ===== */}
                 {planView[plan.id] === 'weekly' && (() => {
                   const dated = planCols.filter(c => c.date)
                   const weeks = {}
@@ -967,27 +1027,46 @@ export default function ProjectPlansMode({ profile }) {
                           <div key={ws} className="grid gap-2" style={{ gridTemplateColumns: `repeat(${n}, minmax(0,1fr))` }}>
                             {Array.from({ length: n }).map((_, dow) => {
                               const col = wk[dow]
-                              if (!col) return <div key={dow} className="rounded-xl border border-dashed border-gray-100 bg-gray-50/40 min-h-[80px]" />
+                              if (!col) {
+                                const a = ws.split('-').map(Number); const dt = new Date(a[0], a[1]-1, a[2]+dow, 12)
+                                const dsEmpty = dt.getFullYear()+'-'+pad2(dt.getMonth()+1)+'-'+pad2(dt.getDate())
+                                return (
+                                  <button key={dow} onClick={() => addColumnOnDate(plan.id, dsEmpty)}
+                                    className="rounded-xl border border-dashed border-gray-200 bg-gray-50/40 min-h-[80px] text-[11px] text-gray-400 hover:text-[#E0197D] hover:border-[#E0197D] flex flex-col items-center justify-center gap-0.5">
+                                    <i className="ti ti-calendar-plus" style={{ fontSize: 16 }} /> {fmtDM(dsEmpty)}
+                                  </button>
+                                )
+                              }
                               const cat = getDayCategory(col.category)
                               const colCells = cells[col.id] || []
                               return (
                                 <div key={dow} className="rounded-xl border border-gray-300 bg-gray-50 overflow-hidden">
-                                  <div className="px-2 py-1.5" style={{ backgroundColor: cat.head }}>
-                                    <div className="text-[11px] font-bold" style={{ color: cat.text }}>יום {WK_DOW[dow]} · {fmtDM(col.date)}</div>
-                                    {cat.value ? <div className="text-[9px] mt-0.5" style={{ color: cat.text }}>{cat.label}</div> : null}
+                                  <div className="px-2 py-1.5 flex items-start gap-1" style={{ backgroundColor: cat.head }}>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-[11px] font-bold" style={{ color: cat.text }}>יום {WK_DOW[dow]} · {fmtDM(col.date)}</div>
+                                      <div className="flex gap-1 mt-1">
+                                        <input type="date" value={col.date || ''}
+                                          onChange={e => updateColumnDate(plan.id, col.id, e.target.value)}
+                                          className="flex-1 min-w-0 text-[10px] px-1 py-0.5 rounded bg-white/70 border border-black/10 outline-none focus:border-[#E0197D]" />
+                                        <select value={col.category || ''}
+                                          onChange={e => updateColumnCategory(plan.id, col.id, e.target.value)}
+                                          title="קטגוריית יום"
+                                          className="text-[10px] px-1 py-0.5 rounded bg-white/70 border border-black/10 outline-none focus:border-[#E0197D] cursor-pointer">
+                                          {DAY_CATEGORIES.map(c => <option key={c.value || 'none'} value={c.value}>{c.label}</option>)}
+                                        </select>
+                                      </div>
+                                    </div>
+                                    <button onClick={() => { if (window.confirm('למחוק את היום וכל הפעולות שבו?')) deleteColumn(plan.id, col.id) }}
+                                      className="text-gray-500 hover:text-red-500 shrink-0 p-1" title="מחק יום">
+                                      <i className="ti ti-trash" style={{ fontSize: 13 }} />
+                                    </button>
                                   </div>
                                   <div className="p-1.5 space-y-1.5">
-                                    {colCells.length === 0 ? <div className="text-[11px] text-gray-300 text-center py-1">—</div> :
-                                      colCells.map(cell => (
-                                        <div key={cell.id} className="bg-white rounded-lg border border-[#E0197D]/25 p-1.5 text-right">
-                                          <div className="text-[12px] font-medium text-gray-800 flex items-start gap-1 justify-end">
-                                            {cell.source_event_id && <i className="ti ti-link text-[#E0197D] mt-0.5 shrink-0" style={{ fontSize: 10 }} />}
-                                            <span className="whitespace-pre-wrap">{cell.action || '—'}</span>
-                                          </div>
-                                          {cell.source_event_id ? <div className="mt-0.5">{renderLiveCrew(cell.source_event_id)}</div> : ((cell.crew || '').trim() && <div className="text-[11px] text-gray-600 whitespace-pre-wrap mt-0.5">{cell.crew}</div>)}
-                                          {(cell.notes || '').trim() && <div className="text-[11px] text-gray-400 whitespace-pre-wrap mt-0.5">{cell.notes}</div>}
-                                        </div>
-                                      ))}
+                                    {colCells.map((cell, cj) => renderEditableCell(col, cell, cj, colCells, true))}
+                                    <button onClick={() => addCell(plan.id, col.id)}
+                                      className="w-full text-[11px] text-gray-400 hover:text-[#E0197D] border border-dashed border-gray-200 hover:border-[#E0197D] rounded-lg py-1 flex items-center justify-center gap-1">
+                                      <i className="ti ti-plus" style={{ fontSize: 12 }} /> פעולה
+                                    </button>
                                   </div>
                                 </div>
                               )
@@ -1041,49 +1120,7 @@ export default function ProjectPlansMode({ profile }) {
 
                         {/* cells */}
                         <div className="p-2 space-y-2">
-                          {colCells.map((cell, cj) => (
-                            <div key={cell.id}
-                              ref={el => { const k = `${col.id}_${cell.id}`; if (el) cardRefs.current[k] = el; else delete cardRefs.current[k] }}
-                              className="bg-white rounded-lg border border-[#E0197D]/30 p-2 group">
-                              <div className="flex items-start gap-1">
-                                <div className="flex-1 min-w-0 space-y-1">
-                                  <div className="flex items-start gap-1 justify-end">
-                                    {cell.source_event_id && <i className="ti ti-link text-[#E0197D] mt-0.5 shrink-0" style={{ fontSize: 11 }} title="מקושר לאירוע בהפקה הטכנית — יתעדכן בסנכרון" />}
-                                    <AutoTextarea value={cell.action || ''} placeholder="פעולה"
-                                      onChange={e => setCellField(col.id, cell.id, 'action', e.target.value)}
-                                      onBlur={e => commitCell(cell.id, 'action', e.target.value)}
-                                      className="flex-1 min-w-0 text-[12px] font-medium text-gray-800 bg-transparent outline-none text-right placeholder:text-gray-300" />
-                                  </div>
-                                  {cell.source_event_id ? (
-                                    <div className="w-full">{renderLiveCrew(cell.source_event_id)}</div>
-                                  ) : (
-                                    <AutoTextarea value={cell.crew || ''} placeholder="צוות"
-                                      onChange={e => setCellField(col.id, cell.id, 'crew', e.target.value)}
-                                      onBlur={e => commitCell(cell.id, 'crew', e.target.value)}
-                                      className="w-full text-[11px] text-gray-600 bg-transparent outline-none text-right placeholder:text-gray-300" />
-                                  )}
-                                  <AutoTextarea value={cell.notes || ''} placeholder="הערות"
-                                    onChange={e => setCellField(col.id, cell.id, 'notes', e.target.value)}
-                                    onBlur={e => commitCell(cell.id, 'notes', e.target.value)}
-                                    className="w-full text-[11px] text-gray-400 bg-transparent outline-none text-right placeholder:text-gray-300" />
-                                </div>
-                                <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button onClick={() => moveCell(col.id, cj, -1)} disabled={cj === 0}
-                                    className="text-gray-300 hover:text-[#E0197D] disabled:opacity-20 leading-none" title="למעלה">
-                                    <i className="ti ti-chevron-up" style={{ fontSize: 13 }} />
-                                  </button>
-                                  <button onClick={() => moveCell(col.id, cj, 1)} disabled={cj === colCells.length - 1}
-                                    className="text-gray-300 hover:text-[#E0197D] disabled:opacity-20 leading-none" title="למטה">
-                                    <i className="ti ti-chevron-down" style={{ fontSize: 13 }} />
-                                  </button>
-                                  <button onClick={() => deleteCell(col.id, cell.id)}
-                                    className="text-gray-300 hover:text-red-500 leading-none" title="מחק">
-                                    <i className="ti ti-x" style={{ fontSize: 13 }} />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                          {colCells.map((cell, cj) => renderEditableCell(col, cell, cj, colCells, false))}
                           <button onClick={() => addCell(plan.id, col.id)}
                             className="w-full text-[12px] text-gray-400 hover:text-[#E0197D] border border-dashed border-gray-200 hover:border-[#E0197D] rounded-lg py-1.5 flex items-center justify-center gap-1">
                             <i className="ti ti-plus" style={{ fontSize: 13 }} /> פעולה
