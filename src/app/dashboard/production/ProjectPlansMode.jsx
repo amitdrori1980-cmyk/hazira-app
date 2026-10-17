@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-WEEKLYEDIT-V29
+// HAZIRA-PROJPLANS-PASTCOLLAPSE-V30
 // HAZIRA-PROJPLANS-LIVECREW-V23
 // HAZIRA-PROJPLANS-DROPLINEFIX-V22
 'use client'
@@ -105,6 +105,8 @@ export default function ProjectPlansMode({ profile }) {
   const [pdfPickFor, setPdfPickFor]     = useState(null) // plan whose personal-export picker is open
   const [pdfNames, setPdfNames]         = useState([])
   const [planView, setPlanView]         = useState({}) // { [planId]: 'weekly' } ; default horizontal
+  const [showPast, setShowPast]         = useState({})   // { [planId]: true } — expand all past days
+  const [pastOpen, setPastOpen]         = useState({})   // { [colId]: true } — single past day expanded
 
   useEffect(() => { load() }, [])
 
@@ -618,6 +620,10 @@ export default function ProjectPlansMode({ profile }) {
     )
   }
 
+  // ---- כיווץ ימים שחלפו ----
+  function isPastDay(col) { return !!col.date && col.date < todayISO() }
+  function isCollapsed(planId, col) { return isPastDay(col) && !showPast[planId] && !pastOpen[col.id] }
+
   // ---- share link ----
   async function copyLink(planId) {
     const url = `${window.location.origin}/plan/${planId}`
@@ -997,7 +1003,15 @@ export default function ProjectPlansMode({ profile }) {
                 )}
 
                 {/* view toggle */}
-                <div className="flex justify-end mb-2">
+                <div className="flex justify-end items-center gap-2 mb-2">
+                  {planCols.some(isPastDay) && (
+                    <button onClick={() => setShowPast(v => ({ ...v, [plan.id]: !v[plan.id] }))}
+                      className={`text-[12px] px-3 py-1 rounded-lg border flex items-center gap-1 ${showPast[plan.id] ? 'bg-gray-700 text-white border-gray-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                      title={showPast[plan.id] ? 'כווץ ימים שחלפו' : 'הצג ימים שחלפו'}>
+                      <i className={`ti ${showPast[plan.id] ? 'ti-eye-off' : 'ti-history'}`} style={{ fontSize: 13 }} />
+                      {showPast[plan.id] ? 'כווץ עבר' : `עבר (${planCols.filter(isPastDay).length})`}
+                    </button>
+                  )}
                   <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden text-[12px]">
                     <button onClick={() => setPlanView(v => ({ ...v, [plan.id]: 'horizontal' }))}
                       className={`px-3 py-1 flex items-center gap-1 ${(planView[plan.id]||'horizontal')==='horizontal' ? 'bg-[#E0197D] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
@@ -1039,8 +1053,18 @@ export default function ProjectPlansMode({ profile }) {
                               }
                               const cat = getDayCategory(col.category)
                               const colCells = cells[col.id] || []
+                              if (isCollapsed(plan.id, col)) {
+                                return (
+                                  <button key={dow} onClick={() => setPastOpen(v => ({ ...v, [col.id]: true }))}
+                                    title="יום שחלף — לחץ להרחבה"
+                                    className="rounded-xl border border-gray-200 bg-gray-100/70 hover:bg-gray-200 min-h-[44px] px-2 py-1.5 text-right flex items-center justify-between gap-1 text-gray-500 hover:text-gray-700">
+                                    <span className="text-[10px] bg-white border border-gray-200 rounded-full px-1.5">{colCells.length}</span>
+                                    <span className="text-[11px] font-semibold">יום {WK_DOW[dow]} · {fmtDM(col.date)}</span>
+                                  </button>
+                                )
+                              }
                               return (
-                                <div key={dow} className="rounded-xl border border-gray-300 bg-gray-50 overflow-hidden">
+                                <div key={dow} className={`rounded-xl border bg-gray-50 overflow-hidden ${isPastDay(col) ? 'border-gray-200 opacity-80' : 'border-gray-300'}`}>
                                   <div className="px-2 py-1.5 flex items-start gap-1" style={{ backgroundColor: cat.head }}>
                                     <div className="flex-1 min-w-0">
                                       <div className="text-[11px] font-bold" style={{ color: cat.text }}>יום {WK_DOW[dow]} · {fmtDM(col.date)}</div>
@@ -1084,12 +1108,29 @@ export default function ProjectPlansMode({ profile }) {
                   {planCols.map((col, ci) => {
                     const colCells = cells[col.id] || []
                     const cat = getDayCategory(col.category)
+                    if (isCollapsed(plan.id, col)) {
+                      return (
+                        <button key={col.id} onClick={() => setPastOpen(v => ({ ...v, [col.id]: true }))}
+                          title={`${fmtDay(col.date)} · ${colCells.length} פעולות — לחץ להרחבה`}
+                          className="w-10 flex-shrink-0 self-stretch min-h-[160px] rounded-xl border border-gray-200 bg-gray-100/70 hover:bg-gray-200 flex flex-col items-center justify-start pt-2 gap-1 text-gray-500 hover:text-gray-700">
+                          <span className="text-[10px] font-semibold" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>{fmtDM(col.date)}</span>
+                          <span className="text-[10px] bg-white border border-gray-200 rounded-full px-1.5 mt-1">{colCells.length}</span>
+                        </button>
+                      )
+                    }
                     return (
-                      <div key={col.id} className="w-64 flex-shrink-0 bg-gray-50 rounded-xl border border-gray-300 overflow-hidden">
+                      <div key={col.id} className={`w-64 flex-shrink-0 bg-gray-50 rounded-xl border overflow-hidden ${isPastDay(col) ? 'border-gray-200 opacity-80' : 'border-gray-300'}`}>
                         {/* column header */}
                         <div className="px-3 py-2 flex items-center gap-1" style={{ backgroundColor: cat.head }}>
                           <div className="flex-1 min-w-0">
-                            <div className="text-[12px] font-bold truncate" style={{ color: cat.text }}>{fmtDay(col.date)}</div>
+                            <div className="text-[12px] font-bold truncate flex items-center gap-1" style={{ color: cat.text }}>
+                              {fmtDay(col.date)}
+                              {isPastDay(col) && pastOpen[col.id] && !showPast[plan.id] && (
+                                <button onClick={() => setPastOpen(v => { const n = { ...v }; delete n[col.id]; return n })} className="opacity-60 hover:opacity-100" title="כווץ">
+                                  <i className="ti ti-chevron-left" style={{ fontSize: 12 }} />
+                                </button>
+                              )}
+                            </div>
                             <div className="flex gap-1 mt-1">
                               <input type="date" value={col.date || ''}
                                 onChange={e => updateColumnDate(plan.id, col.id, e.target.value)}
