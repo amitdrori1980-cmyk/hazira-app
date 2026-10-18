@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 // HAZIRA-EVENTS-SKETCH-V2
 // HAZIRA-EVENTS-NOCREWNOTES-V3
+// HAZIRA-EVENTS-PASTMONTHS-V4
 
 const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלים בלבד
 
@@ -18,6 +19,7 @@ function EventsPageInner() {
   const [profile, setProfile]       = useState(null)
   const [showTrash, setShowTrash]   = useState(false)
   const [hidePast, setHidePast]     = useState(true)
+  const [pastMonthOpen, setPastMonthOpen] = useState({})
   const [depts, setDepts]           = useState([])
   const [eventTypes, setEventTypes] = useState([])
   const [allCrew, setAllCrew]       = useState([])
@@ -233,134 +235,13 @@ function EventsPageInner() {
     setEventEquip(prev=>({...prev,[eventId]:prev[eventId].map(r=>r.equipment_id===equipId?{...r,quantity_needed:qty}:r)}))
   }
 
-  const activeEvents = events.filter(e => !e.deleted_at)
-  const deletedEvents = events.filter(e => e.deleted_at)
-  const _todayStr = new Date().toISOString().slice(0,10)
-  const pastCount = activeEvents.filter(e => e.date < _todayStr).length
-  const visibleEvents = hidePast ? activeEvents.filter(e => e.date >= _todayStr) : activeEvents
-
-  return (
-    <div className="max-w-xl">
-      {duplicating && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-xl" dir="rtl">
-            <div className="text-[15px] font-semibold text-gray-800 mb-4">שכפול אירוע</div>
-            <form onSubmit={saveDuplicate} className="flex flex-col gap-3">
-              <div>
-                <label className="text-[12px] text-gray-500 mb-1 block">שם האירוע</label>
-                <input value={dupForm.title||""} onChange={e=>setDupForm(f=>({...f,title:e.target.value}))}
-                  className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]" required/>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[12px] text-gray-500 mb-1 block">תאריך חדש *</label>
-                  <input type="date" value={dupForm.date||""} onChange={e=>setDupForm(f=>({...f,date:e.target.value}))}
-                    className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]" required/>
-                </div>
-                <div>
-                  <label className="text-[12px] text-gray-500 mb-1 block">שעה</label>
-                  <input type="time" value={dupForm.time||""} onChange={e=>setDupForm(f=>({...f,time:e.target.value}))}
-                    className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]"/>
-                </div>
-              </div>
-              <div>
-                <label className="text-[12px] text-gray-500 mb-1 block">סוג</label>
-                <select value={dupForm.type||""} onChange={e=>setDupForm(f=>({...f,type:e.target.value}))}
-                  className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]">
-                  {selectableTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-[12px] text-gray-500 mb-1 block">תיאור</label>
-                <textarea value={dupForm.description||""} onChange={e=>setDupForm(f=>({...f,description:e.target.value}))}
-                  rows={2} className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D] resize-none"/>
-              </div>
-              <div className="flex gap-2 mt-1">
-                <button type="submit" disabled={savingDup}
-                  className="flex-1 bg-[#E0197D] text-white text-sm py-2.5 rounded-xl font-medium disabled:opacity-50">
-                  {savingDup ? "שומר..." : "שכפל אירוע"}
-                </button>
-                <button type="button" onClick={()=>setDuplicating(null)}
-                  className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl">ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      <div className="flex justify-end mb-2"><a href="/dashboard/import" className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#E0197D] text-gray-600 bg-white"><i className="ti ti-database-import" style={{fontSize:14}}/> ייבא אירועים מאקסל</a></div>
-      {/* Add form */}
-      <div id="add-event-form" className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
-        <div className="text-[13px] font-medium text-gray-800 mb-3">הוסף אירוע חדש</div>
-        <form onSubmit={addEvent} className="flex flex-col gap-2">
-          <input value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} placeholder="שם האירוע *"
-            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
-          <div className="grid grid-cols-2 gap-2">
-            <input value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} type="date"
-              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
-            <input value={form.time} onChange={e=>setForm(f=>({...f,time:e.target.value}))} type="time"
-              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-gray-400 whitespace-nowrap">עד תאריך:</span>
-            <input value={form.end_date} onChange={e=>setForm(f=>({...f,end_date:e.target.value}))} type="date"
-              className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
-          </div>
-          <select value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}
-            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
-            {selectableTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-          <input value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="תיאור"
-            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
-          <select value={form.venue} onChange={e=>setForm(f=>({...f,venue:e.target.value}))}
-            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]">
-            <option value="">בחר אולם...</option>
-            {venues.map(v=><option key={v} value={v}>{v}</option>)}
-          </select>
-
-          <button type="submit" disabled={adding}
-            className="bg-[#E0197D] text-white text-sm py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
-            {adding?'מוסיף...':'הוסף אירוע'}
-          </button>
-        </form>
-      </div>
-
-      {/* Events list */}
-      <div className="bg-white border border-gray-100 rounded-xl p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <button onClick={()=>setShowTrash(v=>!v)} className="text-[12px] text-gray-400 hover:text-[#E0197D] flex items-center gap-1">
-              <i className="ti ti-trash" style={{fontSize:13}}/> {showTrash ? 'חזרה לאירועים' : 'סל מיחזור (' + deletedEvents.length + ')'}
-            </button>
-            {!showTrash && pastCount > 0 && (
-              <button onClick={()=>setHidePast(v=>!v)} className="text-[12px] text-gray-400 hover:text-[#E0197D] flex items-center gap-1">
-                <i className={hidePast ? 'ti ti-eye' : 'ti ti-eye-off'} style={{fontSize:13}}/> {hidePast ? ('הרחב (' + pastCount + ')') : ('כווץ (' + pastCount + ')')}
-              </button>
-            )}
-          </div>
-          <div className="text-[13px] font-medium text-gray-800">כל האירועים</div>
-        </div>
-        {loading ? <div className="text-center text-sm text-gray-400 py-6">טוען...</div>
-        : showTrash ? (
-          deletedEvents.length===0 ? <div className="text-center text-sm text-gray-400 py-6">סל המיחזור ריק</div>
-          : deletedEvents.map(ev=>(
-            <div key={ev.id} className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
-              <div className="flex-1 text-right min-w-0">
-                <div className="text-[13px] text-gray-800 truncate">{ev.title}</div>
-                <div className="text-[11px] text-gray-400">{ev.date}</div>
-              </div>
-              <button onClick={()=>restoreEvent(ev.id)} className="text-[12px] text-[#E0197D] border border-[#E0197D] px-2 py-1 rounded-lg flex-shrink-0 hover:bg-[#FCE4F3]">שחזר</button>
-              <button onClick={()=>{if(window.confirm('למחוק לצמיתות? פעולה בלתי הפיכה.'))purgeEvent(ev.id)}} className="text-[12px] text-gray-400 hover:text-red-500 px-2 py-1 flex-shrink-0">מחק לצמיתות</button>
-            </div>
-          ))
-        )
-        : activeEvents.length===0 ? <div className="text-center text-sm text-gray-400 py-6">אין אירועים</div>
-        : visibleEvents.map(ev=>{
+  function renderEventCard(ev){
           const [y,m,d]=ev.date.split('-').map(Number)
           const assignedCrew=(eventCrew[ev.id]||[]).map(id=>allCrew.find(c=>c.id===id)).filter(Boolean)
           const assignedEquip=eventEquip[ev.id]||[]
 
           return (
-            <div key={ev.id} id={"event-"+ev.id} className={"border-b border-gray-50 last:border-0" + (ev.date < new Date().toISOString().slice(0,10) ? " opacity-40" : "")}>
+            <div key={ev.id} id={"event-"+ev.id} className={"border-b border-gray-50 last:border-0" + (ev.date < _todayStr ? " opacity-40" : "")}>
               {editing===ev.id ? (
                 <div className="py-2 flex flex-col gap-2">
                   <input value={editVal.title} onChange={e=>setEditVal(v=>({...v,title:e.target.value}))}
@@ -511,7 +392,162 @@ function EventsPageInner() {
               )}
             </div>
           )
-        })}
+  }
+  const activeEvents = events.filter(e => !e.deleted_at)
+  const deletedEvents = events.filter(e => e.deleted_at)
+  const _todayStr = (()=>{ const t=new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0') })()
+
+  return (
+    <div className="max-w-xl">
+      {duplicating && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-xl" dir="rtl">
+            <div className="text-[15px] font-semibold text-gray-800 mb-4">שכפול אירוע</div>
+            <form onSubmit={saveDuplicate} className="flex flex-col gap-3">
+              <div>
+                <label className="text-[12px] text-gray-500 mb-1 block">שם האירוע</label>
+                <input value={dupForm.title||""} onChange={e=>setDupForm(f=>({...f,title:e.target.value}))}
+                  className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]" required/>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[12px] text-gray-500 mb-1 block">תאריך חדש *</label>
+                  <input type="date" value={dupForm.date||""} onChange={e=>setDupForm(f=>({...f,date:e.target.value}))}
+                    className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]" required/>
+                </div>
+                <div>
+                  <label className="text-[12px] text-gray-500 mb-1 block">שעה</label>
+                  <input type="time" value={dupForm.time||""} onChange={e=>setDupForm(f=>({...f,time:e.target.value}))}
+                    className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]"/>
+                </div>
+              </div>
+              <div>
+                <label className="text-[12px] text-gray-500 mb-1 block">סוג</label>
+                <select value={dupForm.type||""} onChange={e=>setDupForm(f=>({...f,type:e.target.value}))}
+                  className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D]">
+                  {selectableTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[12px] text-gray-500 mb-1 block">תיאור</label>
+                <textarea value={dupForm.description||""} onChange={e=>setDupForm(f=>({...f,description:e.target.value}))}
+                  rows={2} className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:border-[#E0197D] resize-none"/>
+              </div>
+              <div className="flex gap-2 mt-1">
+                <button type="submit" disabled={savingDup}
+                  className="flex-1 bg-[#E0197D] text-white text-sm py-2.5 rounded-xl font-medium disabled:opacity-50">
+                  {savingDup ? "שומר..." : "שכפל אירוע"}
+                </button>
+                <button type="button" onClick={()=>setDuplicating(null)}
+                  className="flex-1 border border-gray-200 text-gray-600 text-sm py-2.5 rounded-xl">ביטול</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      <div className="flex justify-end mb-2"><a href="/dashboard/import" className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#E0197D] text-gray-600 bg-white"><i className="ti ti-database-import" style={{fontSize:14}}/> ייבא אירועים מאקסל</a></div>
+      {/* Add form */}
+      <div id="add-event-form" className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
+        <div className="text-[13px] font-medium text-gray-800 mb-3">הוסף אירוע חדש</div>
+        <form onSubmit={addEvent} className="flex flex-col gap-2">
+          <input value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} placeholder="שם האירוע *"
+            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
+          <div className="grid grid-cols-2 gap-2">
+            <input value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} type="date"
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
+            <input value={form.time} onChange={e=>setForm(f=>({...f,time:e.target.value}))} type="time"
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-gray-400 whitespace-nowrap">עד תאריך:</span>
+            <input value={form.end_date} onChange={e=>setForm(f=>({...f,end_date:e.target.value}))} type="date"
+              className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
+          </div>
+          <select value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}
+            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none">
+            {selectableTypes.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+          <input value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="תיאור"
+            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]"/>
+          <select value={form.venue} onChange={e=>setForm(f=>({...f,venue:e.target.value}))}
+            className="text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 outline-none focus:border-[#E0197D]">
+            <option value="">בחר אולם...</option>
+            {venues.map(v=><option key={v} value={v}>{v}</option>)}
+          </select>
+
+          <button type="submit" disabled={adding}
+            className="bg-[#E0197D] text-white text-sm py-2 rounded-lg hover:bg-[#A0106A] disabled:opacity-50">
+            {adding?'מוסיף...':'הוסף אירוע'}
+          </button>
+        </form>
+      </div>
+
+      {/* Events list */}
+      <div className="bg-white border border-gray-100 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <button onClick={()=>setShowTrash(v=>!v)} className="text-[12px] text-gray-400 hover:text-[#E0197D] flex items-center gap-1">
+              <i className="ti ti-trash" style={{fontSize:13}}/> {showTrash ? 'חזרה לאירועים' : 'סל מיחזור (' + deletedEvents.length + ')'}
+            </button>
+          </div>
+          <div className="text-[13px] font-medium text-gray-800">כל האירועים</div>
+        </div>
+        {loading ? <div className="text-center text-sm text-gray-400 py-6">טוען...</div>
+        : showTrash ? (
+          deletedEvents.length===0 ? <div className="text-center text-sm text-gray-400 py-6">סל המיחזור ריק</div>
+          : deletedEvents.map(ev=>(
+            <div key={ev.id} className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0 flex-row-reverse">
+              <div className="flex-1 text-right min-w-0">
+                <div className="text-[13px] text-gray-800 truncate">{ev.title}</div>
+                <div className="text-[11px] text-gray-400">{ev.date}</div>
+              </div>
+              <button onClick={()=>restoreEvent(ev.id)} className="text-[12px] text-[#E0197D] border border-[#E0197D] px-2 py-1 rounded-lg flex-shrink-0 hover:bg-[#FCE4F3]">שחזר</button>
+              <button onClick={()=>{if(window.confirm('למחוק לצמיתות? פעולה בלתי הפיכה.'))purgeEvent(ev.id)}} className="text-[12px] text-gray-400 hover:text-red-500 px-2 py-1 flex-shrink-0">מחק לצמיתות</button>
+            </div>
+          ))
+        )
+        : activeEvents.length===0 ? <div className="text-center text-sm text-gray-400 py-6">אין אירועים</div>
+        : (() => {
+          const future = activeEvents.filter(e => e.date >= _todayStr)
+          const past = activeEvents.filter(e => e.date < _todayStr).sort((a,b)=>b.date.localeCompare(a.date))
+          const byMonth={}
+          past.forEach(e=>{ const k=e.date.slice(0,7); (byMonth[k]=byMonth[k]||[]).push(e) })
+          const monthKeys=Object.keys(byMonth).sort().reverse()
+          return (
+            <>
+              {future.map(ev=>renderEventCard(ev))}
+              {past.length>0 && (
+                <div className="mt-2 border-t border-gray-100">
+                  <button onClick={()=>setHidePast(v=>!v)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-600">
+                    <span className="text-[12px] text-gray-400">{past.length} אירועים · {monthKeys.length} חודשים</span>
+                    <span className="text-[13px] font-semibold flex items-center gap-1.5">
+                      <i className={`ti ${hidePast ? 'ti-chevron-down' : 'ti-chevron-up'}`} style={{fontSize:14}}/>
+                      <i className="ti ti-history" style={{fontSize:14}}/> אירועים שחלפו
+                    </span>
+                  </button>
+                  {!hidePast && monthKeys.map(k=>{
+                    const [yy,mm]=k.split('-').map(Number)
+                    const open=!!pastMonthOpen[k]
+                    return (
+                      <div key={k}>
+                        <button onClick={()=>setPastMonthOpen(v=>({...v,[k]:!v[k]}))}
+                          className="w-full flex items-center justify-between px-4 py-2 bg-white hover:bg-gray-50 border-t border-gray-100 text-gray-700">
+                          <span className="text-[11px] text-gray-400">{byMonth[k].length} אירועים</span>
+                          <span className="text-[12.5px] font-medium flex items-center gap-1.5">
+                            <i className={`ti ${open ? 'ti-chevron-up' : 'ti-chevron-down'} text-gray-400`} style={{fontSize:13}}/>
+                            {HE_MONTHS[mm-1]} {yy}
+                          </span>
+                        </button>
+                        {open && byMonth[k].map(ev=>renderEventCard(ev))}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </>
+          )
+        })()}
       </div>
       {!showTrash && activeEvents.length > 0 && (
         <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2">
