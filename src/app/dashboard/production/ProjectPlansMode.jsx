@@ -1,4 +1,4 @@
-// HAZIRA-PROJPLANS-PASTCOLLAPSE-V30
+// HAZIRA-PROJPLANS-PASTONEBLOCK-V31
 // HAZIRA-PROJPLANS-LIVECREW-V23
 // HAZIRA-PROJPLANS-DROPLINEFIX-V22
 'use client'
@@ -106,7 +106,6 @@ export default function ProjectPlansMode({ profile }) {
   const [pdfNames, setPdfNames]         = useState([])
   const [planView, setPlanView]         = useState({}) // { [planId]: 'weekly' } ; default horizontal
   const [showPast, setShowPast]         = useState({})   // { [planId]: true } — expand all past days
-  const [pastOpen, setPastOpen]         = useState({})   // { [colId]: true } — single past day expanded
 
   useEffect(() => { load() }, [])
 
@@ -622,7 +621,7 @@ export default function ProjectPlansMode({ profile }) {
 
   // ---- כיווץ ימים שחלפו ----
   function isPastDay(col) { return !!col.date && col.date < todayISO() }
-  function isCollapsed(planId, col) { return isPastDay(col) && !showPast[planId] && !pastOpen[col.id] }
+  function isCollapsed(planId, col) { return isPastDay(col) && !showPast[planId] }
 
   // ---- share link ----
   async function copyLink(planId) {
@@ -1029,10 +1028,20 @@ export default function ProjectPlansMode({ profile }) {
                   const dated = planCols.filter(c => c.date)
                   const weeks = {}
                   dated.forEach(col => { const ws = weekStartDs(col.date); (weeks[ws] = weeks[ws] || {})[dowOf(col.date)] = col })
-                  const weekKeys = Object.keys(weeks).sort()
-                  if (!weekKeys.length) return <div className="text-center text-gray-400 text-[13px] py-8">אין ימים עם תאריך בתוכנית</div>
+                  const allWeekKeys = Object.keys(weeks).sort()
+                  if (!allWeekKeys.length) return <div className="text-center text-gray-400 text-[13px] py-8">אין ימים עם תאריך בתוכנית</div>
+                  const pastCols = planCols.filter(c => isCollapsed(plan.id, c))
+                  const weekKeys = allWeekKeys.filter(ws => Object.values(weeks[ws]).some(c => !isCollapsed(plan.id, c)))
+                  const nPastActs = pastCols.reduce((n, c) => n + (cells[c.id] || []).length, 0)
                   return (
                     <div className="flex flex-col gap-3">
+                      {pastCols.length > 0 && (
+                        <button onClick={() => setShowPast(v => ({ ...v, [plan.id]: true }))}
+                          className="rounded-xl border border-gray-200 bg-gray-100/70 hover:bg-gray-200 px-3 py-2 flex items-center justify-between text-gray-500 hover:text-gray-700">
+                          <span className="text-[11px] bg-white border border-gray-200 rounded-full px-2 py-0.5">{nPastActs} פעולות</span>
+                          <span className="text-[12px] font-semibold flex items-center gap-1.5"><i className="ti ti-history" style={{ fontSize: 14 }} /> ימים שחלפו · {pastCols.length} ימים ({fmtDM(pastCols[0].date)}{pastCols.length > 1 ? ' – ' + fmtDM(pastCols[pastCols.length - 1].date) : ''}) — לחץ להרחבה</span>
+                        </button>
+                      )}
                       {weekKeys.map(ws => {
                         const wk = weeks[ws]
                         const need7 = !!(wk[5] || wk[6])
@@ -1054,14 +1063,7 @@ export default function ProjectPlansMode({ profile }) {
                               const cat = getDayCategory(col.category)
                               const colCells = cells[col.id] || []
                               if (isCollapsed(plan.id, col)) {
-                                return (
-                                  <button key={dow} onClick={() => setPastOpen(v => ({ ...v, [col.id]: true }))}
-                                    title="יום שחלף — לחץ להרחבה"
-                                    className="rounded-xl border border-gray-200 bg-gray-100/70 hover:bg-gray-200 min-h-[44px] px-2 py-1.5 text-right flex items-center justify-between gap-1 text-gray-500 hover:text-gray-700">
-                                    <span className="text-[10px] bg-white border border-gray-200 rounded-full px-1.5">{colCells.length}</span>
-                                    <span className="text-[11px] font-semibold">יום {WK_DOW[dow]} · {fmtDM(col.date)}</span>
-                                  </button>
-                                )
+                                return <div key={dow} className="rounded-xl border border-dashed border-gray-100 bg-gray-50/30 min-h-[44px]" />
                               }
                               return (
                                 <div key={dow} className={`rounded-xl border bg-gray-50 overflow-hidden ${isPastDay(col) ? 'border-gray-200 opacity-80' : 'border-gray-300'}`}>
@@ -1105,19 +1107,26 @@ export default function ProjectPlansMode({ profile }) {
                 {/* columns (horizontal) */}
                 {planView[plan.id] !== 'weekly' && (
                 <div className="flex gap-3 overflow-x-auto pb-2 items-start">
+                  {(() => {
+                    const past = planCols.filter(c => isCollapsed(plan.id, c))
+                    if (!past.length) return null
+                    const nActs = past.reduce((n, c) => n + (cells[c.id] || []).length, 0)
+                    const first = past[0].date, last = past[past.length - 1].date
+                    return (
+                      <button onClick={() => setShowPast(v => ({ ...v, [plan.id]: true }))}
+                        title="לחץ להרחבת כל הימים שחלפו"
+                        className="w-14 flex-shrink-0 self-stretch min-h-[160px] rounded-xl border border-gray-200 bg-gray-100/70 hover:bg-gray-200 flex flex-col items-center justify-start pt-2 gap-1.5 text-gray-500 hover:text-gray-700">
+                        <i className="ti ti-history" style={{ fontSize: 16 }} />
+                        <span className="text-[10px] font-semibold" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>{fmtDM(first)}{first !== last ? ' – ' + fmtDM(last) : ''}</span>
+                        <span className="text-[10px] bg-white border border-gray-200 rounded-full px-1.5">{past.length} ימים</span>
+                        <span className="text-[10px] text-gray-400">{nActs}</span>
+                      </button>
+                    )
+                  })()}
                   {planCols.map((col, ci) => {
                     const colCells = cells[col.id] || []
                     const cat = getDayCategory(col.category)
-                    if (isCollapsed(plan.id, col)) {
-                      return (
-                        <button key={col.id} onClick={() => setPastOpen(v => ({ ...v, [col.id]: true }))}
-                          title={`${fmtDay(col.date)} · ${colCells.length} פעולות — לחץ להרחבה`}
-                          className="w-10 flex-shrink-0 self-stretch min-h-[160px] rounded-xl border border-gray-200 bg-gray-100/70 hover:bg-gray-200 flex flex-col items-center justify-start pt-2 gap-1 text-gray-500 hover:text-gray-700">
-                          <span className="text-[10px] font-semibold" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>{fmtDM(col.date)}</span>
-                          <span className="text-[10px] bg-white border border-gray-200 rounded-full px-1.5 mt-1">{colCells.length}</span>
-                        </button>
-                      )
-                    }
+                    if (isCollapsed(plan.id, col)) return null
                     return (
                       <div key={col.id} className={`w-64 flex-shrink-0 bg-gray-50 rounded-xl border overflow-hidden ${isPastDay(col) ? 'border-gray-200 opacity-80' : 'border-gray-300'}`}>
                         {/* column header */}
@@ -1125,11 +1134,6 @@ export default function ProjectPlansMode({ profile }) {
                           <div className="flex-1 min-w-0">
                             <div className="text-[12px] font-bold truncate flex items-center gap-1" style={{ color: cat.text }}>
                               {fmtDay(col.date)}
-                              {isPastDay(col) && pastOpen[col.id] && !showPast[plan.id] && (
-                                <button onClick={() => setPastOpen(v => { const n = { ...v }; delete n[col.id]; return n })} className="opacity-60 hover:opacity-100" title="כווץ">
-                                  <i className="ti ti-chevron-left" style={{ fontSize: 12 }} />
-                                </button>
-                              )}
                             </div>
                             <div className="flex gap-1 mt-1">
                               <input type="date" value={col.date || ''}
