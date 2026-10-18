@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 // HAZIRA-EVENTS-SKETCH-V2
 // HAZIRA-EVENTS-NOCREWNOTES-V3
-// HAZIRA-EVENTS-PASTMONTHS-V4
+// HAZIRA-EVENTS-PASTMONTHS-V5
 
 const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלים בלבד
 
@@ -509,15 +509,14 @@ function EventsPageInner() {
         : activeEvents.length===0 ? <div className="text-center text-sm text-gray-400 py-6">אין אירועים</div>
         : (() => {
           const future = activeEvents.filter(e => e.date >= _todayStr)
-          const past = activeEvents.filter(e => e.date < _todayStr).sort((a,b)=>b.date.localeCompare(a.date))
+          const past = activeEvents.filter(e => e.date < _todayStr)
           const byMonth={}
           past.forEach(e=>{ const k=e.date.slice(0,7); (byMonth[k]=byMonth[k]||[]).push(e) })
-          const monthKeys=Object.keys(byMonth).sort().reverse()
+          const monthKeys=Object.keys(byMonth).sort()
           return (
             <>
-              {future.map(ev=>renderEventCard(ev))}
               {past.length>0 && (
-                <div className="mt-2 border-t border-gray-100">
+                <div className="mb-2 border-b border-gray-100">
                   <button onClick={()=>setHidePast(v=>!v)}
                     className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-600">
                     <span className="text-[12px] text-gray-400">{past.length} אירועים · {monthKeys.length} חודשים</span>
@@ -545,6 +544,7 @@ function EventsPageInner() {
                   })}
                 </div>
               )}
+              {future.map(ev=>renderEventCard(ev))}
             </>
           )
         })()}
