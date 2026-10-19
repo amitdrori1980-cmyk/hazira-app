@@ -1,5 +1,6 @@
 // HAZIRA-PRODINQ-MONTHSCOLLAPSED-V51
 // HAZIRA-PRODINQ-JUMPEXPAND-V52
+// HAZIRA-PRODINQ-INQMATCH-V53
 // HAZIRA-PRODINQ-DAYNAME-TZFIX-V48
 // HAZIRA-PRODINQ-REVIEWPRODONLY-V47
 // HAZIRA-PRODINQ-CULTREVIEW-ACTIONSONLY-V46
@@ -118,9 +119,12 @@ function ProductionInquiries() {
     ;(async () => {
       const date = params.get('date') || null
       const venue = params.get('venue') || null
+      // התאמה חסינה לרווחים/כתיב — אחרת נוצר כרטיס כפול ריק לצד הקיים
+      const nn = x => (x || '').normalize('NFC').replace(/[\u200e\u200f\u202a-\u202e\u200b-\u200d\ufeff]/g, '').trim().replace(/\s+/g, ' ')
+      const target = nn(inqName)
       let match = date
-        ? events.find(e => e.event_name === inqName && e.date === date)
-        : events.find(e => e.event_name === inqName)
+        ? events.find(e => !e.deleted_at && nn(e.event_name) === target && e.date === date)
+        : events.find(e => !e.deleted_at && nn(e.event_name) === target)
       if (!match) {
         const day = date ? heDayName(date) : null
         const { data } = await supabase.from('production_events').insert({
