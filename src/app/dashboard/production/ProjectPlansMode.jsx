@@ -1,4 +1,6 @@
 // HAZIRA-PROJPLANS-PASTONEBLOCK-V31
+// HAZIRA-PROJPLANS-AUTONAME-V32
+// HAZIRA-PROJPLANS-LOCKNAME-V33
 // HAZIRA-PROJPLANS-LIVECREW-V23
 // HAZIRA-PROJPLANS-DROPLINEFIX-V22
 'use client'
@@ -167,10 +169,30 @@ export default function ProjectPlansMode({ profile }) {
     // live crew from production for linked cells
     const eids = [...new Set((allCells || []).map(c => c.source_event_id).filter(Boolean))]
     if (eids.length) {
-      const { data: ppl } = await supabase.from('production_people').select('production_event_id,slot,name,status').in('production_event_id', eids).order('slot')
+      // טעינה במנות (URL קצר): צוות חי + שמות אירועים חיים מההפקה
+      const ppl = [], evs = []
+      for (let i = 0; i < eids.length; i += 25) {
+        const part = eids.slice(i, i + 25)
+        const [{ data: p1 }, { data: e1 }] = await Promise.all([
+          supabase.from('production_people').select('production_event_id,slot,name,status').in('production_event_id', part).order('slot'),
+          supabase.from('production_events').select('id,event_name').in('id', part),
+        ])
+        if (p1) ppl.push(...p1); if (e1) evs.push(...e1)
+      }
       const map = {}
-      ;(ppl || []).forEach(r => { (map[r.production_event_id] = map[r.production_event_id] || []).push(r) })
+      ppl.forEach(r => { (map[r.production_event_id] = map[r.production_event_id] || []).push(r) })
       setEventPeople(prev => ({ ...prev, ...map }))
+      // דחיפה אוטומטית: אם שם האירוע בהפקה השתנה — מעדכנים את התא (תצוגה + DB) בלי צורך ב"סנכרן"
+      const nameOf = {}; evs.forEach(e => { nameOf[e.id] = e.event_name || '' })
+      const stale = (allCells || []).filter(c => c.source_event_id && nameOf[c.source_event_id] != null && (c.action || '') !== nameOf[c.source_event_id])
+      if (stale.length) {
+        setCells(prev => {
+          const n = { ...prev }
+          stale.forEach(c => { n[c.column_id] = (n[c.column_id] || []).map(x => x.id === c.id ? { ...x, action: nameOf[c.source_event_id] } : x) })
+          return n
+        })
+        await Promise.all(stale.map(c => supabase.from('project_plan_cells').update({ action: nameOf[c.source_event_id] }).eq('id', c.id)))
+      }
     }
   }
   function renderLiveCrew(eid) {
@@ -581,11 +603,17 @@ export default function ProjectPlansMode({ profile }) {
         <div className="flex items-start gap-1">
           <div className="flex-1 min-w-0 space-y-1">
             <div className="flex items-start gap-1 justify-end">
-              {cell.source_event_id && <i className="ti ti-link text-[#E0197D] mt-0.5 shrink-0" style={{ fontSize: 11 }} title="מקושר לאירוע בהפקה הטכנית — יתעדכן בסנכרון" />}
-              <AutoTextarea value={cell.action || ''} placeholder="פעולה"
-                onChange={e => setCellField(col.id, cell.id, 'action', e.target.value)}
-                onBlur={e => commitCell(cell.id, 'action', e.target.value)}
-                className="flex-1 min-w-0 text-[12px] font-medium text-gray-800 bg-transparent outline-none text-right placeholder:text-gray-300" />
+              {cell.source_event_id ? (
+                <>
+                  <i className="ti ti-link text-[#E0197D] mt-0.5 shrink-0" style={{ fontSize: 11 }} title="מקושר לאירוע בהפקה הטכנית — השם מגיע מההפקה (לשינוי: ערוך בהפקה הטכנית)" />
+                  <div className="flex-1 min-w-0 text-[12px] font-medium text-gray-800 text-right whitespace-pre-wrap" title="השם מגיע מההפקה הטכנית">{cell.action || '—'}</div>
+                </>
+              ) : (
+                <AutoTextarea value={cell.action || ''} placeholder="פעולה"
+                  onChange={e => setCellField(col.id, cell.id, 'action', e.target.value)}
+                  onBlur={e => commitCell(cell.id, 'action', e.target.value)}
+                  className="flex-1 min-w-0 text-[12px] font-medium text-gray-800 bg-transparent outline-none text-right placeholder:text-gray-300" />
+              )}
             </div>
             {cell.source_event_id ? (
               <div className="w-full">{renderLiveCrew(cell.source_event_id)}</div>
