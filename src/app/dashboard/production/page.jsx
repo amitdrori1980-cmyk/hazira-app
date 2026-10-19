@@ -1,4 +1,5 @@
 // HAZIRA-PRODINQ-MONTHSCOLLAPSED-V51
+// HAZIRA-PRODINQ-JUMPEXPAND-V52
 // HAZIRA-PRODINQ-DAYNAME-TZFIX-V48
 // HAZIRA-PRODINQ-REVIEWPRODONLY-V47
 // HAZIRA-PRODINQ-CULTREVIEW-ACTIONSONLY-V46
@@ -136,6 +137,9 @@ function ProductionInquiries() {
         setOpenEvent(mid)
         setFlashId(mid)
         if (match.date) setView(match.date < todayStr ? 'archive' : 'active')
+        // הרחב את החודש של האירוע — אחרת הוא לא מרונדר (חודשים מכווצים כברירת מחדל) והגלילה נכשלת
+        const monthKey = match.date ? 'a-' + match.date.slice(0, 7) : 'a-nodate'
+        setExpandedMonths(p => ({ ...p, [monthKey]: true }))
         let tries = 0
         const firstScroll = () => {
           const el = document.getElementById('prod-ev-' + mid)
@@ -239,6 +243,7 @@ function ProductionInquiries() {
       }
       setShowImport(false)
       setOpenEvent(exists.id)
+      setExpandedMonths(p => ({ ...p, [exists.date ? 'a-' + exists.date.slice(0, 7) : 'a-nodate']: true }))
       setTimeout(() => document.getElementById('prod-ev-' + exists.id)?.scrollIntoView({ behavior:'smooth', block:'center' }), 200)
       return
     }
@@ -251,6 +256,7 @@ function ProductionInquiries() {
       setSlots(prev => ({ ...prev, [data.id]: emptySlots() }))
       setShowImport(false)
       setOpenEvent(data.id)
+      setExpandedMonths(p => ({ ...p, [data.date ? 'a-' + data.date.slice(0, 7) : 'a-nodate']: true }))
       setTimeout(() => document.getElementById('prod-ev-' + data.id)?.scrollIntoView({ behavior:'smooth', block:'center' }), 250)
     }
   }
