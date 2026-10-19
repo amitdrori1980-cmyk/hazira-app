@@ -2,6 +2,7 @@
 // HAZIRA-PRODINQ-JUMPEXPAND-V52
 // HAZIRA-PRODINQ-INQMATCH-V53
 // HAZIRA-PRODINQ-CHUNKLOAD-V54
+// HAZIRA-PRODINQ-EDITSYNC-V55
 // HAZIRA-PRODINQ-DAYNAME-TZFIX-V48
 // HAZIRA-PRODINQ-REVIEWPRODONLY-V47
 // HAZIRA-PRODINQ-CULTREVIEW-ACTIONSONLY-V46
@@ -462,22 +463,25 @@ function ProductionInquiries() {
   async function saveEventEdit() {
     if (!editingEvent) return
     const old = events.find(e => e.id === editingEvent)
-    await supabase.from('production_events').update(editEventVal).eq('id', editingEvent)
-    // סנכרון השינוי ליומן ולאילוצים — לפי האירוע התואם (התאמה לפי שם+תאריך ישנים)
+    const { error: pErr } = await supabase.from('production_events').update(editEventVal).eq('id', editingEvent)
+    if (pErr) { alert('שגיאה בשמירת האירוע: ' + pErr.message); return }
+    // סנכרון השינוי ליומן ולאילוצים — לפי האירוע התואם (התאמה לפי שם+תאריך ישנים, בנרמול אחיד)
     if (old) {
-      const oldName = (old.event_name || '').trim()
+      const nn = x => (x || '').normalize('NFC').replace(/[\u200e\u200f\u202a-\u202e\u200b-\u200d\ufeff]/g, '').trim().replace(/\s+/g, ' ')
+      const oldName = nn(old.event_name)
       const oldDate = old.date || null
-      const newName = (editEventVal.event_name || '').trim()
+      const newName = nn(editEventVal.event_name)
       const newDate = editEventVal.date || null
       let q = supabase.from('events').select('id, title, date')
       if (oldDate) q = q.eq('date', oldDate)
       const { data: rows } = await q
-      const match = (rows || []).find(r => (r.title || '').trim() === oldName)
+      const match = (rows || []).find(r => nn(r.title) === oldName)
       if (match) {
         const upd = { title: editEventVal.event_name, date: newDate }
         if (editEventVal.type) upd.type = editEventVal.type
         if (editEventVal.venue) upd.venue = editEventVal.venue
-        await supabase.from('events').update(upd).eq('id', match.id)
+        const { error: cErr } = await supabase.from('events').update(upd).eq('id', match.id)
+        if (cErr) alert('האירוע נשמר בהפקה, אך עדכון היומן נכשל: ' + cErr.message)
       }
       if (oldDate && (oldName !== newName || oldDate !== newDate)) {
         await supabase.from('crew_constraints')
