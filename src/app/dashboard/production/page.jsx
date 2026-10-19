@@ -1,6 +1,7 @@
 // HAZIRA-PRODINQ-MONTHSCOLLAPSED-V51
 // HAZIRA-PRODINQ-JUMPEXPAND-V52
 // HAZIRA-PRODINQ-INQMATCH-V53
+// HAZIRA-PRODINQ-CHUNKLOAD-V54
 // HAZIRA-PRODINQ-DAYNAME-TZFIX-V48
 // HAZIRA-PRODINQ-REVIEWPRODONLY-V47
 // HAZIRA-PRODINQ-CULTREVIEW-ACTIONSONLY-V46
@@ -173,7 +174,14 @@ function ProductionInquiries() {
     setAllGenScheds(gscheds || [])
     if (ts && ts.length) setNewEvent(p => p.type ? p : { ...p, type: ts[0].value })
     if (evs?.length) {
-      const { data: ppl } = await supabase.from('production_people').select('*').in('production_event_id', evs.map(e => e.id))
+      // טעינה במנות — .in() אחד על מאות אירועים יוצר URL ארוך מדי שנחתך ומחזיר ריק (הצוות "נעלם" בתצוגה)
+      const ids = evs.map(e => e.id)
+      const ppl = []
+      for (let i = 0; i < ids.length; i += 25) {
+        const { data: chunk, error: chunkErr } = await supabase.from('production_people').select('*').in('production_event_id', ids.slice(i, i + 25))
+        if (chunkErr) { console.error('production_people load failed', chunkErr); alert('שגיאה בטעינת הצוות: ' + chunkErr.message); break }
+        if (chunk) ppl.push(...chunk)
+      }
       const map = {}
       evs.forEach(e => { map[e.id] = emptySlots() })
       ;(ppl || []).forEach(p => {
