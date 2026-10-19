@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 // HAZIRA-EVENTS-SKETCH-V2
 // HAZIRA-EVENTS-NOCREWNOTES-V3
 // HAZIRA-EVENTS-PASTMONTHS-V6
+// HAZIRA-EVENTS-PROPAGATE-V7
 
 const SKETCH_TYPE = 'sketch' // אירוע סקיצה — גלוי למנהלים בלבד
 
@@ -179,8 +180,33 @@ function EventsPageInner() {
   }
   async function saveEdit(id) {
     const payload = {...editVal, end_date: editVal.end_date||null, time: editVal.time||null}
+    const old = events.find(e => e.id === id)
     const { error } = await supabase.from('events').update(payload).eq('id',id)
     if(error){ alert('שגיאה בעדכון האירוע: '+error.message); return }
+    // הפצת השינוי להפקה הטכנית ולאילוצים — זיהוי לפי שם+תאריך הישנים (כמו ביומן), כדי לא לנתק את הקישור
+    if (old) {
+      const nn = x => (x || '').normalize('NFC').replace(/[‎‏‪-‮​-‍﻿]/g, '').trim().replace(/\s+/g, ' ')
+      const oldTitle = nn(old.title), newTitle = nn(editVal.title)
+      const oldDate = old.date || null, newDate = editVal.date || null
+      try {
+        let pq = supabase.from('production_events').select('id, event_name, date').is('deleted_at', null)
+        if (oldDate) pq = pq.eq('date', oldDate)
+        const { data: prows } = await pq
+        const pmatch = (prows || []).find(r => nn(r.event_name) === oldTitle)
+        if (pmatch) {
+          const pupd = { event_name: editVal.title, date: newDate }
+          if (editVal.type) pupd.type = editVal.type
+          if (editVal.venue) pupd.venue = editVal.venue
+          const { error: pErr } = await supabase.from('production_events').update(pupd).eq('id', pmatch.id)
+          if (pErr) alert('האירוע נשמר, אך עדכון ההפקה הטכנית נכשל: ' + pErr.message)
+        }
+        if (oldDate && (oldTitle !== newTitle || oldDate !== newDate)) {
+          await supabase.from('crew_constraints')
+            .update({ notes: editVal.title, date: newDate })
+            .eq('date', oldDate).eq('notes', old.title).eq('available', true).is('crew_member_id', null)
+        }
+      } catch (e) { alert('האירוע נשמר, אך ההפצה להפקה הטכנית נכשלה: ' + (e?.message || e)) }
+    }
     setEvents(prev=>prev.map(e=>e.id===id?{...e,...payload}:e))
     gAutoSave(id)
     setEditing(null)
